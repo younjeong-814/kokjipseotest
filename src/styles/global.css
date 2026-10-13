@@ -1,0 +1,253 @@
+* {
+  box-sizing:border-box
+}
+body {
+  margin:0;
+  background:#f4f6f8;
+  color:var(--gray-900);
+  font-family:var(--font-family)
+}
+button,input,select {
+  font:inherit
+}
+button {
+  cursor:pointer
+}
+button:focus-visible,input:focus-visible,select:focus-visible {
+  outline:3px solid var(--blue-500);
+  outline-offset:3px
+}
+h1,h2,p {
+  margin:0
+}
+button {
+  border:0
+}
+ .app-shell {
+  max-width:390px;
+  min-height:844px;
+  margin:0 auto;
+  background:var(--gray-0);
+  position:relative;
+  display:flex;
+  flex-direction:column
+}
+.status-bar {
+  height:58px;
+  padding:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:15px
+}
+.status-icons {
+  display:flex;
+  gap:6px;
+  align-items:center
+}
+.status-icons img {
+  width:14px;
+  height:14px
+}
+.signal {
+  display:flex;
+  align-items:flex-end;
+  gap:2px
+}
+.signal i {
+  width:3px;
+  border-radius:1px;
+  background:var(--gray-900)
+}
+.battery {
+  width:24px;
+  height:12px;
+  border:1px solid var(--gray-900);
+  border-radius:3px;
+  padding:1px;
+  display:flex
+}
+.battery i {
+  background:var(--gray-900);
+  width:18px;
+  height:8px;
+  border-radius:1px
+}
+.top-header {
+  height:58px;
+  padding:8px var(--s5)
+}
+.top-header h1 {
+  font-size:var(--t9);
+  line-height:var(--lh9);
+  font-weight:700
+}
+.banner-section {
+  padding:var(--s3) var(--s5)
+}
+.welcome-banner {
+  padding:var(--s5);
+  border-radius:var(--r5);
+  background:var(--blue-100);
+  display:flex;
+  flex-direction:column;
+  gap:var(--s3)
+}
+.welcome-banner h2 {
+  font-size:var(--t5);
+  line-height:var(--lh5)
+}
+.welcome-banner p {
+  font-size:var(--t3);
+  line-height:var(--lh3);
+  color:var(--gray-800)
+}
+.fridge-summary {
+  padding:var(--s3) var(--s5);
+  display:flex;
+  flex-direction:column;
+  gap:var(--s3)
+}
+.fridge-summary h2 {
+  font-size:var(--t6);
+  line-height:var(--lh6)
+}
+.card-shell {
+  background:var(--blue-50);
+  border-radius:var(--r4);
+  padding:var(--s4)
+}
+.summary-grid {
+  display:flex;
+  justify-content:space-between
+}
+.summary-item {
+  width:88px;
+  display:flex;
+  flex-direction:column;
+  gap:var(--s2);
+  align-items:center
+}
+.storage-icon {
+  width:24px;
+  height:24px;
+  overflow:hidden;
+  position:relative
+}
+.storage-icon img {
+  position:absolute;
+  width:350.88%;
+  height:111.11%;
+  top:-5.56%;
+  max-width:none
+}
+.storage-icon-0 img {
+  left:-20.47%
+}
+.storage-icon-1 img {
+  left:-126.74%
+}
+.storage-icon-2 img {
+  left:-229.59%
+}
+.storage-label {
+  color:var(--gray-700);
+  font-size:var(--t1);
+  line-height:var(--lh1)
+}
+.summary-item b {
+  font-size:var(--t3);
+  line-height:var(--lh3)
+}
+.empty-fridge {
+  height:343px;
+  padding:16px 20px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  justify-content:center
+}
+.empty-content {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  text-align:center
+}
+.empty-illustration {
+  width:100%;
+  height:170px;
+  object-fit:contain;
+  border-radius:4px
+}
+.empty-content h2 {
+  font-size:var(--t4);
+  line-height:var(--lh4)
+}
+.empty-content p {
+  height:24px;
+  font-size:var(--t2);
+  line-height:var(--lh2);
+  color:var(--gray-700)
+}
+.action-button {
+  background:var(--blue-500);
+  border-radius:var(--r3);
+  padding:0 var(--s4);
+  height:48px;
+  min-width:80px;
+  width:100%;
+  color:white;
+  font-size:var(--t3);
+  line-height:var(--lh3);
+  font-weight:700
+}
+.action-button:hover {
+  filter:brightness(.96)
+}
+.bottom-navigation {
+  margin-top:auto;
+  height:60px;
+  padding:9px;
+  display:flex;
+  background:white;
+  position:sticky;
+  bottom:0;
+  z-index:1
+}
+.bottom-navigation button {
+  flex:1;
+  min-width:0;
+  background:none;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  color:var(--gray-600);
+  font-size:11px;
+  font-weight:700
+}
+.bottom-navigation button[aria-current] {
+  color:var(--blue-500)
+}
+.nav-icon {
+  width:24px;
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center
+}
+@media(max-width:389px) {
+  .welcome-banner p {
+  font-size:clamp(13px,4.1vw,16px)
+}
+.welcome-banner h2 {
+  font-size:clamp(16px,5.1vw,20px)
+}
+.empty-content p {
+  font-size:clamp(11px,3.58vw,14px)
+}
+
+}
+
+

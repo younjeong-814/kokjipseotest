@@ -1,0 +1,51 @@
+/* Figma Variables / Styles: 홈 5558:18818. 팀 디자인 시스템의 확인된 값. */
+@font-face {
+  font-family:Paperlogy;
+  src:url('../assets/Paperlogy-Regular.woff2') format('woff2');
+  font-weight:400;
+  font-display:swap
+}
+
+@font-face {
+  font-family:Paperlogy;
+  src:url('../assets/Paperlogy-Bold.woff2') format('woff2');
+  font-weight:700;
+  font-display:swap
+}
+
+:root {
+  --gray-0:#fff;
+  --gray-600:#b0b3ba;
+  --gray-700:#868b94;
+  --gray-800:#555d6d;
+  --gray-900:#2a3038;
+  --blue-50:#eaf5fe;
+  --blue-100:#d4ebfe;
+  --blue-500:#2a9df8;
+  --s1:4px;
+  --s2:8px;
+  --s3:12px;
+  --s4:16px;
+  --s5:20px;
+  --r3:12px;
+  --r4:16px;
+  --r5:20px;
+  --font-family:Paperlogy,sans-serif;
+  --t1:12px;
+  --t2:14px;
+  --t3:16px;
+  --t4:18px;
+  --t5:20px;
+  --t6:24px;
+  --t9:32px;
+  --lh1:16px;
+  --lh2:19px;
+  --lh3:22px;
+  --lh4:24px;
+  --lh5:27px;
+  --lh6:32px;
+  --lh9:42px
+}
+
+
+
