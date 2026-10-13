@@ -21,7 +21,7 @@ export function RegistrationPage() {
           return <button type="button" key={method.title} className={`method-card${selectedMethod === method.title ? ' selected' : ''}`} aria-pressed={selectedMethod === method.title} onClick={() => setSelectedMethod(method.title)}>{content}</button>;
         })}</div>
       </section>
-      <div className="large-button-section"><button className="action-button action-button-large" disabled>등록 방식을 선택해주세요</button></div>
+      <div className="large-button-section"><button type="button" className="action-button action-button-large" disabled={selectedMethod === null}>{selectedMethod === null ? '등록 방식을 선택해주세요' : `${selectedMethod}하기`}</button></div>
     </main>
   );
 }
