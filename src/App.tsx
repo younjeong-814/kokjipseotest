@@ -25,7 +25,7 @@ export function App() {
       <TopHeader title={info.title} search={screen === '5558:19292' ? additionalConnections.search.destination : undefined} navigate={navigate} />
       {screen === '5558:18818' && <HomePage navigate={navigate} />}
       {screen === '5558:19292' && <FridgePage navigate={navigate} />}
-      {screen === '5558:19197' && <RegistrationPage navigate={navigate} />}
+      {screen === '5558:19197' && <RegistrationPage />}
       <BottomNavigation screen={screen} navigate={navigate} />
     </div>
   );
