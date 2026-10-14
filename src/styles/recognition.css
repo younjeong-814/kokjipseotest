@@ -1,0 +1,54 @@
+@font-face {
+  font-family: Paperlogy;
+  src: url('../assets/Paperlogy-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+.recognition-result { flex: 1; overflow-x: clip; }
+.recognition-result .sub-header { justify-content: flex-start; }
+.recognition-result .sub-header h1 { margin-left: 24px; width: calc(100% - 24px); }
+.recognition-content { display: flow-root; position: relative; min-height: 728px; }
+.capture-date { margin: 12px 20px 0; }
+.capture-date-row { display: flex; gap: 10px; }
+.capture-date-row > div { flex: 1; min-width: 0; border: 1px solid var(--gray-400); border-radius: 16px; height: 46px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
+.capture-date-row > div:last-child { border-radius: 14px; }
+.capture-date-row b { font-size: 16px; line-height: 22px; }
+.capture-date-row span { font-size: 12px; line-height: 16px; font-weight: 700; color: var(--blue-500); }
+.capture-date > p { margin-top: 8px; font-size: 12px; line-height: 16px; color: var(--gray-800); }
+.recognition-banner { margin-top: 15px; padding: 10px 20px; }
+.recognized-list { margin: 0 20px; height: 278px; border-bottom: 1px solid var(--gray-400); }
+.recognized-row { display: flex; align-items: center; height: 68px; gap: 12px; padding: 12px 4px; }
+.recognized-thumbnail { width: 44px; height: 44px; object-fit: cover; flex-shrink: 0; }
+.vegetable { transform: scaleX(-1); }
+.recognized-name { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.recognized-name h2 { font-size: 18px; line-height: 24px; }
+.recognition-error { display: flex; align-items: center; gap: 4px; height: 24px; padding: 4px 8px; background: #fcebee; color: #bc2949; border-radius: 8px; font-size: 12px; line-height: 16px; }
+.recognized-actions { display: flex; align-items: center; gap: 8px; }
+.recognized-actions button { display: flex; justify-content: center; align-items: center; padding: 0; width: 36px; height: 36px; border-radius: 10px; background: #eeeff1; }
+.recognition-divider { height: 1px; background: var(--gray-400); }
+.recognized-slot:nth-child(3) .recognition-divider { height: 2px; }
+.recognition-guideline { padding: 12px 20px; margin-left: 1px; width: 100%; }
+.recognition-guideline-card { border: 1px solid var(--gray-400); background: white; padding: 16px; height: 90px; }
+.guideline-heading { display: flex; align-items: flex-start; gap: 6px; height: 20px; }
+.guideline-heading h2 { font-size: 16px; font-weight: 500; line-height: 20px; }
+.recognition-help { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+.recognition-guideline-card p { font-size: 12px; line-height: 16px; color: var(--gray-800); margin-top: 6px; max-width: 272px; }
+.recognition-footer { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 22px 20px; margin-top: -6px; margin-left: 1px; height: 101px; width: 100%; }
+.recognition-footer .action-button { width: 157px; flex-shrink: 0; }
+.recognition-retake { background: white; border: 1px solid var(--gray-400); color: var(--gray-900); }
+.registered-fridge-list { height: 564px; margin-top: 1px; overflow-y: auto; padding: 8px 20px; display: flex; flex-direction: column; gap: 17px; scrollbar-width: none; }
+.registered-fridge-list::-webkit-scrollbar { display: none; }
+.registered-food-card { padding: 16px; border: 1px solid var(--gray-400); border-radius: 16px; height: 139px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; }
+.registered-food-image { width: 60px; flex-shrink: 0; text-align: center; }
+.registered-food-image > img { width: 56px; height: 56px; object-fit: cover; display: block; margin: 0 auto; }
+.registered-food-image span { font-size: 12px; line-height: 16px; display: block; }
+.registered-food-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.registered-food-info h2 { font-size: 18px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.food-badges { display: flex; gap: 8px; }
+.food-badges > span { height: 24px; padding: 4px 8px; font-size: 12px; line-height: 16px; font-weight: 700; color: var(--gray-800); background: var(--gray-200); border-radius: 8px; }
+.food-badges > .orange { background: #fff2ec; color: #e06b2c; }
+.food-badges > .red { background: #fcebee; color: #bc2949; }
+.food-badges > .green { background: #f0fdf4; color: #0e5f19; }
+.food-remaining p { font-size: 12px; line-height: 16px; color: var(--gray-800); }
+.food-remaining > div { display: flex; align-items: center; gap: 8px; }
+.food-remaining b { font-size: 14px; line-height: 19px; color: var(--blue-500); }

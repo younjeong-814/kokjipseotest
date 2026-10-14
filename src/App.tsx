@@ -8,6 +8,9 @@ import { GuidePage } from './features/registration/GuidePage';
 import { FridgePage } from './features/fridge/FridgePage';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
+import { RecognitionResultPage } from './features/recognition/RecognitionResultPage';
+import { useRecognition } from './features/recognition/useRecognition';
+import { RegisteredFridgePage } from './features/fridge/RegisteredFridgePage';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
 function readScreen(): ScreenId {
   const id = window.location.hash.slice(1);
@@ -15,6 +18,7 @@ function readScreen(): ScreenId {
 }
 export function App() {
   const [screen, setScreen] = useState(readScreen);
+  const recognition = useRecognition();
   useEffect(() => {
     const onHashChange = () => { setScreen(readScreen()); window.scrollTo(0, 0); };
     window.addEventListener('hashchange', onHashChange);
@@ -22,20 +26,24 @@ export function App() {
   }, []);
   const navigate = (destination: ScreenId) => { window.location.hash = destination; };
   const info = screens[screen];
-  if (screen === '5572:19475' || screen === '5579:702') {
+  const onRecognize = () => { recognition.reset(); navigate('5572:19525'); };
+  if (screen === '5572:19475' || screen === '5579:702' || screen === '5572:19525') {
     return (
       <div className="app-shell screen-receipt">
         <StatusBar />
-        {screen === '5572:19475' ? <ReceiptGuidePage navigate={navigate} /> : <ReceiptCameraPage navigate={navigate} />}
+        {screen === '5572:19475' && <ReceiptGuidePage navigate={navigate} />}
+        {screen === '5579:702' && <ReceiptCameraPage navigate={navigate} onRecognize={onRecognize} />}
+        {screen === '5572:19525' && <RecognitionResultPage navigate={navigate} recognition={recognition} />}
       </div>
     );
   }
   return (
     <div className={`app-shell screen-${info.menu}`}>
       <StatusBar />
-      <TopHeader title={info.title} search={screen === '5558:19292' ? additionalConnections.search.destination : undefined} navigate={navigate} />
+      <TopHeader title={info.title} search={screen === '5558:19292' || screen === '5572:19852' ? additionalConnections.search.destination : undefined} navigate={navigate} />
       {screen === '5558:18818' && <HomePage navigate={navigate} />}
       {screen === '5558:19292' && <FridgePage navigate={navigate} />}
+      {screen === '5572:19852' && <RegisteredFridgePage navigate={navigate} />}
       {screen === '5558:19197' && <RegistrationPage navigate={navigate} />}
       {screen.startsWith('guide-') && <GuidePage screen={screen} navigate={navigate} />}
       <BottomNavigation screen={screen} navigate={navigate} />
