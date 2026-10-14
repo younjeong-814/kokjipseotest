@@ -22,7 +22,11 @@ export function RegistrationPage({ navigate }: { navigate: Navigate }) {
           return <button type="button" key={method.title} className={`method-card${selectedMethod === method.title ? ' selected' : ''}`} aria-pressed={selectedMethod === method.title} onClick={() => setSelectedMethod(method.title)}>{content}</button>;
         })}</div>
       </section>
+<<<<<<< HEAD
       <div className="large-button-section"><button type="button" className="action-button action-button-large" disabled={selectedMethod === null} onClick={() => { if (selectedMethod !== null) navigate((['guide-fridge', 'guide-product', 'guide-receipt', 'guide-manual'] as const)[methods.findIndex(method => method.title === selectedMethod)]); }}>{selectedMethod === null ? '등록 방식을 선택해주세요' : `${selectedMethod}하기`}</button></div>
+=======
+      <div className="large-button-section"><button type="button" className="action-button action-button-large" disabled={selectedMethod === null} onClick={() => { if (selectedMethod === '영수증 촬영') navigate('5572:19475'); }}>{selectedMethod === null ? '등록 방식을 선택해주세요' : `${selectedMethod}하기`}</button></div>
+>>>>>>> 58cab48aec66a3a2ec5d430a2688b6fd289d6e4e
     </main>
   );
 }

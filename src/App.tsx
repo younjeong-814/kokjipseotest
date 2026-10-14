@@ -6,6 +6,8 @@ import { HomePage } from './features/home/HomePage';
 import { RegistrationPage } from './features/registration/RegistrationPage';
 import { GuidePage } from './features/registration/GuidePage';
 import { FridgePage } from './features/fridge/FridgePage';
+import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
+import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
 function readScreen(): ScreenId {
   const id = window.location.hash.slice(1);
@@ -20,6 +22,14 @@ export function App() {
   }, []);
   const navigate = (destination: ScreenId) => { window.location.hash = destination; };
   const info = screens[screen];
+  if (screen === '5572:19475' || screen === '5579:702') {
+    return (
+      <div className="app-shell screen-receipt">
+        <StatusBar />
+        {screen === '5572:19475' ? <ReceiptGuidePage navigate={navigate} /> : <ReceiptCameraPage navigate={navigate} />}
+      </div>
+    );
+  }
   return (
     <div className={`app-shell screen-${info.menu}`}>
       <StatusBar />
@@ -27,7 +37,10 @@ export function App() {
       {screen === '5558:18818' && <HomePage navigate={navigate} />}
       {screen === '5558:19292' && <FridgePage navigate={navigate} />}
       {screen === '5558:19197' && <RegistrationPage navigate={navigate} />}
+<<<<<<< HEAD
       {screen.startsWith('guide-') && <GuidePage screen={screen} navigate={navigate} />}
+=======
+>>>>>>> 58cab48aec66a3a2ec5d430a2688b6fd289d6e4e
       <BottomNavigation screen={screen} navigate={navigate} />
     </div>
   );
