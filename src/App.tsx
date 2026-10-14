@@ -37,10 +37,7 @@ export function App() {
       {screen === '5558:18818' && <HomePage navigate={navigate} />}
       {screen === '5558:19292' && <FridgePage navigate={navigate} />}
       {screen === '5558:19197' && <RegistrationPage navigate={navigate} />}
-<<<<<<< HEAD
       {screen.startsWith('guide-') && <GuidePage screen={screen} navigate={navigate} />}
-=======
->>>>>>> 58cab48aec66a3a2ec5d430a2688b6fd289d6e4e
       <BottomNavigation screen={screen} navigate={navigate} />
     </div>
   );

@@ -27,12 +27,12 @@
 .guide-page { padding: 16px 20px 32px; }
 .guide-back { background: transparent; color: var(--blue-800); padding: 8px 0; font-size: 14px; }
 .guide-content { display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 32px; }
-.guide-image { width: 100px; height: 100px; object-fit: contain; }
+.guide-page .guide-image { width: 100px; height: 100px; object-fit: contain; }
 .guide-content h2 { font-size: 24px; line-height: 32px; text-align: center; }
 .guide-content > p { font-size: 14px; line-height: 22px; color: var(--gray-800); text-align: center; }
-.guide-tips { width: 100%; margin: 8px 0 0; padding: 24px 24px 24px 44px; border-radius: 16px; background: var(--blue-50); }
-.guide-tips li { padding-left: 4px; font-size: 16px; line-height: 26px; }
-.guide-tips li + li { margin-top: 16px; }
+.guide-page .guide-tips { width: 100%; margin: 8px 0 0; padding: 24px 24px 24px 44px; border-radius: 16px; background: var(--blue-50); }
+.guide-page .guide-tips li { padding-left: 4px; font-size: 16px; line-height: 26px; }
+.guide-page .guide-tips li + li { margin-top: 16px; }
 .screen-2 .bottom-navigation { margin-bottom: 2px; }
 .screen-1 .top-header { margin-top: 1px; }
 .fridge-page > .screen-tabs { margin-top: 1px; }
@@ -81,9 +81,9 @@
 
 /* 촬영 가이드_영수증 촬영 5572:19475 */
 .receipt-guide { display: flex; flex-direction: column; flex: 1; }
-.guide-tips { flex: 1; padding: var(--s5); display: flex; flex-direction: column; gap: var(--s2); }
+.receipt-guide .guide-tips { flex: 1; padding: var(--s5); display: flex; flex-direction: column; gap: var(--s2); }
 .guide-intro { font-size: var(--t3); line-height: var(--lh3); color: var(--gray-800); text-align: center; }
-.guide-image { width: 100%; height: 170px; object-fit: contain; border-radius: 4px; }
+.receipt-guide .guide-image { width: 100%; height: 170px; object-fit: contain; border-radius: 4px; }
 .guide-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; }
 .guide-list li { display: flex; align-items: center; gap: var(--s3); }
 .guide-number { width: 24px; height: 24px; flex-shrink: 0; border-radius: 9999px; background: var(--blue-500); color: white; display: flex; align-items: center; justify-content: center; font-size: var(--t3); line-height: var(--lh3); }
