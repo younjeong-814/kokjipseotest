@@ -1,0 +1,8 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="175" height="6" viewBox="0 0 175 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="progress bar">
+<path id="Remaining Segment 1 / Active" d="M0 3C0 1.34315 1.34315 0 3 0H37C38.6569 0 40 1.34315 40 3V3C40 4.65685 38.6569 6 37 6H3C1.34315 6 0 4.65685 0 3V3Z" fill="#2A9DF8"/>
+<path id="Remaining Segment 2 / Active" d="M45 3C45 1.34315 46.3431 0 48 0H82C83.6569 0 85 1.34315 85 3C85 4.65685 83.6569 6 82 6H48C46.3431 6 45 4.65685 45 3Z" fill="#2A9DF8"/>
+<path id="Remaining Segment 3 / Active" d="M90 3C90 1.34315 91.3431 0 93 0H127C128.657 0 130 1.34315 130 3V3C130 4.65685 128.657 6 127 6H93C91.3431 6 90 4.65685 90 3V3Z" fill="#EEEFF1"/>
+<path id="Remaining Segment 4 / Inactive" d="M135 3C135 1.34315 136.343 0 138 0H172C173.657 0 175 1.34315 175 3V3C175 4.65685 173.657 6 172 6H138C136.343 6 135 4.65685 135 3V3Z" fill="#EEEFF1"/>
+</g>
+</svg>

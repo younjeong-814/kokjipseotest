@@ -10,7 +10,7 @@ const items = [
 ];
 
 /** 영수증 OCR - 카메라 촬영 (Figma 5579:702) */
-export function ReceiptCameraPage({ navigate }: { navigate: Navigate }) {
+export function ReceiptCameraPage({ navigate, onRecognize }: { navigate: Navigate; onRecognize: () => void }) {
   return (
     <main className="receipt-camera" data-figma-node="5579:702">
       <SubHeader title="영수증 촬영" onBack={() => navigate('5572:19475')} />
@@ -39,11 +39,11 @@ export function ReceiptCameraPage({ navigate }: { navigate: Navigate }) {
         <div className="camera-controls">
           <p className="camera-tip">글씨가 선명하고 빛이 반사되지 않게 촬영해 주세요</p>
           <div className="camera-actions">
-            <button type="button" className="camera-album">
+            <button type="button" className="camera-album" onClick={onRecognize}>
               <img src={asset('album.svg')} alt="" width={28} height={28} />
               <span>앨범</span>
             </button>
-            <button type="button" className="camera-shutter" aria-label="영수증 촬영">
+            <button type="button" className="camera-shutter" aria-label="영수증 촬영" onClick={onRecognize}>
               <img src={asset('shutter.svg')} alt="" width={80} height={80} />
             </button>
             <span className="camera-actions-spacer" />
