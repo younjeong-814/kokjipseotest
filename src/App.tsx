@@ -4,6 +4,7 @@ import { StatusBar } from './components/StatusBar';
 import { TopHeader } from './components/TopHeader';
 import { HomePage } from './features/home/HomePage';
 import { RegistrationPage } from './features/registration/RegistrationPage';
+import { GuidePage } from './features/registration/GuidePage';
 import { FridgePage } from './features/fridge/FridgePage';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
 function readScreen(): ScreenId {
@@ -25,7 +26,8 @@ export function App() {
       <TopHeader title={info.title} search={screen === '5558:19292' ? additionalConnections.search.destination : undefined} navigate={navigate} />
       {screen === '5558:18818' && <HomePage navigate={navigate} />}
       {screen === '5558:19292' && <FridgePage navigate={navigate} />}
-      {screen === '5558:19197' && <RegistrationPage />}
+      {screen === '5558:19197' && <RegistrationPage navigate={navigate} />}
+      {screen.startsWith('guide-') && <GuidePage screen={screen} navigate={navigate} />}
       <BottomNavigation screen={screen} navigate={navigate} />
     </div>
   );
