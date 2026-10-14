@@ -3,6 +3,30 @@
   --gray-400: #dcdee3;
   --blue-800: #113f63;
 }
+.registration-toast {
+  position: fixed;
+  z-index: 100;
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  width: min(366px, calc(100% - 24px));
+  padding: 15px 20px;
+  border-radius: 14px;
+  background: var(--gray-800);
+  color: var(--gray-0);
+  font-size: var(--t2);
+  font-weight: 500;
+  line-height: var(--lh2);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: registration-toast-rise 300ms ease-out both;
+}
+@keyframes registration-toast-rise {
+  from { opacity: 0; transform: translate(-50%, 80px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .registration-toast { animation: none; }
+}
 .top-header { display: flex; align-items: center; justify-content: space-between; }
 .search-button { width: 32px; height: 32px; background: transparent; padding: 0; }
 .bottom-navigation button:disabled { cursor: default; }
