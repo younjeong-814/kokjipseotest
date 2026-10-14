@@ -12,11 +12,22 @@ export function useRecognition() {
   const [visible, setVisible] = useState([true, true, true, true]);
   const [editing, setEditing] = useState('0');
   const [pendingName, setPendingName] = useState('대파');
+  const [names, setNames] = useState<string[]>(recognizedItems.map(item => item.name));
+  const [corrected, setCorrected] = useState([false, false, false, false]);
+  const [date, setDate] = useState('2026-08-08');
+  const [time, setTime] = useState('10:49');
   return {
-    visible, editing, pendingName,
+    visible, editing, pendingName, names, corrected, date, time, setDate, setTime,
     selectEdit: (id: number) => {
       setEditing(String(id));
-      setPendingName(recognizedItems[id].name);
+      setPendingName(names[id]);
+    },
+    saveName: (id: number, value: string) => {
+      const name = value.trim();
+      if (!name) return;
+      setNames(current => current.map((previous, index) => index === id ? name : previous));
+      setCorrected(current => current.map((previous, index) => index === id ? true : previous));
+      setPendingName(name);
     },
     remove: (id: number) => setVisible(items => items.map((value, index) => index === id ? false : value)),
     reset: () => setVisible([true, true, true, true]),
