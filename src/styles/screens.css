@@ -70,6 +70,19 @@
 .fridge-empty-text p { font-size: 12px; line-height: 16px; color: var(--gray-800); }
 .fridge-empty-action { padding: 20px; width: 100%; }
 .fridge-empty-action .action-button { font-size: 16px; line-height: 22px; }
+.mypage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.mypage-tabs { height: 67px; flex-shrink: 0; display: flex; margin: 12px 20px 0; padding: 8px 0 0; }
+.mypage-tabs > button { flex: 1; min-width: 0; padding: 0 0 8px; border-bottom: 1px solid var(--gray-400); background: white; color: var(--gray-900); font-size: 20px; font-weight: 700; line-height: 27px; }
+.mypage-tabs > button.selected { border-bottom: 5px solid var(--blue-500); color: var(--blue-500); }
+.mypage-empty-state { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; text-align: center; }
+.mypage-empty-illustration { width: 200px; height: 160px; object-fit: contain; }
+.mypage-empty-copy { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 20px; }
+.mypage-empty-copy h2 { color: var(--gray-900); font-size: 18px; line-height: 24px; font-weight: 700; }
+.mypage-empty-copy p { color: var(--gray-700); font-size: 12px; line-height: 18px; white-space: nowrap; }
+.mypage-update-note { min-height: 32px; margin-top: 4px; padding: 6px 12px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 12px; background: var(--blue-50); color: var(--gray-700); font-size: 12px; line-height: 18px; white-space: nowrap; }
+.mypage-update-note span { font-size: 13px; line-height: 1; }
+.mypage-buttons-section { flex-shrink: 0; padding: 20px; }
+.mypage-register-button { height: 57px; border-radius: 16px; font-size: 18px; line-height: 24px; }
 
 
 /* 영수증 OCR - 카메라 촬영 5579:702 */

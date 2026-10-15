@@ -237,6 +237,9 @@ button {
   align-items:center;
   justify-content:center
 }
+.nav-icon-mypage-active img {
+  filter: brightness(0) saturate(100%) invert(55%) sepia(87%) saturate(1919%) hue-rotate(177deg) brightness(101%) contrast(96%);
+}
 @media(max-width:389px) {
   .welcome-banner p {
   font-size:clamp(13px,4.1vw,16px)
@@ -249,5 +252,4 @@ button {
 }
 
 }
-
 
