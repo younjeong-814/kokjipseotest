@@ -8,6 +8,8 @@ import { FridgeGuidePage, ProductGuidePage } from './features/registration/Fridg
 import { ManualEntryPage } from './features/registration/ManualEntryPage';
 import { RecipeEmptyPage } from './features/recipe/RecipeEmptyPage';
 import { FridgePage } from './features/fridge/FridgePage';
+import { FridgeFoodPage } from './features/fridge/FridgeFoodPage';
+import { FridgeSearchPage } from './features/fridge/FridgeSearchPage';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
 import { RecognitionResultPage } from './features/recognition/RecognitionResultPage';
@@ -22,6 +24,7 @@ function readScreen(): ScreenId {
 }
 export function App() {
   const [screen, setScreen] = useState(readScreen);
+  const [searchOrigin, setSearchOrigin] = useState<'fridge' | 'fridge-food' | 'fridge-registered'>('fridge');
   const [captureGuide, setCaptureGuide] = useState<ScreenId>('guide-receipt');
   const [showRegistrationToast, setShowRegistrationToast] = useState(false);
   const recognition = useRecognition();
@@ -31,11 +34,14 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
   const navigate = (destination: ScreenId) => {
+    if (destination === 'fridge-search' && (screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered')) setSearchOrigin(screen);
     if (destination === 'camera' && (screen === 'guide-fridge' || screen === 'guide-product' || screen === 'guide-receipt')) setCaptureGuide(screen);
     setShowRegistrationToast((screen === 'recognition-result' || screen === 'manual-entry') && destination === 'fridge-registered');
     window.location.hash = destination;
   };
-  const info = screens[screen];
+  const isSearching = screen === 'fridge-search';
+  const displayScreen = isSearching ? searchOrigin : screen;
+  const info = screens[displayScreen];
   const onRecognize = () => { recognition.reset(); navigate('recognition-result'); };
   if (screen === 'manual-entry') {
     return <div className="app-shell"><StatusBar /><ManualEntryPage navigate={navigate} /></div>;
@@ -53,16 +59,19 @@ export function App() {
     );
   }
   return (
-    <div className={`app-shell screen-${info.menu}`}>
+    <div className={`app-shell screen-${info.menu}${isSearching ? ' fridge-search-open' : ''}`} onClick={event => {
+      if (isSearching && event.target instanceof Element && !event.target.closest('button, input, select, textarea, form, a')) navigate(searchOrigin);
+    }}>
       <StatusBar />
-      <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />
+      {isSearching ? <FridgeSearchPage navigate={navigate} onClose={() => navigate(searchOrigin)} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
       {screen === 'home' && <HomePage navigate={navigate} />}
-      {screen === 'fridge' && <FridgePage navigate={navigate} />}
-      {screen === 'fridge-registered' && <RegisteredFridgePage navigate={navigate} />}
+      {displayScreen === 'fridge' && <FridgePage navigate={navigate} />}
+      {displayScreen === 'fridge-food' && <FridgeFoodPage navigate={navigate} />}
+      {displayScreen === 'fridge-registered' && <RegisteredFridgePage navigate={navigate} />}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
       {screen === 'mypage' && <MyPage navigate={navigate} />}
       {screen === 'recipe' && <RecipeEmptyPage navigate={navigate} />}
-      <BottomNavigation screen={screen} navigate={navigate} />
+      <BottomNavigation screen={displayScreen} navigate={navigate} />
       {screen === 'fridge-registered' && showRegistrationToast && <RegistrationToast onDismiss={() => setShowRegistrationToast(false)} />}
     </div>
   );

@@ -1,5 +1,7 @@
 import { asset } from '../../lib/assets';
-import { PrototypeButton } from '../../components/PrototypeButton';
+import { useState } from 'react';
+import { FridgeTabs } from './FridgeTabs';
+import { FridgeFilters, type FridgeSort } from './FridgeFilters';
 import type { Navigate } from '../../prototype/flow';
 
 // The register reaction navigates to this fixed Figma frame; it does not save data.
@@ -16,11 +18,18 @@ const examples = [
 const bars: Record<number, string> = { 25: 'remaining-quarter.svg', 50: 'remaining-half.svg', 75: 'remaining-threequarter.svg', 100: 'remaining-full.svg' };
 
 export function RegisteredFridgePage({ navigate }: { navigate: Navigate }) {
+  const [sort, setSort] = useState<FridgeSort>('등록순');
+  const expiryDays = (item: typeof examples[number]) => {
+    if (item.badge === 'D-DAY') return 0;
+    const match = (item.secondBadge ?? item.badge ?? '').match(/^D([+-])(\d+)$/);
+    return match ? Number(match[2]) * (match[1] === '+' ? -1 : 1) : Number.POSITIVE_INFINITY;
+  };
+  const sorted = [...examples].sort((a, b) => sort === '남은양순' ? a.percent - b.percent : sort === '소비기한' ? expiryDays(a) - expiryDays(b) : 0);
   return (
     <main className="fridge-page" data-figma-node="5572:19852">
-      <div className="screen-tabs"><PrototypeButton className="selected" destination="5558:19292" navigate={navigate}>식재료</PrototypeButton><span>음식</span></div>
-      <div className="fridge-filters"><span>소비기한</span><span className="selected">등록순<img src={asset('sort.svg')} alt="" /></span><span>남은양순</span></div>
-      <section className="registered-fridge-list" aria-label="등록순 식재료 목록">{examples.map(item => <article className="registered-food-card" key={item.name}>
+      <FridgeTabs navigate={navigate} />
+      <FridgeFilters value={sort} onChange={setSort} />
+      <section className="registered-fridge-list" aria-label={`${sort} 식재료 목록`}>{sorted.map(item => <article className="registered-food-card" key={item.name}>
         <div className="registered-food-image"><img className={item.image === 'ai-vegetable.png' || item.image === 'food-meat.png' ? 'vegetable' : ''} src={asset(item.image)} alt="" /><span>{item.category}</span></div>
         <div className="registered-food-info"><h2 title={item.name}>{item.name}</h2><div className="food-badges"><span>{item.storage}</span>{item.badge && <span className={item.tone}>{item.badge}</span>}{item.secondBadge && <span className={item.tone}>{item.secondBadge}</span>}</div><div className="food-remaining"><p>남은 양</p><div><img src={asset(bars[item.percent])} alt="" /><b>{item.percent}%</b></div></div></div>
       </article>)}</section>
