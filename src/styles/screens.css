@@ -114,3 +114,4 @@
 .guide-list p { font-size: var(--t2); line-height: var(--lh2); color: var(--gray-800); }
 .guide-button-section { padding: var(--s5); }
 .guide-button-section .action-button { min-width: 96px; padding: 0 var(--s5); }
+.fridge-capture-guide .sub-header h1 { width: 100%; padding-left: 24px; }
