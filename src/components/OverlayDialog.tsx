@@ -1,0 +1,18 @@
+import { useEffect, useRef, type ReactNode } from 'react';
+
+export function OverlayDialog({ label, children, onClose, sheet = false, dismissOutside = true, className = '' }: {
+  label: string; children: ReactNode; onClose: () => void; sheet?: boolean; dismissOutside?: boolean; className?: string;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current!;
+    dialog.showModal();
+    dialog.querySelector<HTMLInputElement>('[autofocus]')?.focus();
+    return () => dialog.close();
+  }, []);
+  return <dialog ref={ref} aria-label={label} className={`recognition-overlay ${sheet ? 'bottom-sheet' : ''} ${className}`} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => {
+    if (!dismissOutside || event.target !== ref.current) return;
+    const box = ref.current!.getBoundingClientRect();
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) onClose();
+  }}>{children}</dialog>;
+}
