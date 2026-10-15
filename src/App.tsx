@@ -13,6 +13,7 @@ import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
 import { RecognitionResultPage } from './features/recognition/RecognitionResultPage';
 import { useRecognition } from './features/recognition/useRecognition';
 import { RegisteredFridgePage } from './features/fridge/RegisteredFridgePage';
+import { MyPage } from './features/mypage/MyPage';
 import { RegistrationToast } from './components/RegistrationToast';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
 function readScreen(): ScreenId {
@@ -61,6 +62,7 @@ export function App() {
       {screen === '5558:19292' && <FridgePage navigate={navigate} />}
       {screen === '5572:19852' && <RegisteredFridgePage navigate={navigate} />}
       {screen === '5558:19197' && <RegistrationPage navigate={navigate} />}
+      {screen === '3061:13127' && <MyPage navigate={navigate} />}
       {screen.startsWith('guide-') && <GuidePage screen={screen} navigate={navigate} />}
       <BottomNavigation screen={screen} navigate={navigate} />
       {screen === '5572:19852' && showRegistrationToast && <RegistrationToast onDismiss={() => setShowRegistrationToast(false)} />}
