@@ -10,7 +10,7 @@ const items = [
 ];
 
 /** 영수증 OCR - 카메라 촬영 (Figma 5579:702) */
-export function ReceiptCameraPage({ navigate, onRecognize, backDestination = '5572:19475' }: { navigate: Navigate; onRecognize: () => void; backDestination?: ScreenId }) {
+export function ReceiptCameraPage({ navigate, onRecognize, backDestination = 'guide-receipt' }: { navigate: Navigate; onRecognize: () => void; backDestination?: ScreenId }) {
   return (
     <main className="receipt-camera" data-figma-node="5579:702">
       <SubHeader title="영수증 촬영" onBack={() => navigate(backDestination)} />

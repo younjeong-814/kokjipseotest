@@ -48,7 +48,7 @@ export function ManualEntryPage({ navigate }: { navigate: Navigate }) {
   const [quantity, setQuantity] = useState('');
   const [date, setDate] = useState('');
   return <main className="manual-entry" data-figma-node="5733:5582">
-    <SubHeader title="직접 입력" backIcon="manual-back.svg" onBack={() => navigate('5558:19197')} />
+    <SubHeader title="직접 입력" backIcon="manual-back.svg" onBack={() => navigate('registration')} />
     <div className="manual-fields">
       <EntryInput label="재료명" placeholder="예: 돼지고기, 시금치, 계란..." value={name} onChange={event => setName(event.target.value)} clearable onClear={() => setName('')} maxLength={60} autoComplete="off" />
       <ChoiceChips label="카테고리" options={['육류','과일','채소','두부·콩류','유제품','수산물','조미료','가공식품','기타']} value={category} onChange={setCategory} />
@@ -56,6 +56,6 @@ export function ManualEntryPage({ navigate }: { navigate: Navigate }) {
       <div className="manual-quantity"><label htmlFor="manual-quantity">수량</label><div><EntryInput label="수량" id="manual-quantity" type="number" inputMode="decimal" min="0.01" step="any" placeholder="1" value={quantity} onChange={event => setQuantity(event.target.value)} /><UnitPicker /></div></div>
       <div className="manual-date"><EntryInput label="소비 권장일" type={date ? 'date' : 'text'} placeholder="날짜 선택" value={date} onFocus={event => { event.currentTarget.type = 'date'; }} onBlur={event => { if (!event.currentTarget.value) event.currentTarget.type = 'text'; }} onChange={event => setDate(event.target.value)} /><span className="manual-help" title="소비 권장일"><img src={asset('manual-help.svg')} alt="소비 권장일 안내" /></span></div>
     </div>
-    <div className="manual-submit"><ActionButton type="button" className="action-button-large" onClick={() => navigate('5572:19852')}>냉장고에 등록하기</ActionButton></div>
+    <div className="manual-submit"><ActionButton type="button" className="action-button-large" onClick={() => navigate('fridge-registered')}>냉장고에 등록하기</ActionButton></div>
   </main>;
 }

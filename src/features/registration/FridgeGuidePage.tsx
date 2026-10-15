@@ -23,12 +23,12 @@ export function ProductGuidePage({ navigate }: { navigate: Navigate }) {
 
 function CaptureGuidePage({ navigate, nodeId, label, tips }: { navigate: Navigate; nodeId: string; label: string; tips: readonly string[] }) {
   return <main className="receipt-guide fridge-capture-guide" data-figma-node={nodeId}>
-    <SubHeader title="촬영 가이드" backIcon="fridge-guide-back.svg" onBack={() => navigate('5558:19197')} />
+    <SubHeader title="촬영 가이드" backIcon="fridge-guide-back.svg" onBack={() => navigate('registration')} />
     <section className="guide-tips" aria-label={label}>
       <p className="guide-intro">인식이 잘 되도록 아래 내용을 확인해 주세요</p>
       <img className="guide-image" src={asset('fridge-guide.png')} alt="촬영 대상 전체가 가이드 영역 안에 들어오도록 촬영해 주세요" />
       <ol className="guide-list">{tips.map((tip, index) => <li key={tip}><span className="guide-number">{index + 1}</span><p>{tip}</p></li>)}</ol>
     </section>
-    <div className="guide-button-section"><ActionButton className="action-button-large" onClick={() => navigate('5579:702')}>촬영하기</ActionButton></div>
+    <div className="guide-button-section"><ActionButton className="action-button-large" onClick={() => navigate('camera')}>촬영하기</ActionButton></div>
   </main>;
 }

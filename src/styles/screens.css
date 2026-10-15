@@ -48,15 +48,6 @@
 .method-card h3 { font-size: 18px; line-height: 24px; margin: 0; }
 .method-card p { font-size: 12px; line-height: 16px; color: var(--gray-700); }
 .registration-page .action-button:disabled { background: var(--gray-200); color: var(--gray-400); }
-.guide-page { padding: 16px 20px 32px; }
-.guide-back { background: transparent; color: var(--blue-800); padding: 8px 0; font-size: 14px; }
-.guide-content { display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 32px; }
-.guide-page .guide-image { width: 100px; height: 100px; object-fit: contain; }
-.guide-content h2 { font-size: 24px; line-height: 32px; text-align: center; }
-.guide-content > p { font-size: 14px; line-height: 22px; color: var(--gray-800); text-align: center; }
-.guide-page .guide-tips { width: 100%; margin: 8px 0 0; padding: 24px 24px 24px 44px; border-radius: 16px; background: var(--blue-50); }
-.guide-page .guide-tips li { padding-left: 4px; font-size: 16px; line-height: 26px; }
-.guide-page .guide-tips li + li { margin-top: 16px; }
 .screen-2 .bottom-navigation { margin-bottom: 2px; }
 .screen-1 .top-header { margin-top: 1px; }
 .fridge-page > .screen-tabs { margin-top: 1px; }
