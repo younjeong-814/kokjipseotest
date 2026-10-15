@@ -1,0 +1,11 @@
+.recipe-empty-page { flex: 1; }
+.recipe-banner { height: 134px; padding: var(--s4) var(--s5); }
+.recipe-banner > div { padding: var(--s5); border-radius: var(--r5); background: var(--blue-100); }
+.recipe-banner h2 { font-size: var(--t5); line-height: var(--lh5); font-weight: 700; }
+.recipe-empty-state { min-height: 534px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s3); }
+.recipe-empty-image { width: calc(100% - 40px); height: 170px; object-fit: contain; border-radius: 4px; }
+.recipe-empty-text { padding: var(--s3) var(--s5) 0; display: flex; flex-direction: column; align-items: center; gap: var(--s2); text-align: center; }
+.recipe-empty-text h2 { font-size: var(--t5); line-height: var(--lh5); }
+.recipe-empty-text p { font-size: var(--t3); line-height: var(--lh3); color: var(--gray-800); }
+.recipe-register { width: 100%; padding: var(--s5); }
+.recipe-register .action-button { font-size: var(--t3); line-height: var(--lh3); }
