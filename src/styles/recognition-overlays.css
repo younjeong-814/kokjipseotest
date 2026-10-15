@@ -23,15 +23,14 @@
 .time-overlay { width: 370px; }
 .time-picker { position: relative; display: flex; padding: 8px 16px; height: 205px; overflow: hidden; }
 .time-highlight { position: absolute; inset: 80px 15px auto; height: 45px; background: var(--blue-50); border-radius: 12px; }
-.time-wheel { width: 33.333%; height: 200px; position: relative; }
-.time-wheel button { display: block; width: 100%; height: 38px; padding: 0; background: transparent; color: var(--gray-900); font-size: 22px; opacity: .25; line-height: 36px; }
+.time-column { position: relative; width: 33.333%; }
+.time-wheel { height: 190px; padding: 76px 0; overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y mandatory; scrollbar-width: none; position: relative; }
+.time-wheel::-webkit-scrollbar { display: none; }
+.time-wheel button { display: block; width: 100%; height: 38px; padding: 0; background: transparent; color: var(--gray-900); font-size: 22px; opacity: .25; line-height: 36px; scroll-snap-align: center; transition: font-size .15s ease-out, opacity .15s ease-out; }
 .time-wheel button.chosen { font-size: 30px; opacity: 1; }
 .time-wheel button.distant { opacity: .08; }
 .accessible-time-select { position: absolute; width: 1px; height: 1px; padding: 0; clip-path: inset(50%); overflow: hidden; }
 .accessible-time-select:focus-visible { clip-path: none; width: 100%; height: 38px; left: 0; top: 76px; z-index: 1; }
-.period-wheel { position: relative; width: 33.333%; padding-top: 38px; }
-.period-wheel > button { display: block; height: 38px; width: 100%; background: transparent; color: var(--gray-900); font-size: 22px; opacity: .25; }
-.period-wheel select { appearance: none; border: 0; background: transparent; color: var(--gray-900); font-size: 30px; text-align: center; height: 38px; width: 100%; cursor: pointer; }
 .sheet-handle { height: 16px; display: flex; justify-content: center; align-items: center; }
 .sheet-handle::after { content: ''; width: 36px; height: 4px; border-radius: 2px; background: #cccfd4; }
 .help-overlay header { padding: 16px 20px; }
