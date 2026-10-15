@@ -7,6 +7,7 @@ import './styles/screens.css';
 import './styles/recognition.css';
 import './styles/recognition-overlays.css';
 import './styles/manual-entry.css';
+import './styles/recipe.css';
 // Retire the previous, unrequested ingredient storage and its test entries.
 try {
   localStorage.removeItem('kokjipseo.ingredients.v1');
