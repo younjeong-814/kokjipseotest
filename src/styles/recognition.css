@@ -30,7 +30,6 @@
 .recognized-actions { display: flex; align-items: center; gap: 8px; }
 .recognized-actions button { display: flex; justify-content: center; align-items: center; padding: 0; width: 36px; height: 36px; border-radius: 10px; background: #eeeff1; }
 .recognition-divider { height: 1px; background: var(--gray-400); }
-.recognized-slot:nth-child(3) .recognition-divider { height: 2px; }
 .recognition-guideline { padding: 12px 20px; margin-left: 1px; width: 100%; }
 .recognition-guideline-card { border: 1px solid var(--gray-400); background: white; padding: 16px; height: 90px; }
 .guideline-heading { display: flex; align-items: flex-start; gap: 6px; height: 20px; }
