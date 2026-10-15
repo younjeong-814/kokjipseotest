@@ -9,7 +9,7 @@ export function FridgePage({ navigate }: { navigate: Navigate }) {
       <section className="fridge-empty-state">
         <img className="empty-illustration" src={asset('empty-fridge.png')} alt="빈 냉장고 일러스트" />
         <div className="fridge-empty-text"><h2>아직 등록된 식재료가 없어요</h2><p>첫 식재료를 등록하면 남은 양과<br />소비 기한을 한눈에 확인할 수 있어요.</p></div>
-        <div className="fridge-empty-action"><ActionButton className="action-button-large" onClick={() => navigate('5558:19197')}>식재료 등록하기</ActionButton></div>
+        <div className="fridge-empty-action"><ActionButton className="action-button-large" onClick={() => navigate('registration')}>식재료 등록하기</ActionButton></div>
       </section>
     </main>
   );

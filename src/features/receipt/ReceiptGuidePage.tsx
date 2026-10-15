@@ -12,7 +12,7 @@ const tips = [
 export function ReceiptGuidePage({ navigate }: { navigate: Navigate }) {
   return (
     <main className="receipt-guide" data-figma-node="5572:19475">
-      <SubHeader title="촬영 가이드" onBack={() => navigate('5558:19197')} />
+      <SubHeader title="촬영 가이드" onBack={() => navigate('registration')} />
       <section className="guide-tips">
         <p className="guide-intro">인식이 잘 되도록 아래 내용을 확인해 주세요</p>
         <img className="guide-image" src={asset('receipt-guide.png')} alt="" />
@@ -21,7 +21,7 @@ export function ReceiptGuidePage({ navigate }: { navigate: Navigate }) {
         </ol>
       </section>
       <div className="guide-button-section">
-        <button type="button" className="action-button action-button-large" onClick={() => navigate('5579:702')}>촬영하기</button>
+        <button type="button" className="action-button action-button-large" onClick={() => navigate('camera')}>촬영하기</button>
       </div>
     </main>
   );

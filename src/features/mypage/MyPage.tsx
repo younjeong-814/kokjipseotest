@@ -33,7 +33,7 @@ export function MyPage({ navigate }: { navigate: Navigate }) {
         </div>
       </section>
       <div className="mypage-buttons-section">
-        <ActionButton className="mypage-register-button" onClick={() => navigate('5558:19197')}>식재료 등록하기</ActionButton>
+        <ActionButton className="mypage-register-button" onClick={() => navigate('registration')}>식재료 등록하기</ActionButton>
       </div>
     </main>
   );
