@@ -7,6 +7,7 @@ import { RegistrationPage } from './features/registration/RegistrationPage';
 import { GuidePage } from './features/registration/GuidePage';
 import { FridgeGuidePage, ProductGuidePage } from './features/registration/FridgeGuidePage';
 import { ManualEntryPage } from './features/registration/ManualEntryPage';
+import { RecipeEmptyPage } from './features/recipe/RecipeEmptyPage';
 import { FridgePage } from './features/fridge/FridgePage';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
@@ -61,6 +62,7 @@ export function App() {
       {screen === '5558:19292' && <FridgePage navigate={navigate} />}
       {screen === '5572:19852' && <RegisteredFridgePage navigate={navigate} />}
       {screen === '5558:19197' && <RegistrationPage navigate={navigate} />}
+      {screen === '5744:5719' && <RecipeEmptyPage navigate={navigate} />}
       {screen.startsWith('guide-') && <GuidePage screen={screen} navigate={navigate} />}
       <BottomNavigation screen={screen} navigate={navigate} />
       {screen === '5572:19852' && showRegistrationToast && <RegistrationToast onDismiss={() => setShowRegistrationToast(false)} />}

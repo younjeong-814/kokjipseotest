@@ -4,7 +4,7 @@ import { PrototypeButton } from './PrototypeButton';
 
 const labels = ['홈', '냉장고', '등록', '레시피', '마이'];
 const inactiveIcons = ['home-inactive.svg', 'nav-2.svg', 'nav-5.svg', 'nav-3.svg', 'nav-1.svg'];
-const activeIcons = ['home.svg', 'fridge-active.svg', 'add-active.svg'];
+const activeIcons = ['home.svg', 'fridge-active.svg', 'add-active.svg', 'recipe-active.svg'];
 
 export function BottomNavigation({ screen, navigate }: { screen: ScreenId; navigate: Navigate }) {
   const active = screens[screen].menu;
