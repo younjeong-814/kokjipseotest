@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { SubHeader } from '../../components/SubHeader';
 import { asset } from '../../lib/assets';
-import type { Navigate } from '../../prototype/flow';
+import type { Navigate, ScreenId } from '../../prototype/flow';
 
 const items = [
   { name: '두부', quantity: 1, price: '2,500' },
@@ -10,10 +10,10 @@ const items = [
 ];
 
 /** 영수증 OCR - 카메라 촬영 (Figma 5579:702) */
-export function ReceiptCameraPage({ navigate, onRecognize }: { navigate: Navigate; onRecognize: () => void }) {
+export function ReceiptCameraPage({ navigate, onRecognize, backDestination = '5572:19475' }: { navigate: Navigate; onRecognize: () => void; backDestination?: ScreenId }) {
   return (
     <main className="receipt-camera" data-figma-node="5579:702">
-      <SubHeader title="영수증 촬영" onBack={() => navigate('5572:19475')} />
+      <SubHeader title="영수증 촬영" onBack={() => navigate(backDestination)} />
       <section className="camera-view" aria-label="카메라 미리보기">
         <div className="camera-guide-bar">
           <p>영수증 전체가 보이도록 맞춰 주세요</p>

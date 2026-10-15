@@ -5,6 +5,8 @@ import { TopHeader } from './components/TopHeader';
 import { HomePage } from './features/home/HomePage';
 import { RegistrationPage } from './features/registration/RegistrationPage';
 import { GuidePage } from './features/registration/GuidePage';
+import { FridgeGuidePage, ProductGuidePage } from './features/registration/FridgeGuidePage';
+import { ManualEntryPage } from './features/registration/ManualEntryPage';
 import { FridgePage } from './features/fridge/FridgePage';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
@@ -19,6 +21,7 @@ function readScreen(): ScreenId {
 }
 export function App() {
   const [screen, setScreen] = useState(readScreen);
+  const [captureGuide, setCaptureGuide] = useState<ScreenId>('5572:19475');
   const [showRegistrationToast, setShowRegistrationToast] = useState(false);
   const recognition = useRecognition();
   useEffect(() => {
@@ -27,17 +30,25 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
   const navigate = (destination: ScreenId) => {
-    setShowRegistrationToast(screen === '5572:19525' && destination === '5572:19852');
+    if (destination === '5579:702' && (screen === '3061:13614' || screen === 'guide-fridge' || screen === '3372:3710' || screen === 'guide-product' || screen === '5572:19475')) {
+      setCaptureGuide(screen === 'guide-fridge' ? '3061:13614' : screen === 'guide-product' ? '3372:3710' : screen);
+    }
+    setShowRegistrationToast((screen === '5572:19525' || screen === '5733:5582' || screen === 'guide-manual') && destination === '5572:19852');
     window.location.hash = destination;
   };
   const info = screens[screen];
   const onRecognize = () => { recognition.reset(); navigate('5572:19525'); };
-  if (screen === '5572:19475' || screen === '5579:702' || screen === '5572:19525') {
+  if (screen === '5733:5582' || screen === 'guide-manual') {
+    return <div className="app-shell"><StatusBar /><ManualEntryPage navigate={navigate} /></div>;
+  }
+  if (screen === '3061:13614' || screen === 'guide-fridge' || screen === '3372:3710' || screen === 'guide-product' || screen === '5572:19475' || screen === '5579:702' || screen === '5572:19525') {
     return (
       <div className="app-shell screen-receipt">
         <StatusBar />
+        {(screen === '3061:13614' || screen === 'guide-fridge') && <FridgeGuidePage navigate={navigate} />}
+        {(screen === '3372:3710' || screen === 'guide-product') && <ProductGuidePage navigate={navigate} />}
         {screen === '5572:19475' && <ReceiptGuidePage navigate={navigate} />}
-        {screen === '5579:702' && <ReceiptCameraPage navigate={navigate} onRecognize={onRecognize} />}
+        {screen === '5579:702' && <ReceiptCameraPage navigate={navigate} backDestination={captureGuide} onRecognize={onRecognize} />}
         {screen === '5572:19525' && <RecognitionResultPage navigate={navigate} recognition={recognition} />}
       </div>
     );
