@@ -24,6 +24,8 @@ export function isScreenId(value: string): value is ScreenId {
 export const navigationDestinations: Record<ScreenId, readonly (string | null)[]> = {
   'home': [null, 'fridge', 'registration', 'recipe', 'mypage'],
   'fridge': ['home', null, 'registration', 'recipe', 'mypage'],
+  'fridge-food': ['home', null, 'registration', 'recipe', 'mypage'],
+  'fridge-search': ['home', null, 'registration', 'recipe', 'mypage'],
   'fridge-registered': ['home', null, 'registration', 'recipe', 'mypage'],
   'registration': ['home', 'fridge', null, 'recipe', 'mypage'],
   'guide-fridge': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
