@@ -53,6 +53,8 @@
 .fridge-page > .screen-tabs { margin-top: 1px; }
 .fridge-filters { display: flex; height: 32px; margin-top: 1px; padding: 0 16px; font-size: 12px; line-height: 16px; font-weight: 700; color: var(--gray-700); }
 .fridge-filters > span { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; }
+.fridge-filters > button { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; border-radius: 9999px; background: transparent; color: inherit; font: inherit; }
+.fridge-food-page .screen-tabs > .selected { color: var(--blue-500); }
 .fridge-filters > .selected { color: var(--blue-800); }
 .fridge-empty-state { height: 564px; margin-top: 1px; display: flex; flex-direction: column; align-items: center; gap: 12px; justify-content: center; }
 .fridge-empty-state > .empty-illustration { width: calc(100% - 40px); }

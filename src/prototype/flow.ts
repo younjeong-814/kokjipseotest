@@ -2,6 +2,8 @@
 export const screens = {
   'home': { title: '오늘의 냉장고', menu: 0, figma: '5558:18818' },
   'fridge': { title: '냉장고', menu: 1, figma: '5558:19292' },
+  'fridge-food': { title: '냉장고', menu: 1, figma: '5760:5875' },
+  'fridge-search': { title: '냉장고', menu: 1, figma: '5760:6413' },
   'fridge-registered': { title: '냉장고', menu: 1, figma: '5572:19852' },
   'registration': { title: '식재료 등록', menu: 2, figma: '5558:19197' },
   'guide-fridge': { title: '촬영 가이드', menu: 2, figma: '3061:13614' },
@@ -22,6 +24,8 @@ export function isScreenId(value: string): value is ScreenId {
 export const navigationDestinations: Record<ScreenId, readonly (string | null)[]> = {
   'home': [null, 'fridge', 'registration', 'recipe', 'mypage'],
   'fridge': ['home', null, 'registration', 'recipe', 'mypage'],
+  'fridge-food': ['home', null, 'registration', 'recipe', 'mypage'],
+  'fridge-search': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
   'fridge-registered': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
   'registration': ['home', 'fridge', null, 'recipe', 'mypage'],
   'guide-fridge': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
@@ -40,5 +44,5 @@ export const additionalConnections = {
   recognitionRetake: { source: '5572:19564', destination: 'camera' },
   recognitionRegister: { source: '5572:19565', destination: 'fridge-registered' },
   receipt: { source: '5558:19209', destination: '5558:19377' },
-  search: { source: 'I5558:19294;5021:6884', destination: '5068:3030' },
+  search: { source: 'I5558:19294;5021:6884', destination: 'fridge-search' },
 } as const;

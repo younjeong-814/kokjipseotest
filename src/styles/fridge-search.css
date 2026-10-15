@@ -1,0 +1,12 @@
+.fridge-search-page { flex-shrink: 0; }
+.fridge-search-open .fridge-page > .screen-tabs,
+.fridge-search-open .fridge-page > .fridge-filters { display: none; }
+.fridge-search-form { padding: var(--s2) 24px; }
+.fridge-search-input { display: flex; align-items: center; justify-content: space-between; height: 54px; padding: 11px 15px; border: 1px solid transparent; border-radius: var(--r5); background: var(--gray-200); }
+.fridge-search-input.filled { background: var(--blue-100); }
+.fridge-search-input.focused { background: #fafdff; border-color: var(--blue-500); }
+.fridge-search-input input { min-width: 0; flex: 1; width: 100%; border: 0; padding: 0; outline: none; background: transparent; color: var(--gray-800); font-size: var(--t2); line-height: var(--lh2); }
+.fridge-search-input input:focus-visible { outline: none; }
+.fridge-search-input input::placeholder { color: var(--gray-600); opacity: 1; }
+.fridge-search-input.filled:not(.focused) input { font-weight: 500; }
+.fridge-search-clear { display: flex; flex-shrink: 0; width: 24px; height: 24px; padding: 0; background: transparent; }
