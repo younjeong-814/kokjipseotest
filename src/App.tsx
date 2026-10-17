@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BottomNavigation } from './components/BottomNavigation';
 import { StatusBar } from './components/StatusBar';
 import { TopHeader } from './components/TopHeader';
@@ -13,7 +13,8 @@ import { FridgeSearchPage } from './features/fridge/FridgeSearchPage';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
 import { RecognitionResultPage } from './features/recognition/RecognitionResultPage';
-import { useRecognition } from './features/recognition/useRecognition';
+import { recognizedItems, useRecognition } from './features/recognition/useRecognition';
+import { IngredientDetailPage } from './features/ingredients/IngredientDetailPage';
 import { StoredIngredientsPage } from './features/ingredients/StoredIngredientsPage';
 import { useIngredients } from './features/ingredients/useIngredients';
 import type { Ingredient } from './features/ingredients/repository';
@@ -21,9 +22,10 @@ import { MyPage } from './features/mypage/MyPage';
 import { RegistrationToast } from './components/RegistrationToast';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
 function readScreen(): ScreenId {
-  const id = window.location.hash.slice(1);
+  const id = window.location.hash.slice(1).split('?')[0];
   return isScreenId(id) ? id : 'home';
 }
+const readDetailId = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('item');
 export function App() {
   const [screen, setScreen] = useState(readScreen);
   const [searchOrigin, setSearchOrigin] = useState<'fridge' | 'fridge-food' | 'fridge-registered'>('fridge');
@@ -32,9 +34,14 @@ export function App() {
   const ingredients = useIngredients();
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | undefined>();
   const [registrationMessage, setRegistrationMessage] = useState('');
+  const [detailId, setDetailId] = useState(readDetailId);
+  const [detailOrigin, setDetailOrigin] = useState<'fridge' | 'fridge-registered'>('fridge-registered');
+  const [editingFromDetail, setEditingFromDetail] = useState(false);
+  const [recognitionError, setRecognitionError] = useState('');
+  const registering = useRef(false);
   const recognition = useRecognition();
   useEffect(() => {
-    const onHashChange = () => { const nextScreen = readScreen(); setScreen(nextScreen); if (nextScreen !== 'fridge-registered') setShowRegistrationToast(false); window.scrollTo(0, 0); };
+    const onHashChange = () => { const nextScreen = readScreen(); setScreen(nextScreen); setDetailId(readDetailId()); if (nextScreen !== 'fridge-registered') setShowRegistrationToast(false); window.scrollTo(0, 0); };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -48,12 +55,25 @@ export function App() {
   const isSearching = screen === 'fridge-search';
   const displayScreen = isSearching ? searchOrigin : screen;
   const info = screens[displayScreen];
-  const onRecognize = () => { recognition.reset(); navigate('recognition-result'); };
+  const onRecognize = () => { registering.current = false; setRecognitionError(''); recognition.reset(); navigate('recognition-result'); };
+  const openDetail = (item: Ingredient) => { window.location.hash = `ingredient-detail?item=${encodeURIComponent(item.id)}`; };
+  const registerRecognized = () => {
+    if (registering.current) return;
+    const drafts = recognizedItems.filter(item => recognition.visible[item.id]).map(item => ({ name: recognition.names[item.id], category: item.vegetable ? '채소' : '두부·콩류', storage: '냉장', quantity: 1, unit: '개', date: '', source: captureGuide === 'guide-receipt' ? 'ocr' as const : 'camera' as const }));
+    if (!drafts.length) { setRecognitionError('등록할 식재료가 없어요. 다시 촬영해 주세요.'); return; }
+    try { registering.current = true; ingredients.saveRecognized(drafts); setRegistrationMessage(`식재료 ${drafts.length}개를 등록했어요`); navigate('fridge-registered'); }
+    catch (failure) { registering.current = false; setRecognitionError(failure instanceof Error ? failure.message : '저장하지 못했어요.'); }
+  };
+  if (screen === 'ingredient-detail') {
+    const item = ingredients.items.find(value => value.id === detailId);
+    return <div className="app-shell"><StatusBar />{item ? <IngredientDetailPage key={item.id} item={item} onBack={() => navigate(detailOrigin)} onEdit={patch => ingredients.updateInfo(item.id, patch)} onSave={patch => ingredients.updateDetails(item.id, patch)} onCondition={status => ingredients.recordCondition(item.id, status)} /> : <main className="ingredient-not-found"><p role="alert">{ingredients.error || '식재료를 찾을 수 없어요. 삭제된 항목인지 확인해 주세요.'}</p><button onClick={() => navigate('fridge')}>냉장고로 돌아가기</button></main>}</div>;
+  }
   if (screen === 'manual-entry') {
-    return <div className="app-shell"><StatusBar /><ManualEntryPage key={editingIngredient?.id ?? 'new'} navigate={navigate} initial={editingIngredient} onSave={(draft, id) => {
+    return <div className="app-shell"><StatusBar /><ManualEntryPage key={editingIngredient?.id ?? 'new'} navigate={navigate} initial={editingIngredient} onCancel={editingFromDetail && editingIngredient ? () => openDetail(editingIngredient) : undefined} onSave={(draft, id) => {
       ingredients.save(draft, id);
       setRegistrationMessage(id ? '식재료를 수정했어요' : '식재료 1개를 등록했어요');
-      navigate('fridge-registered');
+      if (id && editingFromDetail && editingIngredient) openDetail(editingIngredient);
+      else navigate('fridge-registered');
     }} /></div>;
   }
   if (screen === 'guide-fridge' || screen === 'guide-product' || screen === 'guide-receipt' || screen === 'camera' || screen === 'recognition-result') {
@@ -64,7 +84,8 @@ export function App() {
         {screen === 'guide-product' && <ProductGuidePage navigate={navigate} />}
         {screen === 'guide-receipt' && <ReceiptGuidePage navigate={navigate} />}
         {screen === 'camera' && <ReceiptCameraPage navigate={navigate} backDestination={captureGuide} onRecognize={onRecognize} />}
-        {screen === 'recognition-result' && <RecognitionResultPage navigate={navigate} recognition={recognition} />}
+        {recognitionError && <p className="ingredient-error" role="alert">{recognitionError}</p>}
+        {screen === 'recognition-result' && <RecognitionResultPage navigate={navigate} recognition={recognition} onRegister={registerRecognized} />}
       </div>
     );
   }
@@ -76,7 +97,7 @@ export function App() {
       {isSearching ? <FridgeSearchPage navigate={navigate} onClose={() => navigate(searchOrigin)} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
       {ingredients.error && <p className="ingredient-error" role="alert">{ingredients.error}</p>}
       {screen === 'home' && <HomePage navigate={navigate} items={ingredients.items} />}
-      {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredients.items.length ? <StoredIngredientsPage navigate={navigate} items={ingredients.items} registered={displayScreen === 'fridge-registered'} onEdit={item => { setEditingIngredient(item); navigate('manual-entry'); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
+      {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredients.items.length ? <StoredIngredientsPage navigate={navigate} items={ingredients.items} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} /> : <FridgePage navigate={navigate} />)}
       {displayScreen === 'fridge-food' && <FridgeFoodPage navigate={navigate} />}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
       {screen === 'mypage' && <MyPage navigate={navigate} />}

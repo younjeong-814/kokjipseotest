@@ -10,9 +10,9 @@ import { formatMonthDay } from '../../lib/date';
 import type { Navigate } from '../../prototype/flow';
 import { recognizedItems, type useRecognition } from './useRecognition';
 
-type Props = { navigate: Navigate; recognition: ReturnType<typeof useRecognition> };
+type Props = { navigate: Navigate; recognition: ReturnType<typeof useRecognition>; onRegister: () => void };
 
-export function RecognitionResultPage({ navigate, recognition }: Props) {
+export function RecognitionResultPage({ navigate, recognition, onRegister }: Props) {
   const [overlay, setOverlay] = useState<{ kind: 'date' | 'time' | 'help' } | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -58,7 +58,7 @@ export function RecognitionResultPage({ navigate, recognition }: Props) {
           </Fragment>)}
         </section>
         <section className="recognition-guideline"><button className="recognition-help-trigger" aria-label="소비권장일 안내" onClick={() => setOverlay({kind: 'help'})}><CardShell className="recognition-guideline-card"><div className="guideline-heading"><h2>소비권장일, 어떻게 정하나요?</h2><span className="recognition-help"><img src={asset('ai-help.svg')} alt="" /></span></div><p>소비권장일을 정하기 어렵다면 식약처 기준을 바탕으로<br />콕집서가 소비권장일을 자동으로 설정해드려요.</p></CardShell></button></section>
-        <div className="recognition-footer"><ActionButton className="action-button-large recognition-retake" onClick={() => navigate('camera')}>재촬영</ActionButton><ActionButton className="action-button-large" onClick={() => navigate('fridge-registered')}>등록</ActionButton></div>
+        <div className="recognition-footer"><ActionButton className="action-button-large recognition-retake" onClick={() => navigate('camera')}>재촬영</ActionButton><ActionButton className="action-button-large" onClick={onRegister}>등록</ActionButton></div>
       </div>
       {overlay?.kind === 'date' && <DateOverlay value={recognition.date} onClose={close} onSave={value => { recognition.setDate(value); close(); }} />}
       {overlay?.kind === 'time' && <TimeOverlay value={recognition.time} onClose={close} onSave={value => { recognition.setTime(value); close(); }} />}

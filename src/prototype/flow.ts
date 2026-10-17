@@ -1,5 +1,6 @@
 // Screen keys are readable names; `figma` keeps the original node ID from read-only Figma reaction inspection.
 export const screens = {
+  'ingredient-detail': { title: '식재료 상세', menu: 1, figma: '5833:19874' },
   'home': { title: '오늘의 냉장고', menu: 0, figma: '5558:18818' },
   'fridge': { title: '냉장고', menu: 1, figma: '5558:19292' },
   'fridge-food': { title: '냉장고', menu: 1, figma: '5760:5875' },
@@ -22,6 +23,7 @@ export function isScreenId(value: string): value is ScreenId {
 }
 // Bottom navigation targets per screen: [홈, 냉장고, 등록, 레시피, 마이]. null = current tab.
 export const navigationDestinations: Record<ScreenId, readonly (string | null)[]> = {
+  'ingredient-detail': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
   'home': [null, 'fridge', 'registration', 'recipe', 'mypage'],
   'fridge': ['home', null, 'registration', 'recipe', 'mypage'],
   'fridge-food': ['home', null, 'registration', 'recipe', 'mypage'],

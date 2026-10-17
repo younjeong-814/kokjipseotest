@@ -8,11 +8,78 @@ const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.Modu
 const exports = {};
 new Function('exports', compiled)(exports);
 const { INGREDIENTS_KEY, loadIngredients, saveIngredient, deleteIngredient, validateDraft } = exports;
+const { updateIngredientDetails, recordIngredientCondition, saveRecognizedIngredients } = exports;
 function storage() {
   const data = new Map();
   return { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) };
 }
 const draft = { name: ' 시금치 ', category: '채소', storage: '냉장', quantity: 2, unit: '봉', date: '2026-10-20' };
+
+test('info modal updates only metadata and rejects quantity changes after consumption', () => {
+  const db = storage();
+  const [item] = saveIngredient(db, draft);
+  const [edited] = exports.updateIngredientInfo(db, item.id, { name: '수정 시금치', quantity: 300, unit: 'g' });
+  assert.equal(edited.quantity, 300);
+  assert.equal(edited.unit, 'g');
+  assert.equal(edited.date, draft.date);
+  updateIngredientDetails(db, item.id, { storage: '냉동', date: draft.date, remainingPercent: 75 });
+  assert.throws(() => exports.updateIngredientInfo(db, item.id, { name: '다시 수정', quantity: 4, unit: '개' }));
+  const [renamed] = exports.updateIngredientInfo(db, item.id, { name: '이름만 수정' });
+  assert.equal(renamed.name, '이름만 수정');
+  assert.equal(renamed.quantity, 300);
+  assert.equal(renamed.remainingPercent, 75);
+  assert.equal(renamed.storage, '냉동');
+  updateIngredientDetails(db, item.id, { storage: '냉동', date: draft.date, remainingPercent: 100 });
+  assert.throws(() => exports.updateIngredientInfo(db, item.id, { name: '복구 후 수정', quantity: 4 }));
+  assert.throws(() => exports.updateIngredientInfo(db, item.id, { name: '' }));
+});
+
+test('legacy records load as manual and gain defaults without losing data', () => {
+  const db = storage();
+  const now = new Date().toISOString();
+  db.setItem(INGREDIENTS_KEY, JSON.stringify([{ ...draft, id: 'legacy', createdAt: now, updatedAt: now }]));
+  assert.equal(loadIngredients(db)[0].id, 'legacy');
+  const [item] = saveIngredient(db, draft, 'legacy');
+  assert.equal(item.source, 'manual');
+  assert.equal(item.remainingPercent, 100);
+  assert.deepEqual(item.conditionHistory, []);
+});
+test('detail updates and chronological condition events survive metadata edits', () => {
+  const db = storage();
+  const [item] = saveIngredient(db, draft);
+  updateIngredientDetails(db, item.id, { storage: '냉동', date: '2026-10-22', remainingPercent: 25 });
+  recordIngredientCondition(db, item.id, '싱싱해요');
+  const firstEvent = loadIngredients(db)[0].conditionHistory[0];
+  recordIngredientCondition(db, item.id, '시들시들해요');
+  saveIngredient(db, { ...draft, name: '수정', storage: '냉동', date: '2026-10-22' }, item.id);
+  const saved = loadIngredients(db)[0];
+  assert.equal(saved.remainingPercent, 25);
+  assert.equal(saved.conditionHistory.length, 2);
+  assert.equal(saved.conditionHistory[0].status, '시들시들해요');
+  assert.equal(saved.conditionHistory[1].id, firstEvent.id);
+  assert.ok(Number.isFinite(Date.parse(firstEvent.recordedAt)));
+  assert.throws(() => updateIngredientDetails(db, item.id, { storage: '냉동', date: '', remainingPercent: 10 }));
+});
+test('OCR and camera provenance persist across edits; batch failures are atomic', () => {
+  const db = storage();
+  saveRecognizedIngredients(db, [{ ...draft, source: 'ocr' }, { ...draft, name: '두부', source: 'camera' }]);
+  const loaded = loadIngredients(db);
+  assert.deepEqual(loaded.map(item => item.source), ['ocr', 'camera']);
+  saveIngredient(db, { ...draft, source: 'manual' }, loaded[0].id);
+  assert.equal(loadIngredients(db)[0].source, 'ocr');
+  const before = db.getItem(INGREDIENTS_KEY);
+  assert.throws(() => saveRecognizedIngredients(db, [draft, { ...draft, name: '' }]));
+  assert.equal(db.getItem(INGREDIENTS_KEY), before);
+});
+test('condition storage failures leave existing history and details unchanged', () => {
+  const db = storage();
+  const [item] = saveIngredient(db, draft);
+  const before = db.getItem(INGREDIENTS_KEY);
+  assert.throws(() => recordIngredientCondition({ getItem: db.getItem, setItem: () => { throw new Error('quota'); } }, item.id, '싱싱해요'));
+  assert.equal(db.getItem(INGREDIENTS_KEY), before);
+  deleteIngredient(db, item.id);
+  assert.throws(() => recordIngredientCondition(db, item.id, '싱싱해요'));
+});
 
 test('create, reload, update preserving identity, delete only selected ID', () => {
   const db = storage();

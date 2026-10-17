@@ -10,4 +10,5 @@ import './styles/manual-entry.css';
 import './styles/recipe.css';
 import './styles/fridge-search.css';
 import './styles/ingredients.css';
+import './styles/ingredient-detail.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
