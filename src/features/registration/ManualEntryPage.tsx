@@ -5,6 +5,7 @@ import { asset } from '../../lib/assets';
 import { formatMonthDay } from '../../lib/date';
 import { DateOverlay, HelpOverlay } from '../recognition/RecognitionOverlays';
 import type { Navigate } from '../../prototype/flow';
+import { categories, storageLocations, validateDraft, type Ingredient, type IngredientDraft } from '../ingredients/repository';
 
 function EntryInput({ label, value, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; clearable?: boolean; onClear?: () => void }) {
   const input = useRef<HTMLInputElement>(null);
@@ -15,10 +16,9 @@ function ChoiceChips({ label, options, value, onChange, large = false }: { label
   return <fieldset className={`manual-choices${large ? ' storage' : ''}`}><legend>{label}</legend><div>{options.map(option => <button type="button" key={option} aria-pressed={value === option} onClick={() => onChange(option)}>{option}</button>)}</div></fieldset>;
 }
 
-function UnitPicker() {
-  const [unit, setUnit] = useState('개');
+function UnitPicker({ unit, setUnit }: { unit: string; setUnit: (value: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [custom, setCustom] = useState(false);
+  const [custom, setCustom] = useState(!['개','g','ml','kg'].includes(unit));
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -43,25 +43,37 @@ function UnitPicker() {
   </div>;
 }
 
-export function ManualEntryPage({ navigate }: { navigate: Navigate }) {
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
-  const [storage, setStorage] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [date, setDate] = useState('');
+export function ManualEntryPage({ navigate, initial, onSave }: { navigate: Navigate; initial?: Ingredient; onSave: (draft: IngredientDraft, id?: string) => void }) {
+  const [name, setName] = useState(initial?.name ?? '');
+  const [category, setCategory] = useState(initial?.category ?? '');
+  const [storage, setStorage] = useState(initial?.storage ?? '');
+  const [quantity, setQuantity] = useState(String(initial?.quantity ?? 1));
+  const [unit, setUnit] = useState(initial?.unit ?? '개');
+  const [date, setDate] = useState(initial?.date ?? '');
+  const [error, setError] = useState('');
+  const saving = useRef(false);
+  const submit = () => {
+    if (saving.current) return;
+    const draft = { name, category, storage, quantity: Number(quantity), unit, date };
+    const invalid = validateDraft(draft);
+    if (invalid) { setError(invalid); return; }
+    try { saving.current = true; onSave(draft, initial?.id); }
+    catch (failure) { saving.current = false; setError(failure instanceof Error ? failure.message : '저장하지 못했어요. 다시 시도해 주세요.'); }
+  };
   const [dateOpen, setDateOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   return <main className="manual-entry" data-figma-node="5733:5582">
-    <SubHeader title="직접 입력" backIcon="manual-back.svg" onBack={() => navigate('registration')} />
+    <SubHeader title={initial ? '식재료 수정' : '직접 입력'} backIcon="manual-back.svg" onBack={() => navigate(initial ? 'fridge-registered' : 'registration')} />
     <div className="manual-fields">
       <EntryInput label="재료명" placeholder="예: 돼지고기, 시금치, 계란..." value={name} onChange={event => setName(event.target.value)} clearable onClear={() => setName('')} maxLength={60} autoComplete="off" />
-      <ChoiceChips label="카테고리" options={['육류','과일','채소','두부·콩류','유제품','수산물','조미료','가공식품','기타']} value={category} onChange={setCategory} />
-      <ChoiceChips label="보관 위치" options={['냉장','냉동','실온']} value={storage} onChange={setStorage} large />
-      <div className="manual-quantity"><label htmlFor="manual-quantity">수량</label><div><EntryInput label="수량" id="manual-quantity" type="number" inputMode="decimal" min="0.01" step="any" placeholder="1" value={quantity} onChange={event => setQuantity(event.target.value)} /><UnitPicker /></div></div>
+      <ChoiceChips label="카테고리" options={categories} value={category} onChange={setCategory} />
+      <ChoiceChips label="보관 위치" options={storageLocations} value={storage} onChange={setStorage} large />
+      <div className="manual-quantity"><label htmlFor="manual-quantity">수량</label><div><EntryInput label="수량" id="manual-quantity" type="number" inputMode="decimal" min="0.01" step="any" placeholder="1" value={quantity} onChange={event => setQuantity(event.target.value)} /><UnitPicker unit={unit} setUnit={setUnit} /></div></div>
       <div className="manual-date"><div className="manual-field"><span>소비 권장일</span><button type="button" className={`manual-input manual-date-button${date ? ' filled' : ''}`} aria-label={`소비 권장일 ${date ? formatMonthDay(date) : '선택'}`} onClick={() => setDateOpen(true)}>{date ? formatMonthDay(date) : <span className="manual-placeholder">날짜 선택</span>}</button></div><button type="button" className="manual-help" aria-label="소비 권장일 안내" onClick={() => setHelpOpen(true)}><img src={asset('manual-help.svg')} alt="" /></button></div>
     </div>
     {dateOpen && <DateOverlay label="소비 권장일 선택" value={date} onClose={() => setDateOpen(false)} onSave={value => { setDate(value); setDateOpen(false); }} />}
     {helpOpen && <HelpOverlay onClose={() => setHelpOpen(false)} />}
-    <div className="manual-submit"><ActionButton type="button" className="action-button-large" onClick={() => navigate('fridge-registered')}>냉장고에 등록하기</ActionButton></div>
+    {error && <p className="ingredient-error" role="alert">{error}</p>}
+    <div className="manual-submit"><ActionButton type="button" className="action-button-large" onClick={submit}>{initial ? '수정 내용 저장하기' : '냉장고에 등록하기'}</ActionButton></div>
   </main>;
 }

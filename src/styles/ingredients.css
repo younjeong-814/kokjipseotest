@@ -1,0 +1,10 @@
+.ingredient-error { margin: 12px 20px; color: #bc2949; font-size: 14px; line-height: 20px; }
+.stored-ingredient { height: auto; min-height: 180px; }
+.stored-ingredient .registered-food-info { gap: 8px; }
+.stored-ingredient p { font-size: 13px; line-height: 18px; color: var(--gray-800); }
+.ingredient-actions { display: flex; gap: 8px; }
+.ingredient-actions button { padding: 8px 16px; border-radius: 10px; background: var(--gray-200); color: var(--gray-900); }
+.ingredient-actions .action-button { background: var(--blue-500); color: white; }
+.ingredient-delete-dialog { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.ingredient-delete-dialog h2 { font-size: 20px; }
+.home-stored { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
