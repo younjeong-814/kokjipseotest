@@ -1,7 +1,17 @@
 .ingredient-error { margin: 12px 20px; color: #bc2949; font-size: 14px; line-height: 20px; }
-.stored-ingredient { height: auto; min-height: 180px; }
-.stored-ingredient .registered-food-info { gap: 8px; }
-.stored-ingredient p { font-size: 13px; line-height: 18px; color: var(--gray-800); }
+.stored-ingredients > article { flex-shrink: 0; min-width: 0; }
+.ingredient-card-trigger { display: block; width: 100%; padding: 0; border-radius: var(--r4); background: transparent; color: var(--gray-900); text-align: left; }
+.ingredient-card { display: flex; align-items: center; gap: var(--s5); width: 100%; min-height: 139px; padding: calc(var(--s4) - 1px); border: 1px solid var(--gray-400); background: var(--gray-0); }
+.ingredient-card-image { width: 60px; flex-shrink: 0; text-align: center; }
+.ingredient-card-image > img { display: block; width: 56px; height: 56px; margin: 0 auto; object-fit: cover; }
+.ingredient-card-image > span { display: block; font-size: var(--t1); line-height: var(--lh1); }
+.ingredient-card-info { display: flex; flex-direction: column; gap: var(--s3); flex: 1; min-width: 0; }
+.ingredient-card-info h2 { margin: 0; font-size: var(--t4); line-height: var(--lh4); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ingredient-card-remaining p { margin: 0; font-size: var(--t1); line-height: var(--lh1); color: var(--gray-800); }
+.ingredient-card-remaining > div { display: flex; align-items: center; gap: var(--s2); }
+.ingredient-card-remaining img { flex-shrink: 1; min-width: 0; max-width: calc(100% - 48px); }
+.ingredient-card-remaining b { flex-shrink: 0; color: var(--blue-500); font-size: var(--t2); line-height: 19px; }
+.ingredient-zero-bar { width: 175px; height: 6px; max-width: calc(100% - 48px); border-radius: 3px; background: repeating-linear-gradient(to right, var(--gray-200) 0 40px, transparent 40px 45px); }
 .ingredient-actions { display: flex; gap: 8px; }
 .ingredient-actions button { padding: 8px 16px; border-radius: 10px; background: var(--gray-200); color: var(--gray-900); }
 .ingredient-actions .action-button { background: var(--blue-500); color: white; }

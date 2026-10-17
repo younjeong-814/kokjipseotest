@@ -43,7 +43,7 @@ function UnitPicker({ unit, setUnit }: { unit: string; setUnit: (value: string) 
   </div>;
 }
 
-export function ManualEntryPage({ navigate, initial, onSave }: { navigate: Navigate; initial?: Ingredient; onSave: (draft: IngredientDraft, id?: string) => void }) {
+export function ManualEntryPage({ navigate, initial, onSave, onCancel }: { navigate: Navigate; initial?: Ingredient; onSave: (draft: IngredientDraft, id?: string) => void; onCancel?: () => void }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [category, setCategory] = useState(initial?.category ?? '');
   const [storage, setStorage] = useState(initial?.storage ?? '');
@@ -63,7 +63,7 @@ export function ManualEntryPage({ navigate, initial, onSave }: { navigate: Navig
   const [dateOpen, setDateOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   return <main className="manual-entry" data-figma-node="5733:5582">
-    <SubHeader title={initial ? '식재료 수정' : '직접 입력'} backIcon="manual-back.svg" onBack={() => navigate(initial ? 'fridge-registered' : 'registration')} />
+    <SubHeader title={initial ? '식재료 수정' : '직접 입력'} backIcon="manual-back.svg" onBack={() => onCancel ? onCancel() : navigate(initial ? 'fridge-registered' : 'registration')} />
     <div className="manual-fields">
       <EntryInput label="재료명" placeholder="예: 돼지고기, 시금치, 계란..." value={name} onChange={event => setName(event.target.value)} clearable onClear={() => setName('')} maxLength={60} autoComplete="off" />
       <ChoiceChips label="카테고리" options={categories} value={category} onChange={setCategory} />
