@@ -12,7 +12,7 @@ export const screens = {
   'manual-entry': { title: '직접 입력', menu: 2, figma: '5733:5582' },
   'camera': { title: '영수증 촬영', menu: 2, figma: '5579:702' },
   'recognition-result': { title: '인식 결과 확인', menu: 2, figma: '5572:19525' },
-  'recipe': { title: '레시피', menu: 3, figma: '5744:5719' },
+  'recipe': { title: '레시피', menu: 3, figma: '5770:18522' },
   'mypage': { title: '마이페이지', menu: 4, figma: '3061:13127' },
 } as const;
 export type ScreenId = keyof typeof screens;
