@@ -1,3 +1,4 @@
+import { isFood, resolveExpiry } from './expiry';
 export const INGREDIENTS_KEY = 'kokjipseo.manual-ingredients.v1';
 export const categories = ['육류','과일','채소','두부·콩류','유제품','수산물','조미료','가공식품','기타'] as const;
 export const storageLocations = ['냉장','냉동','실온'] as const;
@@ -5,11 +6,15 @@ export const conditionLabels = ['싱싱해요', '시들시들해요', '못 먹�
 export type IngredientSource = 'manual' | 'ocr' | 'camera';
 export type IngredientCondition = typeof conditionLabels[number];
 export type ConditionRecord = { id: string; recordedAt: string; status: IngredientCondition };
-export type IngredientDraft = { name: string; category: string; storage: string; quantity: number; unit: string; date: string; source?: IngredientSource };
+export type IngredientDraft = { name: string; category: string; storage: string; quantity: number; unit: string; date: string; source?: IngredientSource; kind?: 'ingredient' | 'food'; storageStartedOn?: string; recommendationVariant?: string; dateSource?: 'manual' | 'automatic' };
 export type Ingredient = IngredientDraft & { id: string; createdAt: string; updatedAt: string; remainingPercent?: number; remainingAdjusted?: boolean; conditionHistory?: ConditionRecord[] };
 type LocalStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 export function validateDraft(draft: IngredientDraft): string | null {
+  if (draft.kind !== undefined && !['ingredient', 'food'].includes(draft.kind)) return '등록 종류를 확인해 주세요.';
+  if (draft.dateSource !== undefined && !['manual', 'automatic'].includes(draft.dateSource)) return '날짜 설정을 확인해 주세요.';
+  if (draft.recommendationVariant !== undefined && typeof draft.recommendationVariant !== 'string') return '보관 조건을 확인해 주세요.';
+  if (draft.storageStartedOn !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(draft.storageStartedOn) || !Number.isFinite(Date.parse(`${draft.storageStartedOn}T00:00:00Z`)) || new Date(`${draft.storageStartedOn}T00:00:00Z`).toISOString().slice(0, 10) !== draft.storageStartedOn)) return '올바른 보관 시작일을 선택해 주세요.';
   if (draft.source !== undefined && !['manual','ocr','camera'].includes(draft.source)) return '등록 방식을 확인해 주세요.';
   if (!draft.name.trim() || draft.name.trim().length > 60) return '재료명을 1~60자로 입력해 주세요.';
   if (!categories.some(value => value === draft.category)) return '카테고리를 선택해 주세요.';
@@ -34,7 +39,7 @@ export function loadIngredients(storage: LocalStorage): Ingredient[] {
     if (item.remainingPercent !== undefined && ![0,25,50,75,100].includes(item.remainingPercent)) throw new Error('Invalid remaining amount');
     if (item.conditionHistory !== undefined && (!Array.isArray(item.conditionHistory) || !item.conditionHistory.every((record: ConditionRecord) => record && typeof record.id === 'string' && typeof record.recordedAt === 'string' && Number.isFinite(Date.parse(record.recordedAt)) && conditionLabels.includes(record.status)))) throw new Error('Invalid history');
   }
-  return data as Ingredient[];
+  return (data as Ingredient[]).map(item => item.date ? item : resolveExpiry(item, item));
 }
 
 export function saveIngredient(storage: LocalStorage, draft: IngredientDraft, id?: string): Ingredient[] {
@@ -44,7 +49,9 @@ export function saveIngredient(storage: LocalStorage, draft: IngredientDraft, id
   const previous = id ? items.find(item => item.id === id) : undefined;
   if (id && !previous) throw new Error('다른 탭에서 삭제된 항목입니다. 목록을 다시 확인해 주세요.');
   const now = new Date().toISOString();
-  const item: Ingredient = { ...previous, ...draft, source: previous?.source ?? draft.source ?? 'manual', remainingPercent: previous?.remainingPercent ?? 100, conditionHistory: previous?.conditionHistory ?? [], name: draft.name.trim(), unit: draft.unit.trim(), id: previous?.id ?? crypto.randomUUID(), createdAt: previous?.createdAt ?? now, updatedAt: now };
+  const kind = previous?.kind ?? draft.kind ?? (isFood(draft) ? 'food' : 'ingredient');
+  const item: Ingredient = { ...previous, ...resolveExpiry(draft, previous), source: previous?.source ?? draft.source ?? 'manual', remainingPercent: previous?.remainingPercent ?? 100, conditionHistory: previous?.conditionHistory ?? [], name: draft.name.trim(), unit: draft.unit.trim(), id: previous?.id ?? crypto.randomUUID(), createdAt: previous?.createdAt ?? now, updatedAt: now };
+  item.kind = kind;
   const next = previous ? items.map(value => value.id === id ? item : value) : [item, ...items];
   storage.setItem(INGREDIENTS_KEY, JSON.stringify(next));
   return next;
@@ -56,13 +63,14 @@ export function deleteIngredient(storage: LocalStorage, id: string): Ingredient[
   return next;
 }
 
-export function updateIngredientDetails(storage: LocalStorage, id: string, patch: { storage: string; date: string; remainingPercent: number; remainingAdjusted?: boolean }): Ingredient[] {
+export function updateIngredientDetails(storage: LocalStorage, id: string, patch: { storage: string; date: string; dateSource?: 'manual' | 'automatic'; remainingPercent: number; remainingAdjusted?: boolean }): Ingredient[] {
   const items = loadIngredients(storage);
   const item = items.find(value => value.id === id);
   if (!item) throw new Error('삭제된 항목입니다. 목록을 확인해 주세요.');
   const invalid = validateDraft({ ...item, ...patch });
   if (invalid || ![0,25,50,75,100].includes(patch.remainingPercent)) throw new Error(invalid || '남은 양을 확인해 주세요.');
-  const next = items.map(value => value.id === id ? { ...value, ...patch, remainingAdjusted: patch.remainingAdjusted === true || value.remainingAdjusted || (value.remainingPercent ?? 100) < 100 || patch.remainingPercent < 100, updatedAt: new Date().toISOString() } : value);
+  const dateSource = patch.dateSource ?? (patch.date && patch.date !== item.date ? 'manual' : item.dateSource);
+  const next = items.map(value => value.id === id ? { ...value, ...resolveExpiry({ ...value, ...patch, dateSource }, value), remainingAdjusted: patch.remainingAdjusted === true || value.remainingAdjusted || (value.remainingPercent ?? 100) < 100 || patch.remainingPercent < 100, updatedAt: new Date().toISOString() } : value);
   storage.setItem(INGREDIENTS_KEY, JSON.stringify(next));
   return next;
 }
@@ -87,7 +95,7 @@ export function updateIngredientInfo(storage: LocalStorage, id: string, patch: {
   const updated = { ...item, name: patch.name.trim(), quantity: patch.quantity ?? item.quantity, unit: patch.unit?.trim() ?? item.unit, updatedAt: new Date().toISOString() };
   const invalid = validateDraft(updated);
   if (invalid) throw new Error(invalid);
-  const next = items.map(value => value.id === id ? updated : value);
+  const next = items.map(value => value.id === id ? resolveExpiry(updated, item) : value);
   storage.setItem(INGREDIENTS_KEY, JSON.stringify(next));
   return next;
 }
@@ -98,7 +106,7 @@ export function saveRecognizedIngredients(storage: LocalStorage, drafts: Ingredi
   const added = drafts.map(draft => {
     const invalid = validateDraft(draft);
     if (invalid) throw new Error(invalid);
-    return { ...draft, name: draft.name.trim(), unit: draft.unit.trim(), source: draft.source ?? 'camera', id: crypto.randomUUID(), createdAt: now, updatedAt: now, remainingPercent: 100, conditionHistory: [] };
+    return { ...resolveExpiry(draft, undefined, new Date(now)), kind: draft.kind ?? (isFood(draft) ? 'food' as const : 'ingredient' as const), name: draft.name.trim(), unit: draft.unit.trim(), source: draft.source ?? 'camera', id: crypto.randomUUID(), createdAt: now, updatedAt: now, remainingPercent: 100, conditionHistory: [] };
   });
   const next = [...added, ...items];
   storage.setItem(INGREDIENTS_KEY, JSON.stringify(next));

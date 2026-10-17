@@ -23,7 +23,7 @@ export function useIngredients() {
       try { setState({ items: updateIngredientInfo(localStorage, id, patch), error: '' }); }
       catch (error) { throw new Error(error instanceof Error ? error.message : '저장하지 못했어요.'); }
     },
-    updateDetails: (id: string, patch: { storage: string; date: string; remainingPercent: number; remainingAdjusted?: boolean }) => {
+    updateDetails: (id: string, patch: { storage: string; date: string; dateSource?: 'manual' | 'automatic'; remainingPercent: number; remainingAdjusted?: boolean }) => {
       try { setState({ items: updateIngredientDetails(localStorage, id, patch), error: '' }); }
       catch { throw new Error('저장하지 못했어요. 저장 공간과 항목 상태를 확인해 주세요.'); }
     },
