@@ -81,3 +81,18 @@ test('drops a name line when no amount line follows it', () => {
   const { items } = parseReceipt(['상품명', '행사상품 안내', '두부', '8801234567890 1 2,500 2,500', '합계 2,500']);
   assert.deepEqual(items.map(({ name, quantity }) => [name, quantity]), [['두부', 1]]);
 });
+
+test('drops receipt notice sentences even when numbers follow them', () => {
+  const { items } = parseReceipt([
+    '개할 경우 법적 처벌 을 받을 수 있습니다 2',
+    '상품명',
+    '두부 1 2,500',
+    '공개할 경우 법적 처벌 을 받을 수 있습니다',
+    '0001 0002',
+    '교환·환불은 영수증을 지참해 주세요 7',
+    '개인정보 처리방침 안내 1',
+    '감사합니다 1',
+    '합계 2,500',
+  ]);
+  assert.deepEqual(items.map(({ name }) => name), ['두부']);
+});

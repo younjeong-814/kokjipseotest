@@ -23,6 +23,8 @@ const HEADER = /상품\s*명|품\s*명|품\s*목|상\s*품/;
 const FOOTER = /합\s*계|총\s*액|총\s*금\s*액|구\s*매\s*액|판\s*매\s*액|결\s*제\s*금\s*액|받\s*을\s*금\s*액|받\s*은\s*금\s*액|과\s*세\s*물\s*품|면\s*세\s*물\s*품|부\s*가\s*세/;
 const EXCLUDED = /봉투|쇼핑백|할인|쿠폰|포인트|적립|부가세|과세|면세|합계|카드|결제|승인|거스름|현금|영수증|사업자|대표|전화|TEL|주소|POS|계산원|교환|환불|회원|단가|수량|금액|매장|가맹점/i;
 const AMOUNT = /^[\d,.]+원?$/;
+// 영수증 하단 안내문. "~할 경우 법적 처벌을 받을 수 있습니다"처럼 문장으로 끝나거나 안내에만 쓰는 단어가 있는 줄
+const NOTICE = /(?:니다|세요|십시오|바랍니다)[.!]?(?:\s|$)|경우|처벌|법적|무단|개인정보|고객센터|문의|유의|지참|보관하/;
 // 서울시 성동구, 성남시 분당구처럼 시·도 다음에 구·군이 오는 주소 줄
 const ADDRESS = /\S+[시도]\s+\S+[구군](?:\s|$)/;
 // 면세·과세 표시는 품목 줄에도 붙는다. 제외 규칙에 걸리지 않게 먼저 지운다.
@@ -56,7 +58,7 @@ export function parseReceipt(lines: string[]): ReceiptResult {
   let pending: string | undefined;
   for (const raw of section) {
     const line = raw.replace(TAX_MARK, ' ');
-    if (EXCLUDED.test(line) || ADDRESS.test(line)) { pending = undefined; continue; }
+    if (EXCLUDED.test(line) || NOTICE.test(line) || ADDRESS.test(line)) { pending = undefined; continue; }
     const tokens = line.replace(/\b\d{8,14}\b/g, ' ').trim().split(/\s+/).filter(Boolean);
     const numbers: string[] = [];
     while (tokens.length && AMOUNT.test(tokens.at(-1)!)) numbers.unshift(tokens.pop()!);
