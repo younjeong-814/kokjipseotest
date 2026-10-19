@@ -8,7 +8,7 @@ import { ActionButton } from '../../components/ActionButton';
 import { asset } from '../../lib/assets';
 import { formatMonthDay } from '../../lib/date';
 import type { Navigate } from '../../prototype/flow';
-import { recognizedItems, type useRecognition } from './useRecognition';
+import type { useRecognition } from './useRecognition';
 
 type Props = { navigate: Navigate; recognition: ReturnType<typeof useRecognition>; onRegister: () => void };
 
@@ -24,7 +24,7 @@ export function RecognitionResultPage({ navigate, recognition, onRegister }: Pro
   };
   const editName = (id: number) => {
     recognition.selectEdit(id);
-    flushSync(() => { setDraftName(recognition.names[id]); setEditingId(id); });
+    flushSync(() => { setDraftName(recognition.items.find(item => item.id === id)?.name ?? ''); setEditingId(id); });
     nameInputs.current[id]?.focus();
     nameInputs.current[id]?.select();
   };
@@ -40,11 +40,11 @@ export function RecognitionResultPage({ navigate, recognition, onRegister }: Pro
         <section className="recognition-banner"><ReminderBanner /></section>
         <section className="recognized-list" aria-label="AI 인식 식재료">
           {/* 구분선은 보이는 항목 사이에만 그린다. 맨 아래 선은 목록의 border-bottom이 맡는다. */}
-          {recognizedItems.filter(item => recognition.visible[item.id]).map((item, index) => <Fragment key={item.id}>
+          {recognition.items.map((item, index) => <Fragment key={item.id}>
             {index > 0 && <div className="recognition-divider" />}
             <div className="recognized-row" data-item-id={item.id}>
-              <img className={`recognized-thumbnail${item.vegetable ? ' vegetable' : ''}`} src={asset(item.image)} alt="" />
-              <div className="recognized-name"><input ref={element => { nameInputs.current[item.id] = element; }} className="recognized-name-input" aria-label={`${recognition.names[item.id]} 이름`} readOnly={editingId !== item.id} tabIndex={editingId === item.id ? 0 : -1} value={editingId === item.id ? draftName : recognition.names[item.id]} maxLength={60} enterKeyHint="done" onChange={event => setDraftName(event.target.value)} onBlur={() => finishName(item.id)} onKeyDown={event => {
+              <img className="recognized-thumbnail" src={asset(item.image)} alt="" />
+              <div className="recognized-name"><input ref={element => { nameInputs.current[item.id] = element; }} className="recognized-name-input" aria-label={`${item.name} 이름`} readOnly={editingId !== item.id} tabIndex={editingId === item.id ? 0 : -1} value={editingId === item.id ? draftName : item.name} maxLength={60} enterKeyHint="done" onChange={event => setDraftName(event.target.value)} onBlur={() => finishName(item.id)} onKeyDown={event => {
                 if (event.nativeEvent.isComposing) return;
                 if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); }
                 if (event.key === 'Escape') {
@@ -52,8 +52,8 @@ export function RecognitionResultPage({ navigate, recognition, onRegister }: Pro
                   flushSync(() => setEditingId(null));
                   event.currentTarget.blur();
                 }
-              }} />{item.error && !recognition.corrected[item.id] && <span className="recognition-error"><img src={asset('ai-error.svg')} alt="" />인식오류</span>}</div>
-              <div className="recognized-actions"><button type="button" aria-label={`${recognition.names[item.id]} 수정`} onClick={() => editName(item.id)}><img src={asset('ai-edit.png')} alt="" /></button><button type="button" aria-label={`${recognition.names[item.id]} 삭제`} onClick={() => recognition.remove(item.id)}><img src={asset('ai-close.png')} alt="" /></button></div>
+              }} />{item.error && !item.corrected && <span className="recognition-error"><img src={asset('ai-error.svg')} alt="" />인식오류</span>}</div>
+              <div className="recognized-actions"><button type="button" aria-label={`${item.name} 수정`} onClick={() => editName(item.id)}><img src={asset('ai-edit.png')} alt="" /></button><button type="button" aria-label={`${item.name} 삭제`} onClick={() => recognition.remove(item.id)}><img src={asset('ai-close.png')} alt="" /></button></div>
             </div>
           </Fragment>)}
         </section>

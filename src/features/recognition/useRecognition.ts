@@ -1,35 +1,61 @@
 import { useState } from 'react';
+import type { ReceiptResult } from '../receipt/parseReceipt';
+import { categoryImage } from '../ingredients/images';
+import { classifyIngredient } from '../ingredients/classify';
 
-// Figma prototype variables name0..name3 and visible/item0..item3.
-export const recognizedItems = [
-  { id: 0, name: '대퍄', image: 'ai-vegetable.png', error: true, vegetable: true },
-  { id: 1, name: '양파', image: 'ai-vegetable.png', error: false, vegetable: true },
-  { id: 2, name: '두부', image: 'ai-bean.png', error: false, vegetable: false },
-  { id: 3, name: '콩', image: 'ai-bean.png', error: false, vegetable: false },
-] as const;
+export type RecognizedItem = { id: number; name: string; quantity: number; category: string; image: string; error: boolean; corrected: boolean };
+
+// Figma prototype variables name0..name3 and visible/item0..item3. 냉장고·상품 촬영은 아직 이 샘플을 보여준다.
+const sampleItems: RecognizedItem[] = [
+  { id: 0, name: '대퍄', quantity: 1, category: '채소', image: 'thumb-vegetable.png', error: true, corrected: false },
+  { id: 1, name: '양파', quantity: 1, category: '채소', image: 'thumb-vegetable.png', error: false, corrected: false },
+  { id: 2, name: '두부', quantity: 1, category: '두부·콩류', image: 'thumb-bean.png', error: false, corrected: false },
+  { id: 3, name: '콩', quantity: 1, category: '두부·콩류', image: 'thumb-bean.png', error: false, corrected: false },
+];
+
+const pad = (value: number) => String(value).padStart(2, '0');
+const now = () => {
+  const date = new Date();
+  return { date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`, time: `${pad(date.getHours())}:${pad(date.getMinutes())}` };
+};
 
 export function useRecognition() {
-  const [visible, setVisible] = useState([true, true, true, true]);
+  const [source, setSource] = useState<'sample' | 'receipt'>('sample');
+  const [items, setItems] = useState(sampleItems);
   const [editing, setEditing] = useState('0');
   const [pendingName, setPendingName] = useState('대파');
-  const [names, setNames] = useState<string[]>(recognizedItems.map(item => item.name));
-  const [corrected, setCorrected] = useState([false, false, false, false]);
   const [date, setDate] = useState('2026-08-08');
   const [time, setTime] = useState('10:49');
+  const start = (next: RecognizedItem[], at: { date: string; time: string }) => {
+    setItems(next);
+    setEditing(String(next[0]?.id ?? 0));
+    setPendingName(next[0]?.name ?? '');
+    setDate(at.date);
+    setTime(at.time);
+  };
   return {
-    visible, editing, pendingName, names, corrected, date, time, setDate, setTime,
+    source, items, editing, pendingName, date, time, setDate, setTime,
     selectEdit: (id: number) => {
       setEditing(String(id));
-      setPendingName(names[id]);
+      setPendingName(items.find(item => item.id === id)?.name ?? '');
     },
     saveName: (id: number, value: string) => {
       const name = value.trim();
       if (!name) return;
-      setNames(current => current.map((previous, index) => index === id ? name : previous));
-      setCorrected(current => current.map((previous, index) => index === id ? true : previous));
+      // 이름이 바뀌면 카테고리와 썸네일도 다시 정한다.
+      const category = classifyIngredient(name);
+      setItems(current => current.map(item => item.id === id ? { ...item, name, category, image: categoryImage(category), corrected: true } : item));
       setPendingName(name);
     },
-    remove: (id: number) => setVisible(items => items.map((value, index) => index === id ? false : value)),
-    reset: () => setVisible([true, true, true, true]),
+    remove: (id: number) => setItems(current => current.filter(item => item.id !== id)),
+    showSample: () => { setSource('sample'); start(sampleItems, now()); },
+    showReceipt: (result: ReceiptResult) => {
+      const at = now();
+      setSource('receipt');
+      start(result.items.map((item, id) => {
+        const category = classifyIngredient(item.name);
+        return { id, name: item.name, quantity: item.quantity, category, image: categoryImage(category), error: item.suspicious, corrected: false };
+      }), { date: result.date ?? at.date, time: result.time ?? at.time });
+    },
   };
 }

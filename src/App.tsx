@@ -13,8 +13,11 @@ import { FridgeSearchPage } from './features/fridge/FridgeSearchPage';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
 import { RecognitionResultPage } from './features/recognition/RecognitionResultPage';
-import { recognizedItems, useRecognition } from './features/recognition/useRecognition';
+import { useRecognition } from './features/recognition/useRecognition';
 import { IngredientDetailPage } from './features/ingredients/IngredientDetailPage';
+import { recognizeReceipt } from './features/receipt/ocr';
+import { defaultStorage } from './features/ingredients/expiry';
+import { toDateKey } from './lib/date';
 import { StoredIngredientsPage } from './features/ingredients/StoredIngredientsPage';
 import { useIngredients } from './features/ingredients/useIngredients';
 import type { Ingredient } from './features/ingredients/repository';
@@ -58,11 +61,21 @@ export function App() {
   const ingredientItems = ingredients.items.filter(item => !isFood(item));
   const foodItems = ingredients.items.filter(isFood);
   const info = screens[displayScreen];
-  const onRecognize = () => { registering.current = false; setRecognitionError(''); recognition.reset(); navigate('recognition-result'); };
+  // 영수증 가이드에서 들어온 촬영만 OCR을 거친다. 냉장고·상품 촬영 인식은 아직 샘플 결과를 보여준다.
+  const onCapture = async (image: string) => {
+    const receipt = captureGuide === 'guide-receipt' ? await recognizeReceipt(image) : null;
+    registering.current = false;
+    setRecognitionError('');
+    if (receipt) recognition.showReceipt(receipt);
+    else recognition.showSample();
+    navigate('recognition-result');
+  };
   const openDetail = (item: Ingredient) => { window.location.hash = `ingredient-detail?item=${encodeURIComponent(item.id)}`; };
   const registerRecognized = () => {
     if (registering.current) return;
-    const drafts = recognizedItems.filter(item => recognition.visible[item.id]).map(item => ({ name: recognition.names[item.id], category: item.vegetable ? '채소' : '두부·콩류', storage: '냉장', quantity: 1, unit: '개', date: '', source: captureGuide === 'guide-receipt' ? 'ocr' as const : 'camera' as const }));
+    // 보관 시작일은 결과 화면의 날짜(영수증 구매일 또는 촬영일)다. 미래 날짜면 등록일을 쓴다.
+    const storageStartedOn = recognition.date <= toDateKey(new Date()) ? recognition.date : undefined;
+    const drafts = recognition.items.map(item => ({ name: item.name, category: item.category, storage: defaultStorage(item.name), quantity: item.quantity, unit: '개', date: '', storageStartedOn, source: captureGuide === 'guide-receipt' ? 'ocr' as const : 'camera' as const }));
     if (!drafts.length) { setRecognitionError('등록할 식재료가 없어요. 다시 촬영해 주세요.'); return; }
     try { registering.current = true; ingredients.saveRecognized(drafts); setRegistrationMessage(`식재료 ${drafts.length}개를 등록했어요`); navigate('fridge-registered'); }
     catch (failure) { registering.current = false; setRecognitionError(failure instanceof Error ? failure.message : '저장하지 못했어요.'); }
@@ -86,7 +99,7 @@ export function App() {
         {screen === 'guide-fridge' && <FridgeGuidePage navigate={navigate} />}
         {screen === 'guide-product' && <ProductGuidePage navigate={navigate} />}
         {screen === 'guide-receipt' && <ReceiptGuidePage navigate={navigate} />}
-        {screen === 'camera' && <ReceiptCameraPage navigate={navigate} backDestination={captureGuide} onRecognize={onRecognize} />}
+        {screen === 'camera' && <ReceiptCameraPage navigate={navigate} backDestination={captureGuide} onCapture={onCapture} />}
         {recognitionError && <p className="ingredient-error" role="alert">{recognitionError}</p>}
         {screen === 'recognition-result' && <RecognitionResultPage navigate={navigate} recognition={recognition} onRegister={registerRecognized} />}
       </div>

@@ -1,7 +1,18 @@
 import { storageRecommendations } from '../../data/storageRecommendations';
 import { toDateKey } from '../../lib/date';
+import { matchIngredient } from './classify';
 
 const normalized = (value: string) => value.normalize('NFC').replace(/\s+/g, '');
+const rowsNamed = (name: string) => storageRecommendations.filter(row => [normalized(row.name), normalized(row.name + row.variant)].includes(normalized(name)));
+/**
+ * DB에서 찾을 이름. 정확히 같은 이름이 있으면 그대로 쓰고, 없으면 분류 규칙의 키워드로 찾는다.
+ * 풀무원 국산콩 두부 → 두부, 서울우유 → 우유. 키워드도 DB에 없으면 null(추측하지 않음).
+ */
+export function recommendationName(name: string): string | null {
+  if (rowsNamed(name).length) return name;
+  const keyword = matchIngredient(name)?.keyword;
+  return keyword && rowsNamed(keyword).length ? keyword : null;
+}
 export const ingredientCategories = ['육류', '과일', '채소', '두부·콩류', '유제품', '수산물', '조미료·소스', '기타식재료'] as const;
 export const foodCategories = ['밀키트', '반찬', '국·찌개', '배달음식', '기타음식'] as const;
 export function categoryKind(category = ''): 'ingredient' | 'food' | undefined {
@@ -11,11 +22,33 @@ export function categoryKind(category = ''): 'ingredient' | 'food' | undefined {
 }
 export const isFood = (item: { name: string; category?: string; kind?: 'ingredient' | 'food' }) => {
   const kind = categoryKind(item.category) ?? item.kind;
-  return kind ? kind === 'food' : storageRecommendations.some(row => row.category === '음식' && [normalized(row.name), normalized(row.name + row.variant)].includes(normalized(item.name)));
+  if (kind) return kind === 'food';
+  const name = recommendationName(item.name);
+  return name !== null && rowsNamed(name).some(row => row.category === '음식');
 };
 
-/** Exact DB names only; qualified rows require a variant or qualified name. */
+// "냉동 비권장"처럼 다른 보관방식을 가리키는 메모는 그 행을 막지 않는다. "비권장"만 있으면 그 행이 비권장이다.
+const discouraged = (row: { storage: string; note: string }) => {
+  const match = row.note.match(/(냉장|냉동|실온)?\s*비권장/);
+  return Boolean(match) && (!match![1] || row.storage.split('/').includes(match![1]));
+};
+/** 인식 결과의 보관 위치: 기록이 하나면 그것, 아니면 냉장 → 실온 → 냉동 순. DB에 없으면 냉장. */
+export function defaultStorage(name: string): '냉장' | '냉동' | '실온' {
+  const found = recommendationName(name);
+  const options = new Set((found ? rowsNamed(found) : []).filter(row => !discouraged(row)).flatMap(row => row.storage.split('/')));
+  if (options.size === 1) return [...options][0] as '냉장' | '냉동' | '실온';
+  return options.has('냉장') || !options.size ? '냉장' : options.has('실온') ? '실온' : '냉동';
+}
+
+/** Exact DB name first, then the classification keyword (recommendationName). Qualified rows require a variant or qualified name. */
 export function recommendedDays(name: string, storage: string, variant = ''): number | null {
+  const exact = exactRecommendedDays(name, storage, variant);
+  if (exact !== null) return exact;
+  const keyword = recommendationName(name);
+  return keyword && keyword !== name ? exactRecommendedDays(keyword, storage, variant) : null;
+}
+
+function exactRecommendedDays(name: string, storage: string, variant: string): number | null {
   const matches = storageRecommendations.filter(row => row.storage.split('/').includes(storage) && (
     variant ? normalized(row.name) === normalized(name) && normalized(row.variant) === normalized(variant)
       : normalized(row.name + row.variant) === normalized(name) || (!row.variant && normalized(row.name) === normalized(name))
