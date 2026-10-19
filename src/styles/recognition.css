@@ -16,7 +16,8 @@
 .capture-date-row span { font-size: 12px; line-height: 16px; font-weight: 700; color: var(--blue-500); }
 .capture-date > p { margin-top: 8px; font-size: 12px; line-height: 16px; color: var(--gray-800); }
 .recognition-banner { margin-top: 15px; padding: 10px 20px; }
-.recognized-list { margin: 0 20px; height: 278px; border-bottom: 1px solid var(--gray-400); }
+/* 4줄(68px×4 + 구분선)까지 보여주고, 넘치면 목록 안에서만 스크롤한다. */
+.recognized-list { margin: 0 20px; height: 278px; border-bottom: 1px solid var(--gray-400); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .recognized-row { display: flex; align-items: center; height: 68px; gap: 12px; padding: 12px 4px; }
 .recognized-thumbnail { width: 44px; height: 44px; object-fit: cover; flex-shrink: 0; }
 .recognized-name { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
