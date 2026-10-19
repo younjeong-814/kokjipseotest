@@ -1,5 +1,5 @@
 import { asset } from '../../lib/assets';
-import { useState } from 'react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { FridgeTabs } from './FridgeTabs';
 import { FridgeFilters, type FridgeSort } from './FridgeFilters';
 import type { Navigate } from '../../prototype/flow';
@@ -19,21 +19,74 @@ const bars: Record<number, string> = { 25: 'remaining-quarter.svg', 50: 'remaini
 
 export function RegisteredFridgePage({ navigate }: { navigate: Navigate }) {
   const [sort, setSort] = useState<FridgeSort>('등록순');
+  const [items, setItems] = useState(examples);
+  const [openItem, setOpenItem] = useState<string | null>(null);
+  const drag = useRef<{ name: string; x: number; y: number; moved: boolean } | null>(null);
+  const suppressDeleteClick = useRef(false);
+  const removeItem = (name: string) => {
+    setItems(current => current.filter(item => item.name !== name));
+    setOpenItem(null);
+  };
+  const onRowPointerDown = (event: ReactPointerEvent<HTMLDivElement>, name: string) => {
+    // Keep the delete button's native click intact; capture the gesture elsewhere on the row.
+    if (!(event.target instanceof Element && event.target.closest('.registered-delete-action'))) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    drag.current = { name, x: event.clientX, y: event.clientY, moved: false };
+  };
+  const onRowPointerMove = (event: ReactPointerEvent<HTMLDivElement>, name: string) => {
+    const start = drag.current;
+    if (!start || start.name !== name) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) start.moved = true;
+    if (start.moved) {
+      const card = event.currentTarget.querySelector<HTMLElement>('.registered-food-card');
+      card?.style.setProperty('--delete-drag', `${Math.max(-39, Math.min(0, (openItem === name ? -39 : 0) + dx))}px`);
+    }
+  };
+  const onRowPointerUp = (event: ReactPointerEvent<HTMLDivElement>, name: string) => {
+    const start = drag.current;
+    if (!start || start.name !== name) return;
+    const dx = event.clientX - start.x;
+    if (start.moved) {
+      event.currentTarget.querySelector<HTMLElement>('.registered-food-card')?.style.removeProperty('--delete-drag');
+      if (dx < -18) setOpenItem(name);
+      else if (dx > 10) setOpenItem(null);
+      if (Math.abs(dx) > 10) {
+        suppressDeleteClick.current = true;
+        window.setTimeout(() => { suppressDeleteClick.current = false; }, 300);
+      }
+    }
+    drag.current = null;
+  };
+  const onRowPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.querySelector<HTMLElement>('.registered-food-card')?.style.removeProperty('--delete-drag');
+    drag.current = null;
+  };
   const expiryDays = (item: typeof examples[number]) => {
     if (item.badge === 'D-DAY') return 0;
     const match = (item.secondBadge ?? item.badge ?? '').match(/^D([+-])(\d+)$/);
     return match ? Number(match[2]) * (match[1] === '+' ? -1 : 1) : Number.POSITIVE_INFINITY;
   };
-  const sorted = [...examples].sort((a, b) => sort === '남은양순' ? a.percent - b.percent : sort === '소비기한' ? expiryDays(a) - expiryDays(b) : 0);
+  const sorted = [...items].sort((a, b) => sort === '남은양순' ? a.percent - b.percent : sort === '소비기한' ? expiryDays(a) - expiryDays(b) : 0);
   return (
     <main className="fridge-page" data-figma-node="5572:19852">
       <FridgeTabs navigate={navigate} />
       <FridgeFilters value={sort} onChange={setSort} />
-      <section className="registered-fridge-list" aria-label={`${sort} 식재료 목록`}>{sorted.map(item => <article className="registered-food-card" key={item.name}>
+      <section className="registered-fridge-list" aria-label={`${sort} 식재료 목록`}>{sorted.map(item => <div className={`registered-food-row${openItem === item.name ? ' is-delete-open' : ''}`} key={item.name} onPointerDown={event => onRowPointerDown(event, item.name)} onPointerMove={event => onRowPointerMove(event, item.name)} onPointerUp={event => onRowPointerUp(event, item.name)} onPointerCancel={onRowPointerCancel}>
+        <button type="button" className="registered-delete-action" aria-label={`${item.name} 삭제`} onClick={event => {
+          if (suppressDeleteClick.current) {
+            suppressDeleteClick.current = false;
+            event.preventDefault();
+            return;
+          }
+          removeItem(item.name);
+        }}><img src={asset('delete-action.svg')} alt="" /></button>
+        <article className="registered-food-card">
         <div className="registered-food-image"><img className={item.image === 'ai-vegetable.png' || item.image === 'food-meat.png' ? 'vegetable' : ''} src={asset(item.image)} alt="" /><span>{item.category}</span></div>
         <div className="registered-food-info"><h2 title={item.name}>{item.name}</h2><div className="food-badges"><span>{item.storage}</span>{item.badge && <span className={item.tone}>{item.badge}</span>}{item.secondBadge && <span className={item.tone}>{item.secondBadge}</span>}</div><div className="food-remaining"><p>남은 양</p><div><img src={asset(bars[item.percent])} alt="" /><b>{item.percent}%</b></div></div></div>
-      </article>)}</section>
+      </article></div>)}</section>
     </main>
   );
 }
-

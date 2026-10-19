@@ -41,7 +41,12 @@
 .recognition-retake { background: white; border: 1px solid var(--gray-400); color: var(--gray-900); }
 .registered-fridge-list { height: 564px; margin-top: 1px; overflow-y: auto; padding: 8px 20px; display: flex; flex-direction: column; gap: 17px; scrollbar-width: none; }
 .registered-fridge-list::-webkit-scrollbar { display: none; }
-.registered-food-card { padding: 16px; border: 1px solid var(--gray-400); border-radius: 16px; height: 139px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; }
+.registered-food-row { height: 139px; flex-shrink: 0; position: relative; overflow: hidden; border-radius: 16px; touch-action: pan-y; }
+.registered-delete-action { position: absolute; inset: 0 0 0 auto; width: 39px; padding: 0; background: #ffaeae; display: flex; align-items: center; justify-content: center; }
+.registered-delete-action img { width: 18px; height: 20px; object-fit: contain; }
+.registered-food-card { position: relative; z-index: 1; padding: 16px; border: 1px solid var(--gray-400); border-radius: 16px; height: 139px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; background: white; transform: translateX(var(--delete-drag, 0)); transition: transform 180ms ease; user-select: none; }
+.registered-food-row.is-delete-open .registered-food-card { transform: translateX(-39px); }
+.registered-food-row.is-delete-open .registered-food-card[style*="--delete-drag"] { transition: none; }
 .registered-food-image { width: 60px; flex-shrink: 0; text-align: center; }
 .registered-food-image > img { width: 56px; height: 56px; object-fit: cover; display: block; margin: 0 auto; }
 .registered-food-image span { font-size: 12px; line-height: 16px; display: block; }
