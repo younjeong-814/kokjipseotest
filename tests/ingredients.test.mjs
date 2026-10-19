@@ -3,10 +3,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-const source = readFileSync(new URL('../src/features/ingredients/repository.ts', import.meta.url), 'utf8');
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-const exports = {};
-new Function('exports', compiled)(exports);
+function loadTs(url) {
+  const source = readFileSync(url, 'utf8');
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const exports = {};
+  new Function('exports', 'require', compiled)(exports, path => loadTs(new URL(`${path}.ts`, url)));
+  return exports;
+}
+const exports = loadTs(new URL('../src/features/ingredients/repository.ts', import.meta.url));
+const expiry = loadTs(new URL('../src/features/ingredients/expiry.ts', import.meta.url));
 const { INGREDIENTS_KEY, loadIngredients, saveIngredient, deleteIngredient, validateDraft } = exports;
 const { updateIngredientDetails, recordIngredientCondition, saveRecognizedIngredients } = exports;
 function storage() {
@@ -35,6 +40,83 @@ test('home falls back to four latest registrations and handles empty and unknown
   assert.deepEqual(result.entries.map(value => value.item.id), ['5','4','3','2']);
   assert.equal(homeExports.selectHomeIngredients([items[0]], new Date(2026, 9, 17)).entries[0].days, null);
   assert.deepEqual(homeExports.selectHomeIngredients([], new Date()).entries, []);
+});
+test('DB recommendations use 80 percent rounded down and calendar days', () => {
+  assert.equal(expiry.calculateRecommendedDate('대파', '냉장', '2026-10-17'), '2026-10-25');
+  assert.equal(expiry.calculateRecommendedDate('대파', '냉동', '2026-10-17'), '2027-03-10');
+  assert.equal(expiry.calculateRecommendedDate('브로콜리', '냉장', '2026-10-17'), '2026-10-22');
+  assert.equal(expiry.calculateRecommendedDate('딸기', '냉장', '2028-02-28'), '2028-03-01');
+  assert.equal(expiry.calculateRecommendedDate('닭고기', '냉장', '2026-10-17'), '2026-10-17');
+  assert.equal(expiry.calculateRecommendedDate('대파', '냉장', '2026-02-30'), '');
+});
+
+test('unknown names, mismatched storage and missing variant conditions remain undated', () => {
+  for (const [name, location] of [['없는재료', '냉장'], ['대파', '실온'], ['브로콜리', '냉동'], ['스팸', '냉장'], ['콩', '냉장']]) {
+    assert.equal(expiry.calculateRecommendedDate(name, location, '2026-10-17'), '');
+  }
+  assert.equal(expiry.calculateRecommendedDate('브로콜리', '냉동', '2026-10-17', '데친 후'), '2027-03-10');
+  assert.equal(expiry.calculateRecommendedDate('간장', '냉장', '2026-10-17'), expiry.calculateRecommendedDate('간장', '실온', '2026-10-17'));
+});
+
+test('manual and recognized registration persist the same date for list/detail/sorting', () => {
+  const db = storage();
+  const [item] = saveIngredient(db, { ...draft, name: '대파', date: '', storageStartedOn: '2026-10-17' });
+  assert.equal(item.date, '2026-10-25');
+  assert.equal(item.dateSource, 'automatic');
+  assert.equal(loadIngredients(db)[0].date, item.date);
+  assert.equal(expiry.deadlineLabel(expiry.deadlineDays(item.date, '2026-10-17')), 'D-8');
+  const batch = saveRecognizedIngredients(db, [{ ...draft, name: '대파', date: '', storageStartedOn: '2026-10-17', source: 'ocr' }]);
+  assert.equal(batch[0].date, item.date);
+  const sorted = [{ date: '' }, { date: '2026-10-25' }, { date: '2026-10-19' }].sort(expiry.compareExpiry);
+  assert.deepEqual(sorted.map(item => item.date), ['2026-10-19', '2026-10-25', '']);
+});
+
+test('explicit dates override DB and survive storage and name changes', () => {
+  const db = storage();
+  const [item] = saveIngredient(db, { ...draft, name: '대파', date: '2026-10-30', storageStartedOn: '2026-10-17' });
+  assert.equal(item.dateSource, 'manual');
+  assert.equal(updateIngredientDetails(db, item.id, { storage: '냉동', date: item.date, remainingPercent: 100 })[0].date, item.date);
+  assert.equal(exports.updateIngredientInfo(db, item.id, { name: '상추' })[0].date, item.date);
+  const changed = updateIngredientDetails(db, item.id, { storage: '냉장', date: '', remainingPercent: 100 })[0];
+  assert.equal(changed.date, '2026-10-21');
+  assert.equal(changed.dateSource, 'automatic');
+  const manual = updateIngredientDetails(db, item.id, { storage: '냉장', date: changed.date, dateSource: 'manual', remainingPercent: 100 })[0];
+  assert.equal(manual.dateSource, 'manual');
+  const manuallyChanged = updateIngredientDetails(db, item.id, { storage: '냉장', date: '2026-12-01', remainingPercent: 100 })[0];
+  assert.equal(manuallyChanged.date, '2026-12-01');
+});
+
+test('automatic date follows storage/name changes without restarting the clock', () => {
+  const db = storage();
+  const [item] = saveIngredient(db, { ...draft, name: '대파', date: '', storageStartedOn: '2026-10-17' });
+  const frozen = updateIngredientDetails(db, item.id, { storage: '냉동', date: item.date, remainingPercent: 100 })[0];
+  assert.equal(frozen.date, '2027-03-10');
+  assert.equal(frozen.storageStartedOn, '2026-10-17');
+  assert.equal(exports.updateIngredientInfo(db, item.id, { name: '알수없는이름' })[0].date, '');
+});
+
+test('legacy missing dates are anchored to original creation; explicit dates stay unchanged', () => {
+  const db = storage();
+  db.setItem(INGREDIENTS_KEY, JSON.stringify([{ ...draft, name: '대파', date: '', id: 'old', createdAt: '2026-10-17T03:00:00Z', updatedAt: '2026-10-20T03:00:00Z' }]));
+  assert.equal(loadIngredients(db)[0].date, '2026-10-25');
+  assert.equal(loadIngredients(db)[0].date, '2026-10-25');
+  saveIngredient(db, { ...draft, name: '대파', date: '', storageStartedOn: '2026-10-17' }, 'old');
+  assert.equal(JSON.parse(db.getItem(INGREDIENTS_KEY))[0].date, '2026-10-25');
+});
+
+test('food recommendations use DB rows and the shared repository', () => {
+  const db = storage();
+  for (const name of ['반찬', '조리 음식', '배달음식', '밀키트']) {
+    const [item] = saveIngredient(db, { ...draft, name, category: '기타', date: '', storageStartedOn: '2026-10-17' });
+    assert.equal(expiry.isFood(item), true);
+    assert.equal(item.date, '2026-10-19');
+  }
+  assert.equal(expiry.isFood({ name: '대파' }), false);
+  const food = loadIngredients(db)[0];
+  assert.equal(expiry.isFood(exports.updateIngredientInfo(db, food.id, { name: '나만의 밀키트' }).find(item => item.id === food.id)), true);
+  assert.equal(expiry.calculateRecommendedDate('밀키트', '냉장', '2026-10-17', '조리 전'), '2026-10-21');
+  assert.equal(expiry.calculateRecommendedDate('배달음식', '냉동', '2026-10-17'), '');
+  assert.equal(expiry.calculateRecommendedDate('김치찌개', '냉장', '2026-10-17'), '');
 });
 
 test('info modal updates only metadata and rejects quantity changes after consumption', () => {

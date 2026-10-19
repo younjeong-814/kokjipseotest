@@ -50,11 +50,12 @@ export function ManualEntryPage({ navigate, initial, onSave, onCancel }: { navig
   const [quantity, setQuantity] = useState(String(initial?.quantity ?? 1));
   const [unit, setUnit] = useState(initial?.unit ?? '개');
   const [date, setDate] = useState(initial?.date ?? '');
+  const [dateSource, setDateSource] = useState(initial?.dateSource);
   const [error, setError] = useState('');
   const saving = useRef(false);
   const submit = () => {
     if (saving.current) return;
-    const draft = { name, category, storage, quantity: Number(quantity), unit, date };
+    const draft = { name, category, storage, quantity: Number(quantity), unit, date, dateSource };
     const invalid = validateDraft(draft);
     if (invalid) { setError(invalid); return; }
     try { saving.current = true; onSave(draft, initial?.id); }
@@ -71,7 +72,7 @@ export function ManualEntryPage({ navigate, initial, onSave, onCancel }: { navig
       <div className="manual-quantity"><label htmlFor="manual-quantity">수량</label><div><EntryInput label="수량" id="manual-quantity" type="number" inputMode="decimal" min="0.01" step="any" placeholder="1" value={quantity} onChange={event => setQuantity(event.target.value)} /><UnitPicker unit={unit} setUnit={setUnit} /></div></div>
       <div className="manual-date"><div className="manual-field"><span>소비 권장일</span><button type="button" className={`manual-input manual-date-button${date ? ' filled' : ''}`} aria-label={`소비 권장일 ${date ? formatMonthDay(date) : '선택'}`} onClick={() => setDateOpen(true)}>{date ? formatMonthDay(date) : <span className="manual-placeholder">날짜 선택</span>}</button></div><button type="button" className="manual-help" aria-label="소비 권장일 안내" onClick={() => setHelpOpen(true)}><img src={asset('manual-help.svg')} alt="" /></button></div>
     </div>
-    {dateOpen && <DateOverlay label="소비 권장일 선택" value={date} onClose={() => setDateOpen(false)} onSave={value => { setDate(value); setDateOpen(false); }} />}
+    {dateOpen && <DateOverlay label="소비 권장일 선택" value={date} onClose={() => setDateOpen(false)} onSave={value => { setDate(value); setDateSource('manual'); setDateOpen(false); }} />}
     {helpOpen && <HelpOverlay onClose={() => setHelpOpen(false)} />}
     {error && <p className="ingredient-error" role="alert">{error}</p>}
     <div className="manual-submit"><ActionButton type="button" className="action-button-large" onClick={submit}>{initial ? '수정 내용 저장하기' : '냉장고에 등록하기'}</ActionButton></div>

@@ -18,6 +18,7 @@ import { IngredientDetailPage } from './features/ingredients/IngredientDetailPag
 import { StoredIngredientsPage } from './features/ingredients/StoredIngredientsPage';
 import { useIngredients } from './features/ingredients/useIngredients';
 import type { Ingredient } from './features/ingredients/repository';
+import { isFood } from './features/ingredients/expiry';
 import { MyPage } from './features/mypage/MyPage';
 import { RegistrationToast } from './components/RegistrationToast';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
@@ -35,7 +36,7 @@ export function App() {
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | undefined>();
   const [registrationMessage, setRegistrationMessage] = useState('');
   const [detailId, setDetailId] = useState(readDetailId);
-  const [detailOrigin, setDetailOrigin] = useState<'home' | 'fridge' | 'fridge-registered'>('fridge-registered');
+  const [detailOrigin, setDetailOrigin] = useState<'home' | 'fridge' | 'fridge-registered' | 'fridge-food'>('fridge-registered');
   const [editingFromDetail, setEditingFromDetail] = useState(false);
   const [recognitionError, setRecognitionError] = useState('');
   const registering = useRef(false);
@@ -54,6 +55,8 @@ export function App() {
   };
   const isSearching = screen === 'fridge-search';
   const displayScreen = isSearching ? searchOrigin : screen;
+  const ingredientItems = ingredients.items.filter(item => !isFood(item));
+  const foodItems = ingredients.items.filter(isFood);
   const info = screens[displayScreen];
   const onRecognize = () => { registering.current = false; setRecognitionError(''); recognition.reset(); navigate('recognition-result'); };
   const openDetail = (item: Ingredient) => { window.location.hash = `ingredient-detail?item=${encodeURIComponent(item.id)}`; };
@@ -73,7 +76,7 @@ export function App() {
       ingredients.save(draft, id);
       setRegistrationMessage(id ? '식재료를 수정했어요' : '식재료 1개를 등록했어요');
       if (id && editingFromDetail && editingIngredient) openDetail(editingIngredient);
-      else navigate('fridge-registered');
+      else navigate(isFood(draft) ? 'fridge-food' : 'fridge-registered');
     }} /></div>;
   }
   if (screen === 'guide-fridge' || screen === 'guide-product' || screen === 'guide-receipt' || screen === 'camera' || screen === 'recognition-result') {
@@ -97,8 +100,8 @@ export function App() {
       {isSearching ? <FridgeSearchPage navigate={navigate} onClose={() => navigate(searchOrigin)} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
       {ingredients.error && <p className="ingredient-error" role="alert">{ingredients.error}</p>}
       {screen === 'home' && <HomePage navigate={navigate} items={ingredients.items} onOpen={item => { setDetailOrigin('home'); openDetail(item); }} />}
-      {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredients.items.length ? <StoredIngredientsPage navigate={navigate} items={ingredients.items} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} /> : <FridgePage navigate={navigate} />)}
-      {displayScreen === 'fridge-food' && <FridgeFoodPage navigate={navigate} />}
+      {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} /> : <FridgePage navigate={navigate} />)}
+      {displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
       {screen === 'mypage' && <MyPage navigate={navigate} />}
       {screen === 'recipe' && <RecipeEmptyPage navigate={navigate} />}
