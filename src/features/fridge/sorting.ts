@@ -1,13 +1,15 @@
 export const sortLabels = ['소비기한', '등록순', '남은양순'] as const;
 export type FridgeSort = typeof sortLabels[number];
 export type SortDirection = 'asc' | 'desc';
-export type SortState = { sort: FridgeSort; direction: SortDirection };
-export const defaultDirection = (sort: FridgeSort): SortDirection => sort === '등록순' ? 'desc' : 'asc';
+// sort가 null이면 아무 필터도 고르지 않은 처음 상태다. 목록은 저장된 순서(최근 등록이 위)를 그대로 쓴다.
+export type SortState = { sort: FridgeSort | null; direction: SortDirection };
+export const defaultDirection = (sort: FridgeSort | null): SortDirection => sort === '등록순' ? 'desc' : 'asc';
 export function nextSort(state: SortState, sort: FridgeSort): SortState {
   return { sort, direction: state.sort === sort ? state.direction === 'asc' ? 'desc' : 'asc' : defaultDirection(sort) };
 }
 
 export function sortIngredients<T extends { date: string; createdAt: string; remainingPercent?: number }>(items: readonly T[], { sort, direction }: SortState): T[] {
+  if (!sort) return [...items];
   const sign = direction === 'asc' ? 1 : -1;
   return [...items].sort((a, b) => {
     if (sort === '소비기한') {

@@ -296,3 +296,10 @@ test('reads latest persisted records before writes; deleted edits do not recreat
   assert.throws(() => saveIngredient(db, draft, first.id), /삭제된 항목/);
   assert.equal(loadIngredients(db).length, 2);
 });
+
+test('fridge filter starts unselected and keeps the stored order', () => {
+  const items = [{ id: 'new', date: '2026-10-20', createdAt: '2026-10-13T00:00:00Z' }, { id: 'old', date: '2026-10-14', createdAt: '2026-10-01T00:00:00Z' }];
+  assert.deepEqual(sorting.sortIngredients(items, { sort: null, direction: 'asc' }).map(item => item.id), ['new', 'old']);
+  assert.deepEqual(sorting.nextSort({ sort: null, direction: 'asc' }, '소비기한'), { sort: '소비기한', direction: 'asc' });
+  assert.deepEqual(sorting.nextSort({ sort: null, direction: 'asc' }, '등록순'), { sort: '등록순', direction: 'desc' });
+});
