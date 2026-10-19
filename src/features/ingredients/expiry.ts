@@ -66,11 +66,16 @@ export function calculateRecommendedDate(name: string, storage: string, startedO
   return start.toISOString().slice(0, 10);
 }
 
-type ExpiryInput = { name: string; storage: string; date: string; storageStartedOn?: string; recommendationVariant?: string; dateSource?: 'manual' | 'automatic' };
+// 이름으로 DB를 못 찾은 음식은 카테고리 기준 행을 쓴다. 치킨 → 배달음식(3일 × 80% = 2일).
+const categoryRecords: Record<string, string> = { '배달음식': '배달음식', '밀키트': '밀키트', '반찬': '반찬', '국·찌개': '조리 음식', '국·탕': '조리 음식' };
+
+type ExpiryInput = { name: string; category?: string; storage: string; date: string; storageStartedOn?: string; recommendationVariant?: string; dateSource?: 'manual' | 'automatic' };
 export function resolveExpiry<T extends ExpiryInput>(input: T, previous?: ExpiryInput & { createdAt?: string }, now = new Date()) {
   const storageStartedOn = input.storageStartedOn || previous?.storageStartedOn || toDateKey(previous?.createdAt ? new Date(previous.createdAt) : now);
   const automatic = !input.date || input.dateSource === 'automatic' || (input.dateSource !== 'manual' && previous?.dateSource === 'automatic' && input.date === previous.date);
-  const date = automatic ? calculateRecommendedDate(input.name, input.storage, storageStartedOn, input.recommendationVariant ?? previous?.recommendationVariant) : input.date;
+  const variant = input.recommendationVariant ?? previous?.recommendationVariant;
+  const record = categoryRecords[input.category ?? ''];
+  const date = automatic ? calculateRecommendedDate(input.name, input.storage, storageStartedOn, variant) || (record ? calculateRecommendedDate(record, input.storage, storageStartedOn) : '') : input.date;
   return { ...input, storageStartedOn, date, dateSource: date ? automatic ? 'automatic' as const : 'manual' as const : undefined };
 }
 
