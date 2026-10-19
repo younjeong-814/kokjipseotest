@@ -12,6 +12,36 @@ function loadTs(url) {
 }
 const exports = loadTs(new URL('../src/features/ingredients/repository.ts', import.meta.url));
 const expiry = loadTs(new URL('../src/features/ingredients/expiry.ts', import.meta.url));
+const sorting = loadTs(new URL('../src/features/fridge/sorting.ts', import.meta.url));
+
+test('fridge sorting supports both directions for all three criteria without mutating items', () => {
+  const items = [
+    { id: 'a', date: '2026-10-25', createdAt: '2026-10-17T09:00:00Z', remainingPercent: 50 },
+    { id: 'b', date: '', createdAt: '2026-10-19T09:00:00Z', remainingPercent: 25 },
+    { id: 'c', date: '2026-10-20', createdAt: '2026-10-18T09:00:00Z', remainingPercent: 100 },
+  ];
+  for (const [sort, ascending, descending] of [
+    ['소비기한', ['c', 'a', 'b'], ['a', 'c', 'b']],
+    ['등록순', ['a', 'c', 'b'], ['b', 'c', 'a']],
+    ['남은양순', ['b', 'a', 'c'], ['c', 'a', 'b']],
+  ]) {
+    assert.deepEqual(sorting.sortIngredients(items, { sort, direction: 'asc' }).map(item => item.id), ascending);
+    assert.deepEqual(sorting.sortIngredients(items, { sort, direction: 'desc' }).map(item => item.id), descending);
+  }
+  assert.deepEqual(items.map(item => item.id), ['a', 'b', 'c']);
+  const equal = [{ ...items[0], id: 'one' }, { ...items[0], id: 'two' }];
+  assert.deepEqual(sorting.sortIngredients(equal, { sort: '소비기한', direction: 'desc' }).map(item => item.id), ['one', 'two']);
+});
+
+test('clicking the active criterion toggles direction; changing criterion restores its default', () => {
+  for (const sort of ['소비기한', '등록순', '남은양순']) {
+    assert.equal(sorting.nextSort({ sort, direction: 'asc' }, sort).direction, 'desc');
+    assert.equal(sorting.nextSort({ sort, direction: 'desc' }, sort).direction, 'asc');
+  }
+  assert.deepEqual(sorting.nextSort({ sort: '소비기한', direction: 'desc' }, '등록순'), { sort: '등록순', direction: 'desc' });
+  assert.deepEqual(sorting.nextSort({ sort: '등록순', direction: 'desc' }, '남은양순'), { sort: '남은양순', direction: 'asc' });
+  assert.deepEqual(sorting.nextSort({ sort: '남은양순', direction: 'desc' }, '소비기한'), { sort: '소비기한', direction: 'asc' });
+});
 const { INGREDIENTS_KEY, loadIngredients, saveIngredient, deleteIngredient, validateDraft } = exports;
 const { updateIngredientDetails, recordIngredientCondition, saveRecognizedIngredients } = exports;
 function storage() {
