@@ -19,7 +19,7 @@ const examples = [
 const bars: Record<number, string> = { 25: 'remaining-quarter.svg', 50: 'remaining-half.svg', 75: 'remaining-threequarter.svg', 100: 'remaining-full.svg' };
 
 export function RegisteredFridgePage({ navigate }: { navigate: Navigate }) {
-  const { sort, direction, onChange } = useFridgeSort('등록순');
+  const { sort, direction, onChange } = useFridgeSort();
   const [items, setItems] = useState(examples);
   const [openItem, setOpenItem] = useState<string | null>(null);
   const drag = useRef<{ name: string; x: number; y: number; moved: boolean } | null>(null);
@@ -71,7 +71,7 @@ export function RegisteredFridgePage({ navigate }: { navigate: Navigate }) {
     return match ? Number(match[2]) * (match[1] === '+' ? -1 : 1) : Number.POSITIVE_INFINITY;
   };
   const sign = direction === 'asc' ? 1 : -1;
-  const sorted = [...items].sort((a, b) => {
+  const sorted = !sort ? [...items] : [...items].sort((a, b) => {
     if (sort === '남은양순') return sign * (a.percent - b.percent);
     if (sort === '등록순') return -sign * (examples.indexOf(a) - examples.indexOf(b));
     const left = expiryDays(a), right = expiryDays(b);
@@ -83,7 +83,7 @@ export function RegisteredFridgePage({ navigate }: { navigate: Navigate }) {
     <main className="fridge-page" data-figma-node="5572:19852">
       <FridgeTabs navigate={navigate} />
       <FridgeFilters value={sort} direction={direction} onChange={onChange} />
-      <section className="registered-fridge-list" aria-label={`${sort} 식재료 목록`}>
+      <section className="registered-fridge-list" aria-label={sort ? `${sort} 식재료 목록` : "식재료 목록"}>
         {sorted.map(item => (
           <div className={`registered-food-row${openItem === item.name ? ' is-delete-open' : ''}`} key={item.name} onPointerDown={event => onRowPointerDown(event, item.name)} onPointerMove={event => onRowPointerMove(event, item.name)} onPointerUp={event => onRowPointerUp(event, item.name)} onPointerCancel={onRowPointerCancel}>
             <button type="button" className="registered-delete-action" aria-label={`${item.name} 삭제`} onClick={event => {

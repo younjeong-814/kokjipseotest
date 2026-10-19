@@ -74,14 +74,14 @@ test('fridge sorting supports both directions for all three criteria without mut
   assert.deepEqual(sorting.sortIngredients(equal, { sort: '소비기한', direction: 'desc' }).map(item => item.id), ['one', 'two']);
 });
 
-test('clicking the active criterion toggles direction; changing criterion restores its default', () => {
+test('clicking the active criterion toggles direction; changing criterion starts descending', () => {
   for (const sort of ['소비기한', '등록순', '남은양순']) {
     assert.equal(sorting.nextSort({ sort, direction: 'asc' }, sort).direction, 'desc');
     assert.equal(sorting.nextSort({ sort, direction: 'desc' }, sort).direction, 'asc');
   }
   assert.deepEqual(sorting.nextSort({ sort: '소비기한', direction: 'desc' }, '등록순'), { sort: '등록순', direction: 'desc' });
-  assert.deepEqual(sorting.nextSort({ sort: '등록순', direction: 'desc' }, '남은양순'), { sort: '남은양순', direction: 'asc' });
-  assert.deepEqual(sorting.nextSort({ sort: '남은양순', direction: 'desc' }, '소비기한'), { sort: '소비기한', direction: 'asc' });
+  assert.deepEqual(sorting.nextSort({ sort: '등록순', direction: 'desc' }, '남은양순'), { sort: '남은양순', direction: 'desc' });
+  assert.deepEqual(sorting.nextSort({ sort: '남은양순', direction: 'desc' }, '소비기한'), { sort: '소비기한', direction: 'desc' });
 });
 const { INGREDIENTS_KEY, loadIngredients, saveIngredient, deleteIngredient, validateDraft } = exports;
 const { updateIngredientDetails, recordIngredientCondition, saveRecognizedIngredients } = exports;
@@ -295,4 +295,11 @@ test('reads latest persisted records before writes; deleted edits do not recreat
   deleteIngredient(db, first.id);
   assert.throws(() => saveIngredient(db, draft, first.id), /삭제된 항목/);
   assert.equal(loadIngredients(db).length, 2);
+});
+
+test('fridge filter starts unselected and keeps the stored order', () => {
+  const items = [{ id: 'new', date: '2026-10-20', createdAt: '2026-10-13T00:00:00Z' }, { id: 'old', date: '2026-10-14', createdAt: '2026-10-01T00:00:00Z' }];
+  assert.deepEqual(sorting.sortIngredients(items, { sort: null, direction: 'asc' }).map(item => item.id), ['new', 'old']);
+  assert.deepEqual(sorting.nextSort({ sort: null, direction: 'asc' }, '소비기한'), { sort: '소비기한', direction: 'desc' });
+  assert.deepEqual(sorting.nextSort({ sort: null, direction: 'asc' }, '등록순'), { sort: '등록순', direction: 'desc' });
 });

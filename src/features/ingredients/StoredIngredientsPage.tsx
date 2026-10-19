@@ -10,7 +10,7 @@ import { sortIngredients } from '../fridge/sorting';
 import { asset } from '../../lib/assets';
 
 export function StoredIngredientsPage({ navigate, items, onOpen, onDelete, registered = false, food = false }: { navigate: Navigate; items: Ingredient[]; onOpen: (item: Ingredient) => void; onDelete: (id: string) => void; registered?: boolean; food?: boolean }) {
-  const { sort, direction, onChange } = useFridgeSort(registered ? '등록순' : '소비기한');
+  const { sort, direction, onChange } = useFridgeSort();
   const [openItem, setOpenItem] = useState<string | null>(null);
   const drag = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
   const suppressDeleteClick = useRef(false);
@@ -64,7 +64,7 @@ export function StoredIngredientsPage({ navigate, items, onOpen, onDelete, regis
   };
   return <main className="fridge-page">
     <FridgeTabs food={food} navigate={navigate} /><FridgeFilters value={sort} direction={direction} onChange={onChange} />
-    <section className="registered-fridge-list stored-ingredients" aria-label={`${sort} ${direction === 'asc' ? '오름차순' : '내림차순'} 식재료 목록`}>{sorted.map(item => <div className={`stored-ingredient-row${openItem === item.id ? ' is-delete-open' : ''}`} key={item.id} onPointerDown={event => onRowPointerDown(event, item.id)} onPointerMove={event => onRowPointerMove(event, item.id)} onPointerUp={event => onRowPointerUp(event, item.id)} onPointerCancel={onRowPointerCancel} onClick={event => onRowClick(event, item)}>
+    <section className="registered-fridge-list stored-ingredients" aria-label={sort ? `${sort} ${direction === 'asc' ? '오름차순' : '내림차순'} 식재료 목록` : '식재료 목록'}>{sorted.map(item => <div className={`stored-ingredient-row${openItem === item.id ? ' is-delete-open' : ''}`} key={item.id} onPointerDown={event => onRowPointerDown(event, item.id)} onPointerMove={event => onRowPointerMove(event, item.id)} onPointerUp={event => onRowPointerUp(event, item.id)} onPointerCancel={onRowPointerCancel} onClick={event => onRowClick(event, item)}>
       <button type="button" className="registered-delete-action" aria-label={`${item.name} 삭제`} onClick={event => {
         if (suppressDeleteClick.current) {
           suppressDeleteClick.current = false;
