@@ -1,6 +1,6 @@
-import { isFood, resolveExpiry } from './expiry';
+import { isFood, resolveExpiry, foodCategories, ingredientCategories, categoryKind } from './expiry';
 export const INGREDIENTS_KEY = 'kokjipseo.manual-ingredients.v1';
-export const categories = ['육류','과일','채소','두부·콩류','유제품','수산물','조미료','가공식품','기타'] as const;
+export const categories = [...ingredientCategories, ...foodCategories] as const;
 export const storageLocations = ['냉장','냉동','실온'] as const;
 export const conditionLabels = ['싱싱해요', '시들시들해요', '못 먹겠어요 (상했어요)'] as const;
 export type IngredientSource = 'manual' | 'ocr' | 'camera';
@@ -17,7 +17,7 @@ export function validateDraft(draft: IngredientDraft): string | null {
   if (draft.storageStartedOn !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(draft.storageStartedOn) || !Number.isFinite(Date.parse(`${draft.storageStartedOn}T00:00:00Z`)) || new Date(`${draft.storageStartedOn}T00:00:00Z`).toISOString().slice(0, 10) !== draft.storageStartedOn)) return '올바른 보관 시작일을 선택해 주세요.';
   if (draft.source !== undefined && !['manual','ocr','camera'].includes(draft.source)) return '등록 방식을 확인해 주세요.';
   if (!draft.name.trim() || draft.name.trim().length > 60) return '재료명을 1~60자로 입력해 주세요.';
-  if (!categories.some(value => value === draft.category)) return '카테고리를 선택해 주세요.';
+  if (![...categories, '조미료', '가공식품', '기타', '국·탕'].some(value => value === draft.category)) return '카테고리를 선택해 주세요.';
   if (!storageLocations.some(value => value === draft.storage)) return '보관 위치를 선택해 주세요.';
   if (!Number.isFinite(draft.quantity) || draft.quantity <= 0) return '수량을 0보다 큰 숫자로 입력해 주세요.';
   if (!draft.unit.trim() || draft.unit.trim().length > 10) return '수량 단위를 1~10자로 입력해 주세요.';
@@ -49,7 +49,7 @@ export function saveIngredient(storage: LocalStorage, draft: IngredientDraft, id
   const previous = id ? items.find(item => item.id === id) : undefined;
   if (id && !previous) throw new Error('다른 탭에서 삭제된 항목입니다. 목록을 다시 확인해 주세요.');
   const now = new Date().toISOString();
-  const kind = previous?.kind ?? draft.kind ?? (isFood(draft) ? 'food' : 'ingredient');
+  const kind = categoryKind(draft.category) ?? draft.kind ?? previous?.kind ?? (isFood(draft) ? 'food' : 'ingredient');
   const item: Ingredient = { ...previous, ...resolveExpiry(draft, previous), source: previous?.source ?? draft.source ?? 'manual', remainingPercent: previous?.remainingPercent ?? 100, conditionHistory: previous?.conditionHistory ?? [], name: draft.name.trim(), unit: draft.unit.trim(), id: previous?.id ?? crypto.randomUUID(), createdAt: previous?.createdAt ?? now, updatedAt: now };
   item.kind = kind;
   const next = previous ? items.map(value => value.id === id ? item : value) : [item, ...items];

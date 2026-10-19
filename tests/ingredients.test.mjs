@@ -14,6 +14,44 @@ const exports = loadTs(new URL('../src/features/ingredients/repository.ts', impo
 const expiry = loadTs(new URL('../src/features/ingredients/expiry.ts', import.meta.url));
 const sorting = loadTs(new URL('../src/features/fridge/sorting.ts', import.meta.url));
 
+test('food detail categories retain food classification and condition history', () => {
+  for (const category of expiry.foodCategories) {
+    const db = storage();
+    const [item] = saveIngredient(db, { ...draft, category, name: '직접 만든 음식' });
+    assert.equal(expiry.isFood(item), true);
+    recordIngredientCondition(db, item.id, '시들시들해요');
+    const [renamed] = exports.updateIngredientInfo(db, item.id, { name: '새 음식명' });
+    assert.equal(renamed.category, category);
+    assert.equal(expiry.isFood(renamed), true);
+    assert.equal(loadIngredients(db)[0].conditionHistory[0].status, '시들시들해요');
+  }
+});
+
+test('explicit food registration routes arbitrary names to food and preserves classification on rename', () => {
+  const db = storage();
+  const [food] = saveIngredient(db, { ...draft, name: '내가 만든 김치볶음밥', category: '기타음식', kind: 'food' });
+  const [ingredient] = saveIngredient(db, { ...draft, name: '반찬', kind: 'ingredient' });
+  const loaded = loadIngredients(db);
+  assert.equal(loaded.filter(expiry.isFood).length, 1);
+  assert.equal(loaded.filter(expiry.isFood)[0].id, food.id);
+  assert.equal(loaded.filter(item => !expiry.isFood(item))[0].id, ingredient.id);
+  const renamed = exports.updateIngredientInfo(db, food.id, { name: '남은 점심' }).find(item => item.id === food.id);
+  assert.equal(expiry.isFood(renamed), true);
+  saveIngredient(db, { ...ingredient, category: '기타음식', kind: 'food' }, ingredient.id);
+  assert.equal(loadIngredients(db).filter(expiry.isFood).length, 2);
+});
+
+test('category determines the tab even if name or old kind contradict it; legacy categories remain readable', () => {
+  for (const category of expiry.ingredientCategories) assert.equal(expiry.isFood({ name: '반찬', category, kind: 'food' }), false);
+  for (const category of expiry.foodCategories) assert.equal(expiry.isFood({ name: '대파', category, kind: 'ingredient' }), true);
+  assert.equal(exports.categories.length, 13);
+  for (const category of ['조미료', '가공식품', '기타', '국·탕']) {
+    const db = storage();
+    saveIngredient(db, { ...draft, category });
+    assert.equal(loadIngredients(db).length, 1);
+  }
+});
+
 test('fridge sorting supports both directions for all three criteria without mutating items', () => {
   const items = [
     { id: 'a', date: '2026-10-25', createdAt: '2026-10-17T09:00:00Z', remainingPercent: 50 },

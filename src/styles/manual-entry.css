@@ -5,6 +5,7 @@
 .manual-field > span { height: 22px; font-size: var(--t4); line-height: var(--lh4); font-weight: 700; }
 .manual-input { display: flex; align-items: center; height: 54px; background: var(--gray-200); border: 1px solid transparent; border-radius: var(--r5); padding: 11px 15px; transition: background-color .25s ease-out, border-color .25s ease-out; }
 .manual-input.filled { background: var(--blue-100); }
+.manual-quantity .manual-input.filled:not(:focus-within) { background: var(--gray-200); }
 .manual-input:focus-within { background: #fafdff; border-color: var(--blue-500); }
 .manual-input input { min-width: 0; width: 100%; padding: 0; border: 0; background: transparent; color: var(--gray-800); font-size: var(--t2); line-height: var(--lh2); outline: none; }
 .manual-input input::placeholder { color: var(--gray-600); opacity: 1; }

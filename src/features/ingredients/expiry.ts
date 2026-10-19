@@ -2,7 +2,17 @@ import { storageRecommendations } from '../../data/storageRecommendations';
 import { toDateKey } from '../../lib/date';
 
 const normalized = (value: string) => value.normalize('NFC').replace(/\s+/g, '');
-export const isFood = (item: { name: string; kind?: 'ingredient' | 'food' }) => item.kind === 'food' || (item.kind !== 'ingredient' && storageRecommendations.some(row => row.category === '음식' && [normalized(row.name), normalized(row.name + row.variant)].includes(normalized(item.name))));
+export const ingredientCategories = ['육류', '과일', '채소', '두부·콩류', '유제품', '수산물', '조미료·소스', '기타식재료'] as const;
+export const foodCategories = ['밀키트', '반찬', '국·찌개', '배달음식', '기타음식'] as const;
+export function categoryKind(category = ''): 'ingredient' | 'food' | undefined {
+  if (foodCategories.some(value => value === category) || category === '국·탕') return 'food';
+  if (ingredientCategories.some(value => value === category) || category === '조미료') return 'ingredient';
+  return undefined;
+}
+export const isFood = (item: { name: string; category?: string; kind?: 'ingredient' | 'food' }) => {
+  const kind = categoryKind(item.category) ?? item.kind;
+  return kind ? kind === 'food' : storageRecommendations.some(row => row.category === '음식' && [normalized(row.name), normalized(row.name + row.variant)].includes(normalized(item.name)));
+};
 
 /** Exact DB names only; qualified rows require a variant or qualified name. */
 export function recommendedDays(name: string, storage: string, variant = ''): number | null {
