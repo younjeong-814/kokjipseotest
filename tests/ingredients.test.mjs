@@ -20,6 +20,27 @@ function storage() {
 }
 const draft = { name: ' 시금치 ', category: '채소', storage: '냉장', quantity: 2, unit: '봉', date: '2026-10-20' };
 
+const homeExports = {};
+const homeSource = readFileSync(new URL('../src/features/home/selectHomeIngredients.ts', import.meta.url), 'utf8');
+new Function('exports', ts.transpileModule(homeSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(homeExports);
+test('home chooses expiry priority including expired, today and D-3; missing dates are not urgent', () => {
+  const today = new Date(2026, 9, 17, 23, 59);
+  const make = (id, date) => ({ ...draft, id, date, createdAt: '2026-10-15T00:00:00Z' });
+  const items = [make('missing', ''), make('later', '2026-10-21'), make('three', '2026-10-20'), make('today', '2026-10-17'), make('expired', '2026-10-16'), make('one', '2026-10-18')];
+  const result = homeExports.selectHomeIngredients(items, today);
+  assert.equal(result.mode, 'urgent');
+  assert.deepEqual(result.entries.map(value => [value.item.id, value.days]), [['expired', -1], ['today', 0], ['one', 1], ['three', 3]]);
+  assert.equal(items[0].id, 'missing');
+  assert.equal(homeExports.selectHomeIngredients([make('three', '2026-10-20')], new Date(2026, 9, 16)).mode, 'recent');
+});
+test('home falls back to four latest registrations and handles empty and unknown dates', () => {
+  const items = [1,2,3,4,5].map(i => ({ ...draft, id: String(i), date: i === 1 ? '' : '2026-12-31', createdAt: `2026-10-${String(i).padStart(2, '0')}T00:00:00Z`, updatedAt: '2026-10-17T00:00:00Z' }));
+  const result = homeExports.selectHomeIngredients(items, new Date(2026, 9, 17));
+  assert.equal(result.mode, 'recent');
+  assert.deepEqual(result.entries.map(value => value.item.id), ['5','4','3','2']);
+  assert.equal(homeExports.selectHomeIngredients([items[0]], new Date(2026, 9, 17)).entries[0].days, null);
+  assert.deepEqual(homeExports.selectHomeIngredients([], new Date()).entries, []);
+});
 test('DB recommendations use 80 percent rounded down and calendar days', () => {
   assert.equal(expiry.calculateRecommendedDate('대파', '냉장', '2026-10-17'), '2026-10-25');
   assert.equal(expiry.calculateRecommendedDate('대파', '냉동', '2026-10-17'), '2027-03-10');
