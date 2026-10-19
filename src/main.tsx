@@ -9,8 +9,6 @@ import './styles/recognition-overlays.css';
 import './styles/manual-entry.css';
 import './styles/recipe.css';
 import './styles/fridge-search.css';
-// Retire the previous, unrequested ingredient storage and its test entries.
-try {
-  localStorage.removeItem('kokjipseo.ingredients.v1');
-} catch { /* Storage may be blocked. The UI remains empty. */ }
+import './styles/ingredients.css';
+import './styles/ingredient-detail.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

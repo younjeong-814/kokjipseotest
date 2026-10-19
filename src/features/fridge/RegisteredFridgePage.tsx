@@ -1,7 +1,8 @@
-import { asset } from '../../lib/assets';
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { asset } from '../../lib/assets';
 import { FridgeTabs } from './FridgeTabs';
-import { FridgeFilters, type FridgeSort } from './FridgeFilters';
+import { FridgeFilters } from './FridgeFilters';
+import { useFridgeSort } from './useFridgeSort';
 import type { Navigate } from '../../prototype/flow';
 
 // The register reaction navigates to this fixed Figma frame; it does not save data.
@@ -18,7 +19,7 @@ const examples = [
 const bars: Record<number, string> = { 25: 'remaining-quarter.svg', 50: 'remaining-half.svg', 75: 'remaining-threequarter.svg', 100: 'remaining-full.svg' };
 
 export function RegisteredFridgePage({ navigate }: { navigate: Navigate }) {
-  const [sort, setSort] = useState<FridgeSort>('등록순');
+  const { sort, direction, onChange } = useFridgeSort('등록순');
   const [items, setItems] = useState(examples);
   const [openItem, setOpenItem] = useState<string | null>(null);
   const drag = useRef<{ name: string; x: number; y: number; moved: boolean } | null>(null);
@@ -69,24 +70,37 @@ export function RegisteredFridgePage({ navigate }: { navigate: Navigate }) {
     const match = (item.secondBadge ?? item.badge ?? '').match(/^D([+-])(\d+)$/);
     return match ? Number(match[2]) * (match[1] === '+' ? -1 : 1) : Number.POSITIVE_INFINITY;
   };
-  const sorted = [...items].sort((a, b) => sort === '남은양순' ? a.percent - b.percent : sort === '소비기한' ? expiryDays(a) - expiryDays(b) : 0);
+  const sign = direction === 'asc' ? 1 : -1;
+  const sorted = [...items].sort((a, b) => {
+    if (sort === '남은양순') return sign * (a.percent - b.percent);
+    if (sort === '등록순') return -sign * (examples.indexOf(a) - examples.indexOf(b));
+    const left = expiryDays(a), right = expiryDays(b);
+    if (!Number.isFinite(left) || !Number.isFinite(right)) return Number.isFinite(left) ? -1 : Number.isFinite(right) ? 1 : 0;
+    return sign * (left - right);
+  });
+
   return (
     <main className="fridge-page" data-figma-node="5572:19852">
       <FridgeTabs navigate={navigate} />
-      <FridgeFilters value={sort} onChange={setSort} />
-      <section className="registered-fridge-list" aria-label={`${sort} 식재료 목록`}>{sorted.map(item => <div className={`registered-food-row${openItem === item.name ? ' is-delete-open' : ''}`} key={item.name} onPointerDown={event => onRowPointerDown(event, item.name)} onPointerMove={event => onRowPointerMove(event, item.name)} onPointerUp={event => onRowPointerUp(event, item.name)} onPointerCancel={onRowPointerCancel}>
-        <button type="button" className="registered-delete-action" aria-label={`${item.name} 삭제`} onClick={event => {
-          if (suppressDeleteClick.current) {
-            suppressDeleteClick.current = false;
-            event.preventDefault();
-            return;
-          }
-          removeItem(item.name);
-        }}><img src={asset('delete-action.svg')} alt="" /></button>
-        <article className="registered-food-card">
-        <div className="registered-food-image"><img className={item.image === 'ai-vegetable.png' || item.image === 'food-meat.png' ? 'vegetable' : ''} src={asset(item.image)} alt="" /><span>{item.category}</span></div>
-        <div className="registered-food-info"><h2 title={item.name}>{item.name}</h2><div className="food-badges"><span>{item.storage}</span>{item.badge && <span className={item.tone}>{item.badge}</span>}{item.secondBadge && <span className={item.tone}>{item.secondBadge}</span>}</div><div className="food-remaining"><p>남은 양</p><div><img src={asset(bars[item.percent])} alt="" /><b>{item.percent}%</b></div></div></div>
-      </article></div>)}</section>
+      <FridgeFilters value={sort} direction={direction} onChange={onChange} />
+      <section className="registered-fridge-list" aria-label={`${sort} 식재료 목록`}>
+        {sorted.map(item => (
+          <div className={`registered-food-row${openItem === item.name ? ' is-delete-open' : ''}`} key={item.name} onPointerDown={event => onRowPointerDown(event, item.name)} onPointerMove={event => onRowPointerMove(event, item.name)} onPointerUp={event => onRowPointerUp(event, item.name)} onPointerCancel={onRowPointerCancel}>
+            <button type="button" className="registered-delete-action" aria-label={`${item.name} 삭제`} onClick={event => {
+              if (suppressDeleteClick.current) {
+                suppressDeleteClick.current = false;
+                event.preventDefault();
+                return;
+              }
+              removeItem(item.name);
+            }}><img src={asset('delete-action.svg')} alt="" /></button>
+            <article className="registered-food-card">
+              <div className="registered-food-image"><img className={item.image === 'ai-vegetable.png' || item.image === 'food-meat.png' ? 'vegetable' : ''} src={asset(item.image)} alt="" /><span>{item.category}</span></div>
+              <div className="registered-food-info"><h2 title={item.name}>{item.name}</h2><div className="food-badges"><span>{item.storage}</span>{item.badge && <span className={item.tone}>{item.badge}</span>}{item.secondBadge && <span className={item.tone}>{item.secondBadge}</span>}</div><div className="food-remaining"><p>남은 양</p><div><img src={asset(bars[item.percent])} alt="" /><b>{item.percent}%</b></div></div></div>
+            </article>
+          </div>
+        ))}
+      </section>
     </main>
   );
 }

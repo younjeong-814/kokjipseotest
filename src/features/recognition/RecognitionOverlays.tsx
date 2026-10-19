@@ -61,11 +61,11 @@ export function TimeOverlay({ value, onSave, onClose }: { value: string; onSave:
   return <OverlayDialog label="촬영 시간 선택" onClose={onClose} className="time-overlay"><div className="time-picker" data-figma-node="5096:5585"><div className="time-highlight" /><Wheel label="시" values={Array.from({length:12},(_, i) => String(i + 1))} selected={hour} onChange={setHour} /><Wheel label="분" values={Array.from({length:60},(_, i) => String(i).padStart(2,'0'))} selected={minute} onChange={setMinute} /><Wheel label="오전 오후" values={['AM','PM']} selected={period} onChange={setPeriod} /></div><OverlayActions onCancel={onClose} onSave={() => onSave(`${String(Number(hour) % 12 + (period === 'PM' ? 12 : 0)).padStart(2,'0')}:${minute}`)} /></OverlayDialog>;
 }
 
-export function HelpOverlay({ onClose }: { onClose: () => void }) {
+export function HelpOverlay({ onClose, figmaNode = '5469:19213' }: { onClose: () => void; figmaNode?: string }) {
   const tips = [
     ['식재료는 조금 여유 있게 정해요','식재료는 식약처 공식 보관 기간의 80% 시점을 소비권장일로 정해요.  (예: 10일 → 8일)'],
     ['음식은 보관한 날부터 3일로 정해요','남은 배달 음식·반찬·조리 음식은 보관 시점부터 3일을 소비권장일로 적용해요.'],
     ['보관 상태에 따라 달라질 수 있어요','같은 식재료라도 보관 방법과 상태에 따라 먹을 수 있는 기간은 달라질 수 있어요.'],
   ];
-  return <OverlayDialog label="안심 소비 안내" onClose={onClose} sheet dismissOutside={false} className="help-overlay"><div data-figma-node="5469:19213"><div className="sheet-handle" /><header><p>안심 소비 안내</p><h2>소비권장일, 어떻게 정하나요?</h2><span>식약처의 공식 보관 기준을 바탕으로 식재료와 음식에 맞는 기준을 적용해 자동으로 설정해드려요.</span></header><ol>{tips.map(([title,body],index) => <li key={title}><span>{index+1}</span><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol><div className="help-actions"><ActionButton className="action-button-large" onClick={onClose}>확인했어요</ActionButton></div></div></OverlayDialog>;
+  return <OverlayDialog label="안심 소비 안내" onClose={onClose} sheet dismissOutside={false} className="help-overlay"><div data-figma-node={figmaNode}><div className="sheet-handle" /><header><p>안심 소비 안내</p><h2>소비권장일, 어떻게 정하나요?</h2><span>식약처의 공식 보관 기준을 바탕으로 식재료와 음식에 맞는 기준을 적용해 자동으로 설정해드려요.</span></header><ol>{tips.map(([title,body],index) => <li key={title}><span>{index+1}</span><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol><div className="help-actions"><ActionButton className="action-button-large" onClick={onClose}>확인했어요</ActionButton></div></div></OverlayDialog>;
 }

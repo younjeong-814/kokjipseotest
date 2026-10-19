@@ -24,6 +24,9 @@
   from { opacity: 0; transform: translate(-50%, 80px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
+.snackbar-success { display: flex; align-items: center; gap: 6px; }
+.snackbar-success-icon { width: 12px; height: 12px; flex-shrink: 0; border-radius: 999px; background: #189129; display: flex; align-items: center; justify-content: center; }
+.snackbar-success-icon img { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .registration-toast { animation: none; }
 }
@@ -56,6 +59,7 @@
 .fridge-filters > button { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; border-radius: 9999px; background: transparent; color: inherit; font: inherit; }
 .fridge-food-page .screen-tabs > .selected { color: var(--blue-500); }
 .fridge-filters > .selected { color: var(--blue-800); }
+.fridge-filters .sort-ascending { transform: rotate(180deg); }
 .fridge-empty-state { height: 564px; margin-top: 1px; display: flex; flex-direction: column; align-items: center; gap: 12px; justify-content: center; }
 .fridge-empty-state > .empty-illustration { width: calc(100% - 40px); }
 .fridge-empty-text { padding: 12px 20px 0; text-align: center; display: flex; flex-direction: column; gap: 8px; }
