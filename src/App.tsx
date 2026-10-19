@@ -45,7 +45,7 @@ export function App() {
   const registering = useRef(false);
   const recognition = useRecognition();
   useEffect(() => {
-    const onHashChange = () => { const nextScreen = readScreen(); setScreen(nextScreen); setDetailId(readDetailId()); if (nextScreen !== 'fridge-registered') setShowRegistrationToast(false); window.scrollTo(0, 0); };
+    const onHashChange = () => { const nextScreen = readScreen(); setScreen(nextScreen); setDetailId(readDetailId()); if (nextScreen !== 'fridge-registered' && nextScreen !== 'fridge-food') setShowRegistrationToast(false); window.scrollTo(0, 0); };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -53,7 +53,7 @@ export function App() {
     if (destination !== 'manual-entry') setEditingIngredient(undefined);
     if (destination === 'fridge-search' && (screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered')) setSearchOrigin(screen);
     if (destination === 'camera' && (screen === 'guide-fridge' || screen === 'guide-product' || screen === 'guide-receipt')) setCaptureGuide(screen);
-    setShowRegistrationToast((screen === 'recognition-result' || screen === 'manual-entry') && destination === 'fridge-registered');
+    setShowRegistrationToast((screen === 'recognition-result' || screen === 'manual-entry') && (destination === 'fridge-registered' || destination === 'fridge-food'));
     window.location.hash = destination;
   };
   const isSearching = screen === 'fridge-search';
@@ -77,7 +77,11 @@ export function App() {
     const storageStartedOn = recognition.date <= toDateKey(new Date()) ? recognition.date : undefined;
     const drafts = recognition.items.map(item => ({ name: item.name, category: item.category, storage: defaultStorage(item.name), quantity: item.quantity, unit: '개', date: '', storageStartedOn, source: captureGuide === 'guide-receipt' ? 'ocr' as const : 'camera' as const }));
     if (!drafts.length) { setRecognitionError('등록할 식재료가 없어요. 다시 촬영해 주세요.'); return; }
-    try { registering.current = true; ingredients.saveRecognized(drafts); setRegistrationMessage(`식재료 ${drafts.length}개를 등록했어요`); navigate('fridge-registered'); }
+    // 국·찌개·밀키트 같은 음식은 냉장고 음식 탭에 들어간다. 모두 음식이면 음식 탭을 연다.
+    const foods = drafts.filter(isFood).length;
+    const ingredientsCount = drafts.length - foods;
+    const message = [ingredientsCount && `식재료 ${ingredientsCount}개`, foods && `음식 ${foods}개`].filter(Boolean).join(', ');
+    try { registering.current = true; ingredients.saveRecognized(drafts); setRegistrationMessage(`${message}를 등록했어요`); navigate(ingredientsCount ? 'fridge-registered' : 'fridge-food'); }
     catch (failure) { registering.current = false; setRecognitionError(failure instanceof Error ? failure.message : '저장하지 못했어요.'); }
   };
   if (screen === 'ingredient-detail') {
@@ -87,7 +91,8 @@ export function App() {
   if (screen === 'manual-entry') {
     return <div className="app-shell"><StatusBar /><ManualEntryPage key={editingIngredient?.id ?? 'new'} navigate={navigate} initial={editingIngredient} onCancel={editingFromDetail && editingIngredient ? () => openDetail(editingIngredient) : undefined} onSave={(draft, id) => {
       ingredients.save(draft, id);
-      setRegistrationMessage(id ? '식재료를 수정했어요' : '식재료 1개를 등록했어요');
+      const noun = isFood(draft) ? '음식' : '식재료';
+      setRegistrationMessage(id ? `${noun}${noun === '음식' ? '을' : '를'} 수정했어요` : `${noun} 1개를 등록했어요`);
       if (id && editingFromDetail && editingIngredient) openDetail(editingIngredient);
       else navigate(isFood(draft) ? 'fridge-food' : 'fridge-registered');
     }} /></div>;
@@ -119,7 +124,7 @@ export function App() {
       {screen === 'mypage' && <MyPage navigate={navigate} />}
       {screen === 'recipe' && <RecipeEmptyPage navigate={navigate} />}
       <BottomNavigation screen={displayScreen} navigate={navigate} />
-      {screen === 'fridge-registered' && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}
+      {(screen === 'fridge-registered' || screen === 'fridge-food') && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}
     </div>
   );
 }
