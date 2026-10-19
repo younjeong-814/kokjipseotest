@@ -1,5 +1,11 @@
 .ingredient-error { margin: 12px 20px; color: #bc2949; font-size: 14px; line-height: 20px; }
 .stored-ingredients > article { flex-shrink: 0; min-width: 0; }
+.stored-ingredient-row { height: 139px; flex-shrink: 0; position: relative; overflow: hidden; border-radius: var(--r4); touch-action: pan-y; }
+.stored-ingredient-row .registered-delete-action { position: absolute; inset: 0 0 0 auto; width: 39px; height: 139px; z-index: 0; padding: 0; border-radius: var(--r4); background: #ffaeae; display: flex; align-items: center; justify-content: center; }
+.stored-ingredient-row .registered-delete-action img { width: 18px; height: 20px; object-fit: contain; }
+.stored-ingredient-row .ingredient-card-trigger { position: relative; z-index: 1; height: 139px; transform: translateX(var(--delete-drag, 0)); transition: transform 180ms ease; user-select: none; }
+.stored-ingredient-row.is-delete-open .ingredient-card-trigger { transform: translateX(-39px); }
+.stored-ingredient-row.is-delete-open .ingredient-card-trigger[style*="--delete-drag"] { transition: none; }
 .ingredient-card-trigger { display: block; width: 100%; padding: 0; border-radius: var(--r4); background: transparent; color: var(--gray-900); text-align: left; }
 .ingredient-card { display: flex; align-items: center; gap: var(--s5); width: 100%; min-height: 139px; padding: calc(var(--s4) - 1px); border: 1px solid var(--gray-400); background: var(--gray-0); }
 .ingredient-card-image { width: 60px; flex-shrink: 0; text-align: center; }
