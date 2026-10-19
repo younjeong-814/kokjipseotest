@@ -35,7 +35,7 @@ export function App() {
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | undefined>();
   const [registrationMessage, setRegistrationMessage] = useState('');
   const [detailId, setDetailId] = useState(readDetailId);
-  const [detailOrigin, setDetailOrigin] = useState<'fridge' | 'fridge-registered'>('fridge-registered');
+  const [detailOrigin, setDetailOrigin] = useState<'home' | 'fridge' | 'fridge-registered'>('fridge-registered');
   const [editingFromDetail, setEditingFromDetail] = useState(false);
   const [recognitionError, setRecognitionError] = useState('');
   const registering = useRef(false);
@@ -96,7 +96,7 @@ export function App() {
       <StatusBar />
       {isSearching ? <FridgeSearchPage navigate={navigate} onClose={() => navigate(searchOrigin)} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
       {ingredients.error && <p className="ingredient-error" role="alert">{ingredients.error}</p>}
-      {screen === 'home' && <HomePage navigate={navigate} items={ingredients.items} />}
+      {screen === 'home' && <HomePage navigate={navigate} items={ingredients.items} onOpen={item => { setDetailOrigin('home'); openDetail(item); }} />}
       {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredients.items.length ? <StoredIngredientsPage navigate={navigate} items={ingredients.items} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} /> : <FridgePage navigate={navigate} />)}
       {displayScreen === 'fridge-food' && <FridgeFoodPage navigate={navigate} />}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
