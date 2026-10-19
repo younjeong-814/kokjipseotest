@@ -7,6 +7,14 @@ const categoryImages: Record<string, string> = {
   '유제품': 'thumb-dairy.png',
   '수산물': 'thumb-fish.png',
   '조미료': 'thumb-sauce.png',
+  '조미료·소스': 'thumb-sauce.png',
+  '기타식재료': 'thumb-ingredients-etc.png',
+  '밀키트': 'food-category-mealkit.png',
+  '반찬': 'food-category-side-dish.png',
+  '국·찌개': 'food-category-soup.png',
+  '국·탕': 'food-category-soup.png',
+  '배달음식': 'food-category-delivery.png',
+  '기타음식': 'food-category-etc.png',
   '가공식품': 'thumb-processed.png',
 };
 

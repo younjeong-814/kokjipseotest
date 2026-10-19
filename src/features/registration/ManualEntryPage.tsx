@@ -5,6 +5,7 @@ import { asset } from '../../lib/assets';
 import { formatMonthDay } from '../../lib/date';
 import { DateOverlay, HelpOverlay } from '../recognition/RecognitionOverlays';
 import type { Navigate } from '../../prototype/flow';
+import { categoryKind } from '../ingredients/expiry';
 import { categories, storageLocations, validateDraft, type Ingredient, type IngredientDraft } from '../ingredients/repository';
 
 function EntryInput({ label, value, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; clearable?: boolean; onClear?: () => void }) {
@@ -45,7 +46,7 @@ function UnitPicker({ unit, setUnit }: { unit: string; setUnit: (value: string) 
 
 export function ManualEntryPage({ navigate, initial, onSave, onCancel }: { navigate: Navigate; initial?: Ingredient; onSave: (draft: IngredientDraft, id?: string) => void; onCancel?: () => void }) {
   const [name, setName] = useState(initial?.name ?? '');
-  const [category, setCategory] = useState(initial?.category ?? '');
+  const [category, setCategory] = useState(initial?.category === '조미료' ? '조미료·소스' : initial?.category === '국·탕' ? '국·찌개' : initial?.category === '기타' || initial?.category === '가공식품' ? initial?.kind === 'food' ? '기타음식' : '기타식재료' : initial?.category ?? '');
   const [storage, setStorage] = useState(initial?.storage ?? '');
   const [quantity, setQuantity] = useState(String(initial?.quantity ?? 1));
   const [unit, setUnit] = useState(initial?.unit ?? '개');
@@ -55,7 +56,7 @@ export function ManualEntryPage({ navigate, initial, onSave, onCancel }: { navig
   const saving = useRef(false);
   const submit = () => {
     if (saving.current) return;
-    const draft = { name, category, storage, quantity: Number(quantity), unit, date, dateSource };
+    const draft = { name, kind: categoryKind(category), category, storage, quantity: Number(quantity), unit, date, dateSource };
     const invalid = validateDraft(draft);
     if (invalid) { setError(invalid); return; }
     try { saving.current = true; onSave(draft, initial?.id); }
@@ -63,7 +64,7 @@ export function ManualEntryPage({ navigate, initial, onSave, onCancel }: { navig
   };
   const [dateOpen, setDateOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  return <main className="manual-entry" data-figma-node="5733:5582">
+  return <main className="manual-entry" data-figma-node="5855:18582">
     <SubHeader title={initial ? '식재료 수정' : '직접 입력'} backIcon="manual-back.svg" onBack={() => onCancel ? onCancel() : navigate(initial ? 'fridge-registered' : 'registration')} />
     <div className="manual-fields">
       <EntryInput label="재료명" placeholder="예: 돼지고기, 시금치, 계란..." value={name} onChange={event => setName(event.target.value)} clearable onClear={() => setName('')} maxLength={60} autoComplete="off" />

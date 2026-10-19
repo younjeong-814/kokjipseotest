@@ -12,7 +12,7 @@ function loadTs(url) {
 }
 const load = path => loadTs(new URL(path, import.meta.url));
 const { classifyIngredient } = load('../src/features/ingredients/classify.ts');
-const { categories } = load('../src/features/ingredients/repository.ts');
+const { validateDraft } = load('../src/features/ingredients/repository.ts');
 const expiry = load('../src/features/ingredients/expiry.ts');
 
 // 상품명 → 기대 카테고리. 틀리는 사례를 찾으면 여기에 한 줄 추가하고 classify.ts 사전을 고친다.
@@ -46,7 +46,17 @@ test('every dictionary category is a registrable category', () => {
   const source = readFileSync(new URL('../src/features/ingredients/classify.ts', import.meta.url), 'utf8');
   const used = [...source.matchAll(/^\s+'([^']+)': \[/gm)].map(match => match[1]);
   assert.ok(used.length > 0);
-  for (const category of [...used, '기타']) assert.ok(categories.includes(category), category);
+  // OCR still emits legacy labels; they remain valid storage values even though
+  // the manual picker exposes the new 13-category design.
+  for (const category of [...used, '기타']) assert.equal(validateDraft({ name: '검증', category, storage: '냉장', quantity: 1, unit: '개', date: '' }), null, category);
+});
+
+test('shared thumbnails cover the five food categories and legacy ingredient labels', () => {
+  const { categoryImage } = load('../src/features/ingredients/images.ts');
+  for (const [category, expected] of [['밀키트','food-category-mealkit.png'], ['반찬','food-category-side-dish.png'], ['국·찌개','food-category-soup.png'], ['국·탕','food-category-soup.png'], ['배달음식','food-category-delivery.png'], ['기타음식','food-category-etc.png'], ['조미료·소스','thumb-sauce.png'], ['유제품','thumb-dairy.png']]) {
+    assert.equal(categoryImage(category), expected);
+    assert.ok(readFileSync(new URL(`../public/assets/${expected}`, import.meta.url)).length > 0);
+  }
 });
 
 // 브랜드·수식어가 붙어도 분류 규칙의 키워드가 DB에 있으면 그 행을 쓴다. 없으면 추측하지 않는다.
