@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReceiptResult } from '../receipt/parseReceipt';
 import { categoryImage } from '../ingredients/images';
-import { classifyIngredient } from '../ingredients/classify';
+import { classifyIngredient, matchIngredient } from '../ingredients/classify';
 
 export type RecognizedItem = { id: number; name: string; quantity: number; category: string; image: string; error: boolean; corrected: boolean };
 
@@ -54,7 +54,8 @@ export function useRecognition() {
       setSource('receipt');
       start(result.items.map((item, id) => {
         const category = classifyIngredient(item.name);
-        return { id, name: item.name, quantity: item.quantity, category, image: categoryImage(category), error: item.suspicious, corrected: false };
+        // 사전에 없는 이름은 오인식일 수 있으니 확인하도록 표시한다.
+        return { id, name: item.name, quantity: item.quantity, category, image: categoryImage(category), error: item.suspicious || !matchIngredient(item.name), corrected: false };
       }), { date: result.date ?? at.date, time: result.time ?? at.time });
     },
   };

@@ -71,3 +71,13 @@ test('sums duplicates when quantity is on the following barcode line', () => {
 test('reads two-digit years', () => {
   assert.equal(parseReceipt(['26.10.13 18:00', '상품명', '고등어 1 5,900', '합계 5,900']).date, '2026-10-13');
 });
+
+test('without a header, keeps only lines that carry an amount', () => {
+  const { items } = parseReceipt(['GS25 성수역점', '서울시 성동구 아차산로 100', '2026년 10월 13일 14:22', '바나나우유 1,700', '신라면 1,100', '감사합니다 또 오세요', '합계 2,800']);
+  assert.deepEqual(items.map(({ name }) => name), ['바나나우유', '신라면']);
+});
+
+test('drops a name line when no amount line follows it', () => {
+  const { items } = parseReceipt(['상품명', '행사상품 안내', '두부', '8801234567890 1 2,500 2,500', '합계 2,500']);
+  assert.deepEqual(items.map(({ name, quantity }) => [name, quantity]), [['두부', 1]]);
+});
