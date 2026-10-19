@@ -23,9 +23,10 @@ export function useCamera() {
         if (cancelled) { media.getTracks().forEach(track => track.stop()); return; }
         const [track] = media.getVideoTracks();
         trackRef.current = track;
-        setTorch({ supported: Boolean((track.getCapabilities?.() as TorchCapabilities | undefined)?.torch), on: false });
         const video = videoRef.current;
         if (video) { video.srcObject = media; await video.play().catch(() => undefined); }
+        // 일부 안드로이드 기기는 영상이 재생된 뒤에야 torch 지원을 알려 준다.
+        setTorch({ supported: Boolean((track.getCapabilities?.() as TorchCapabilities | undefined)?.torch), on: false });
         setStatus('ready');
       })
       .catch((error: unknown) => {
@@ -38,14 +39,21 @@ export function useCamera() {
     };
   }, []);
 
+  /** 플래시를 켜거나 끈다. 지원 목록에 없어도 한 번 시도해 보고, 실제로 바뀌었는지 확인한다. 실패하면 false. */
   const toggleTorch = useCallback(async () => {
     const track = trackRef.current;
-    if (!track || !torch.supported) return;
+    if (!track) return false;
     const on = !torch.on;
     try {
       await track.applyConstraints({ advanced: [{ torch: on } as MediaTrackConstraintSet] });
+      const applied = (track.getSettings() as MediaTrackSettings & { torch?: boolean }).torch;
+      if (applied !== undefined && applied !== on) throw new Error('torch not applied');
       setTorch({ supported: true, on });
-    } catch { setTorch({ supported: false, on: false }); }
+      return true;
+    } catch {
+      setTorch({ supported: false, on: false });
+      return false;
+    }
   }, [torch]);
 
   /** 현재 프레임을 OCR에 보낼 JPEG(base64)로 만든다. */
