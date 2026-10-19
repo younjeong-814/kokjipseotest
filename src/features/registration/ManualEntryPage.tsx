@@ -46,7 +46,7 @@ function UnitPicker({ unit, setUnit }: { unit: string; setUnit: (value: string) 
 
 export function ManualEntryPage({ navigate, initial, onSave, onCancel }: { navigate: Navigate; initial?: Ingredient; onSave: (draft: IngredientDraft, id?: string) => void; onCancel?: () => void }) {
   const [name, setName] = useState(initial?.name ?? '');
-  const [category, setCategory] = useState(initial?.category === '조미료' ? '조미료·소스' : initial?.category === '국·탕' ? '국·찌개' : initial?.category === '기타' || initial?.category === '가공식품' ? initial?.kind === 'food' ? '기타음식' : '기타식재료' : initial?.category ?? '');
+  const [category, setCategory] = useState(initial?.category === '조미료' ? '조미료·소스' : initial?.category === '국·탕' ? '국·찌개' : initial?.category === '기타' ? initial?.kind === 'food' ? '기타 음식' : '기타 식재료' : initial?.category === '기타음식' ? '기타 음식' : initial?.category === '기타식재료' ? '기타 식재료' : initial?.category ?? '');
   const [storage, setStorage] = useState(initial?.storage ?? '');
   const [quantity, setQuantity] = useState(String(initial?.quantity ?? 1));
   const [unit, setUnit] = useState(initial?.unit ?? '개');

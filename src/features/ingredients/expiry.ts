@@ -13,11 +13,11 @@ export function recommendationName(name: string): string | null {
   const keyword = matchIngredient(name)?.keyword;
   return keyword && rowsNamed(keyword).length ? keyword : null;
 }
-export const ingredientCategories = ['육류', '과일', '채소', '두부·콩류', '유제품', '수산물', '조미료·소스', '기타식재료'] as const;
-export const foodCategories = ['밀키트', '반찬', '국·찌개', '배달음식', '기타음식'] as const;
+export const ingredientCategories = ['육류', '과일', '채소', '두부·콩류', '유제품', '수산물', '조미료·소스', '가공식품', '기타 식재료'] as const;
+export const foodCategories = ['밀키트', '반찬', '국·찌개', '배달음식', '기타 음식'] as const;
 export function categoryKind(category = ''): 'ingredient' | 'food' | undefined {
-  if (foodCategories.some(value => value === category) || category === '국·탕') return 'food';
-  if (ingredientCategories.some(value => value === category) || category === '조미료') return 'ingredient';
+  if (foodCategories.some(value => value === category) || category === '국·탕' || category === '기타음식') return 'food';
+  if (ingredientCategories.some(value => value === category) || category === '조미료' || category === '기타식재료') return 'ingredient';
   return undefined;
 }
 export const isFood = (item: { name: string; category?: string; kind?: 'ingredient' | 'food' }) => {

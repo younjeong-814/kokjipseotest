@@ -44,7 +44,10 @@ test('explicit food registration routes arbitrary names to food and preserves cl
 test('category determines the tab even if name or old kind contradict it; legacy categories remain readable', () => {
   for (const category of expiry.ingredientCategories) assert.equal(expiry.isFood({ name: '반찬', category, kind: 'food' }), false);
   for (const category of expiry.foodCategories) assert.equal(expiry.isFood({ name: '대파', category, kind: 'ingredient' }), true);
-  assert.equal(exports.categories.length, 13);
+  assert.equal(exports.categories.length, 14);
+  assert.equal(expiry.categoryKind('가공식품'), 'ingredient');
+  assert.equal(expiry.categoryKind('기타 음식'), 'food');
+  assert.equal(expiry.categoryKind('기타음식'), 'food');
   for (const category of ['조미료', '가공식품', '기타', '국·탕']) {
     const db = storage();
     saveIngredient(db, { ...draft, category });
