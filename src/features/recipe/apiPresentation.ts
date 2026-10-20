@@ -1,11 +1,27 @@
 import { asset } from '../../lib/assets';
 import type { Recipe, RecipeDetail, RecipeSummary } from './types';
 
-// API가 제공하지 않는 시간·난이도·인분은 임의로 채우지 않는다.
+const key = (value: string) => value.normalize('NFC').toLowerCase().replace(/\s+/g, '').replace(/계란/g, '달걀');
+const optional = (value: string) => value || undefined;
+
+// 태그: 레시피에 들어가는 선택 재료 + 선택하지 않은 재료 1개(주재료 > 부재료 > 양념 순)
 export function toRecipeSummary(recipe: Recipe, selectedNames: readonly string[]): RecipeSummary {
-  return { id: recipe.id, title: recipe.name, imageUrl: recipe.image || asset('recipe-empty.png'), tags: selectedNames.filter(name => recipe.ingredients.includes(name) || (name === '계란' && recipe.ingredients.includes('달걀'))) };
+  const parts = recipe.ingredients.map(item => ({ ...item, key: key(item.name) }));
+  const selected = selectedNames.filter(name => parts.some(part => part.key.includes(key(name))));
+  const isSelected = (part: { key: string }) => selectedNames.some(name => part.key.includes(key(name)));
+  const candidates = parts.filter(part => !isSelected(part));
+  const extra = candidates.find(part => part.type === '주재료') ?? candidates.find(part => part.type !== '양념') ?? candidates[0];
+  return {
+    id: recipe.id, title: recipe.name, imageUrl: recipe.image || asset('recipe-empty.png'),
+    time: optional(recipe.time), difficulty: optional(recipe.difficulty),
+    tags: extra && !selected.includes(extra.name) ? [...selected, extra.name] : selected,
+  };
 }
 export function toRecipeDetail(recipe: Recipe): RecipeDetail {
-  const parts = recipe.ingredients.split(/[,\n](?![^()]*\))/).map(value => value.trim()).filter(Boolean);
-  return { id: recipe.id, title: recipe.name, imageUrl: recipe.image || asset('recipe-empty.png'), ingredients: parts.map((name, index) => ({ id: `${recipe.id}-${index}`, name, amount: '' })), steps: recipe.steps.map(step => step.text) };
+  return {
+    id: recipe.id, title: recipe.name, imageUrl: recipe.image || asset('recipe-empty.png'),
+    time: optional(recipe.time), difficulty: optional(recipe.difficulty), servings: optional(recipe.servings),
+    ingredients: recipe.ingredients.map((item, index) => ({ id: `${recipe.id}-${index}`, name: item.name, amount: item.amount })),
+    steps: recipe.steps.map(step => step.text),
+  };
 }

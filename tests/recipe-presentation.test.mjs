@@ -6,17 +6,27 @@ const source = readFileSync(new URL('../src/features/recipe/apiPresentation.ts',
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const exports = {};
 new Function('exports', 'require', compiled)(exports, () => ({ asset: name => `/assets/${name}` }));
-const recipe = { id:'42', name:'달걀볶음', image:'https://example.com/recipe.png', ingredients:'달걀 2개, 토마토 1개 (150g, 중간 크기), 소금 1g', steps:[{text:'재료를 볶아요.',image:''}] };
-test('API presentation preserves real identity, ingredients, quantities and steps without inventing metadata', () => {
+const recipe = {
+  id: '42', name: '토마토 달걀볶음', summary: '', category: '볶음', image: 'https://example.com/recipe.png', calories: '200Kcal',
+  time: '15분', difficulty: '초보환영', servings: '1인분',
+  ingredients: [{ name: '토마토', amount: '1개', type: '주재료' }, { name: '소금', amount: '1g', type: '양념' }, { name: '달걀', amount: '2개', type: '주재료' }, { name: '우유', amount: '50ml', type: '부재료' }],
+  steps: [{ text: '재료를 볶아요.', image: '', tip: '' }],
+};
+test('detail keeps real time, difficulty, servings, ingredient amounts and steps', () => {
   const detail = exports.toRecipeDetail(recipe);
   assert.equal(detail.id, '42');
-  assert.equal(detail.title, recipe.name);
-  assert.equal(detail.imageUrl, recipe.image);
-  assert.deepEqual(detail.ingredients.map(item => item.name), ['달걀 2개','토마토 1개 (150g, 중간 크기)','소금 1g']);
+  assert.equal(detail.time, '15분');
+  assert.equal(detail.difficulty, '초보환영');
+  assert.equal(detail.servings, '1인분');
+  assert.deepEqual(detail.ingredients.map(item => [item.name, item.amount]), [['토마토', '1개'], ['소금', '1g'], ['달걀', '2개'], ['우유', '50ml']]);
   assert.deepEqual(detail.steps, ['재료를 볶아요.']);
-  assert.equal(detail.time, undefined);
-  assert.equal(detail.difficulty, undefined);
-  assert.equal(detail.servings, undefined);
-  assert.deepEqual(exports.toRecipeSummary(recipe, ['계란','토마토','우유']).tags, ['계란','토마토']);
-  assert.equal(exports.toRecipeDetail({...recipe,image:''}).imageUrl, '/assets/recipe-empty.png');
+  assert.equal(exports.toRecipeDetail({ ...recipe, image: '', time: '' }).imageUrl, '/assets/recipe-empty.png');
+  assert.equal(exports.toRecipeDetail({ ...recipe, time: '' }).time, undefined);
+});
+test('summary tags selected ingredients plus one unselected main ingredient', () => {
+  const summary = exports.toRecipeSummary(recipe, ['우유', '토마토']);
+  assert.equal(summary.time, '15분');
+  assert.equal(summary.difficulty, '초보환영');
+  assert.deepEqual(summary.tags, ['우유', '토마토', '달걀']);
+  assert.deepEqual(exports.toRecipeSummary(recipe, ['계란', '토마토']).tags, ['계란', '토마토', '우유']);
 });

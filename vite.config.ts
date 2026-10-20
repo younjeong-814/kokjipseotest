@@ -6,7 +6,7 @@ import { recipesMiddleware } from './server/recipes';
 function recipeApi(apiKey: string | undefined): Plugin {
   const middleware = recipesMiddleware(apiKey);
   return {
-    name: 'food-safety-recipes',
+    name: 'mafra-recipes',
     configureServer: server => { server.middlewares.use('/api/recipes', middleware); },
     configurePreviewServer: server => { server.middlewares.use('/api/recipes', middleware); },
   };
@@ -22,6 +22,6 @@ function visionOcr(apiKey: string | undefined): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), visionOcr(loadEnv(mode, '.', '').GOOGLE_VISION_API_KEY), recipeApi(loadEnv(mode, '.', '').FOOD_SAFETY_API_KEY)],
+  plugins: [react(), visionOcr(loadEnv(mode, '.', '').GOOGLE_VISION_API_KEY), recipeApi(loadEnv(mode, '.', '').MAFRA_API_KEY)],
   base: './',
 }));
