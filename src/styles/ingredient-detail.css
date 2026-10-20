@@ -85,3 +85,5 @@
 .ingredient-edit-modal footer { padding-top: 16px; display: flex; gap: 8px; }
 .ingredient-edit-modal footer > button { flex: 1; height: 56px; min-width: 0; font-size: 18px; }
 .ingredient-edit-modal .ingredient-edit-cancel { background: var(--gray-200); color: var(--gray-900); }
+.discard-confirm header p { word-break: keep-all; }
+.discard-confirm .discard-confirm-submit { background: var(--red-500); color: var(--gray-0); }
