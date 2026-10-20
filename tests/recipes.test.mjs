@@ -4,133 +4,185 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 function load(path, replacements = []) {
-  let source = readFileSync(new URL(path, import.meta.url), 'utf8');
+  const url = new URL(path, import.meta.url);
+  let source = readFileSync(url, 'utf8');
   for (const [from, to] of replacements) source = source.replace(from, to);
   const exports = {};
-  new Function('exports', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(exports);
+  new Function('exports', 'require', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(exports, name => load(new URL(`${name}.ts`, url)));
   return exports;
 }
-const { createRecipeSearch, parseGridPage, buildRecipes, recipesMiddleware, GRIDS } = load('../server/recipes.ts');
+const api = load('../server/recipes.ts');
+const enrichment = load('../server/recipeEnrichment.ts');
 const { searchRecipes } = load('../src/features/recipe/api.ts', [["import.meta.env.VITE_RECIPE_ENDPOINT || '/api/recipes'", "'/api/recipes'"]]);
+const row = (id, name = `레시피${id}`) => ({ RCP_SEQ: String(id), RCP_NM: name, RCP_WAY2: '볶기', RCP_PAT2: '반찬', RCP_PARTS_DTLS: '대파 10g, 두부 100g', INFO_ENG: '150', INFO_PRO: '10', ATT_FILE_NO_MAIN: 'http://www.foodsafetykorea.go.kr/uploadimg/test.jpg', MANUAL01: '썬다.', MANUAL03: '볶는다.', MANUAL_IMG03: 'http://www.foodsafetykorea.go.kr/uploadimg/step.jpg' });
+const basic = (id, name = `레시피${id}`, time = '30분', level = '초보환영') => ({ RECIPE_ID: id, RECIPE_NM_KO: name, COOKING_TIME: time, LEVEL_NM: level });
+const foodPayload = (rows, total = rows.length) => ({ COOKRCP01: { RESULT: { CODE: 'INFO-000' }, total_count: String(total), row: rows } });
+const basicPayload = rows => ({ [api.BASIC_GRID]: { result: { code: 'INFO-000' }, totalCnt: rows.length, row: rows } });
+const response = value => new Response(JSON.stringify(value));
+const recipe = id => api.normalizeFoodRecipe(row(id));
 
-const basic = id => ({ RECIPE_ID: id, RECIPE_NM_KO: `레시피 ${id}`, SUMRY: '요약', TY_NM: '밥', COOKING_TIME: '15분', LEVEL_NM: '초보환영', QNT: '2인분', CALORIE: '300Kcal', IMG_URL: 'http://file.okdab.kr/recipe/1.jpg' });
-const ingredient = (id, name, sn = 1, type = '주재료', amount = '1개') => ({ RECIPE_ID: id, IRDNT_SN: sn, IRDNT_NM: name, IRDNT_CPCTY: amount, IRDNT_TY_NM: type });
-const step = (id, no, text) => ({ RECIPE_ID: id, COOKING_NO: no, COOKING_DC: text, STEP_TIP: '' });
-const payload = (grid, rows, total = rows.length) => ({ [grid]: { totalCnt: total, startRow: 1, endRow: rows.length, result: { code: 'INFO-000', message: '정상 처리되었습니다.' }, row: rows } });
-const response = data => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
-function upstream({ basics, ingredients, steps = [] }, calls = []) {
-  return async (url, options) => {
-    calls.push(url);
-    assert.ok(options.signal instanceof AbortSignal);
-    if (url.includes(GRIDS.basic)) return response(payload(GRIDS.basic, basics));
-    if (url.includes(GRIDS.ingredients)) return response(payload(GRIDS.ingredients, ingredients));
-    return response(payload(GRIDS.steps, steps));
-  };
-}
-
-test('joins basic, ingredient and step grids by RECIPE_ID with time, difficulty and servings', () => {
-  const [recipe] = buildRecipes([basic(1), basic(2)], [ingredient(1, '두부', 2, '부재료', '100g'), ingredient(1, '대파', 1)], [step(1, 2, '끓인다.'), step(1, 1, '썬다.')]);
-  assert.equal(recipe.name, '레시피 1');
-  assert.equal(recipe.time, '15분');
-  assert.equal(recipe.difficulty, '초보환영');
-  assert.equal(recipe.servings, '2인분');
-  assert.deepEqual(recipe.ingredients.map(item => item.name), ['대파', '두부']);
-  assert.equal(recipe.ingredients[1].amount, '100g');
-  assert.deepEqual(recipe.steps.map(item => item.text), ['썬다.', '끓인다.']);
-  assert.equal(buildRecipes([{ ...basic(3), IMG_URL: 'javascript:alert(1)' }], [ingredient(3, '쌀')], [])[0].image, '');
+test('primary fields, nutrition, ingredients and step order come only from food safety data', () => {
+  const item = recipe(1);
+  assert.equal(item.id, '1');
+  assert.equal(item.nutrition.protein, '10');
+  assert.equal(item.image.startsWith('https:'), true);
+  assert.deepEqual(item.ingredients.map(part => part.name), ['대파', '두부']);
+  assert.deepEqual(item.steps.map(step => step.text), ['썬다.', '볶는다.']);
+  const enriched = enrichment.enrichRecipes([item], api.parseBasicPage(basicPayload([{ ...basic(999, item.name), QNT: '99인분', SUMRY: 'other content' }])).rows)[0];
+  assert.equal(enriched.id, '1');
+  assert.equal(enriched.servings, '');
+  assert.deepEqual(enriched.ingredients, item.ingredients);
+  assert.deepEqual(enriched.steps, item.steps);
+  assert.equal(enriched.metadata.matchedRecipeId, '999');
+  assert.equal(enriched.time, '약 30분');
+  assert.equal(enriched.difficulty, '초급');
 });
-
-test('AND search, main-ingredient ordering, paging and dataset cache', async () => {
-  const calls = [];
-  const ids = Array.from({ length: 25 }, (_, i) => String(i + 1));
-  const search = createRecipeSearch('test-only-key', upstream({
-    basics: [...ids.map(basic), basic('other')],
-    ingredients: [...ids.flatMap(id => [ingredient(id, '대파', 1, id === '25' ? '주재료' : '부재료'), ingredient(id, '두부 ', 2)]), ingredient('other', '양파')],
-  }, calls));
-  const result = await search(['대파', '두부']);
-  assert.equal(result.total, 25);
-  assert.equal(result.recipes.length, 20);
-  assert.equal(result.recipes[0].id, '25');
-  assert.equal((await search(['대파', '두부'], 2)).recipes.length, 5);
-  assert.equal((await search(['대파', '없는재료'])).total, 0);
-  assert.equal(calls.length, 3);
+test('ingredient amounts preserve commas inside parentheses and full raw text', () => {
+  const raw = '두부 100g(1/2모, 물기 제거), 대파 10g, 소금 약간';
+  const item = api.normalizeFoodRecipe({ ...row(1), RCP_PARTS_DTLS: raw });
+  assert.equal(item.rawIngredients, raw);
+  assert.equal(item.ingredients.length, 3);
+  assert.equal(item.ingredients[0].amount, '100g(1/2모, 물기 제거)');
+  assert.equal(api.parseFoodPage(foodPayload([{ ...row(2), RCP_PARTS_DTLS: '' }])).recipes[0].ingredients.length, 0);
 });
-
-test('fetches every upstream page of a grid', async () => {
+test('quantity wrappers do not strand parentheses on ingredient names', () => {
+  const examples = [
+    ['황태채(100g)', '황태채', '100g'],
+    ['곤약(100g)', '곤약', '100g'],
+    ['곤약(약 100g)', '곤약', '약 100g'],
+    ['건미역(20g)', '건미역', '20g'],
+    ['들깨가루（20g）', '들깨가루', '20g'],
+    ['토마토 1개 (약 150~200g)', '토마토', '1개 (약 150~200g)'],
+    ['대파 1/2대', '대파', '1/2대'],
+    ['소금(약간)', '소금', '약간'],
+    ['표고버섯(말린 것) 20g', '표고버섯(말린 것)', '20g'],
+    ['식초(2배 농축) 5ml', '식초(2배 농축)', '5ml'],
+    ['3색 파프리카(100g)', '3색 파프리카', '100g'],
+    ['두부(100g(1/2모))', '두부', '100g(1/2모)'],
+    ['후추()', '후추', ''],
+  ];
+  for (const [source, name, amount] of examples) assert.deepEqual(api.parseIngredients(source), [{ name, amount, type: '' }], source);
+});
+test('cached split wrappers are repaired without dropping useful quantity references', () => {
+  const { cleanIngredientParts } = load('../src/features/recipe/ingredientText.ts');
+  assert.deepEqual(cleanIngredientParts('황태채(', '100g)'), { name: '황태채', amount: '100g' });
+  assert.deepEqual(cleanIngredientParts('두부(', '100g(1/2모))'), { name: '두부', amount: '100g(1/2모)' });
+  assert.deepEqual(cleanIngredientParts('계란', '(2알)'), { name: '계란', amount: '2알' });
+});
+test('matching uses normalized unique names and never fuzzy or duplicate matches', () => {
+  const [a, b] = enrichment.enrichRecipes([api.normalizeFoodRecipe(row(1, '소고기 계란 볶음')), recipe(2)], [
+    { id: 'a', name: '쇠고기 달걀볶음', minutes: 60, difficulty: '고급' },
+    { id: 'b', name: '레시피2 변형', minutes: 90, difficulty: '중급' },
+  ]);
+  assert.equal(a.metadata.timeSource, 'mafra');
+  assert.equal(b.metadata.timeSource, 'estimated');
+  const duplicate = { id: 'x', name: '레시피1', minutes: 30, difficulty: '초급' };
+  assert.equal(enrichment.enrichRecipes([recipe(1)], [duplicate, { ...duplicate, id: 'y' }])[0].metadata.timeSource, 'estimated');
+});
+test('unmatched times and levels are estimated, times always start with 약', () => {
+  const simple = recipe(1), complex = { ...recipe(2), method: '찌기', steps: Array(20).fill({ text: '조리', image: '', tip: '' }) };
+  const values = enrichment.enrichRecipes([simple, complex], []);
+  assert.ok(Number(values[1].time.match(/\d+/)[0]) > Number(values[0].time.match(/\d+/)[0]));
+  assert.equal(values[1].difficulty, '고급');
+  for (const item of values) { assert.match(item.time, /^약 \d+분$/); assert.equal(item.metadata.calibrationSamples, 0); assert.equal(item.metadata.timeSource, 'estimated'); }
+});
+test('at least three real matched times calibrate unmatched estimates using median ratios', () => {
+  const recipes = [1, 2, 3, 4].map(recipe);
+  const baseMinutes = enrichment.recipeFeatures(recipes[0]).minutes;
+  const rows = [1, 2, 3].map(id => ({ id: String(id), name: `레시피${id}`, minutes: baseMinutes * 2, difficulty: '초급' }));
+  const target = enrichment.enrichRecipes(recipes, rows)[3];
+  assert.equal(target.time, `약 ${Math.round(baseMinutes * 2 / 5) * 5}분`);
+  assert.equal(target.metadata.calibrationSamples, 3);
+  assert.equal(target.metadata.timeSource, 'estimated');
+  assert.equal(enrichment.enrichRecipes(recipes, rows.slice(0, 2))[3].metadata.calibrationSamples, 0);
+});
+test('difficulty calibration uses ordered real label centers with at least two examples per level', () => {
+  const recipes = [1, 2, 3, 4, 5].map(id => ({ ...recipe(id), steps: Array(id < 3 || id === 5 ? 1 : 12).fill({ text: '조리', image: '', tip: '' }) }));
+  const basic = [1, 2, 3, 4].map(id => ({ id: String(id), name: `레시피${id}`, minutes: 30, difficulty: id < 3 ? '초급' : '고급' }));
+  const target = enrichment.enrichRecipes(recipes, basic)[4];
+  assert.equal(target.difficulty, '초급');
+  assert.equal(target.metadata.difficultyCalibrationSamples, 4);
+});
+test('overlapping or single-group difficulty examples calibrate an ordinal offset when enough labels exist', () => {
+  const recipes = [1, 2, 3, 4].map(id => ({ ...recipe(id), steps: Array(11).fill({ text: '조리', image: '', tip: '' }) }));
+  const labeled = [1, 2, 3].map(id => ({ id: String(id), name: `레시피${id}`, minutes: 30, difficulty: '초급' }));
+  const target = enrichment.enrichRecipes(recipes, labeled)[3];
+  assert.equal(target.difficulty, '초급');
+  assert.equal(target.metadata.difficultyCalibrationSamples, 3);
+});
+test('time parsing handles hours and rejects ambiguous values; unknown levels use estimation', () => {
+  assert.equal(enrichment.parseMinutes('1시간 20분'), 80);
+  assert.equal(enrichment.parseMinutes('30분'), 30);
+  assert.equal(enrichment.parseMinutes('30~60분'), null);
+  assert.equal(enrichment.parseMinutes(''), null);
+  assert.equal(enrichment.normalizeDifficulty('보통'), '중급');
+  const target = enrichment.enrichRecipes([recipe(1)], [{ id: '1', name: '레시피1', minutes: null, difficulty: '' }])[0];
+  assert.equal(target.metadata.timeSource, 'estimated');
+  assert.equal(target.metadata.difficultySource, 'estimated');
+});
+test('search calls only food safety and the optional basic grid, filters all ingredients, caches and pages', async () => {
   const calls = [];
-  const search = createRecipeSearch('test-only-key', async url => {
-    calls.push(url);
-    if (url.includes(GRIDS.basic)) return response(payload(GRIDS.basic, [basic(1), basic(1001)]));
-    if (url.includes(GRIDS.ingredients)) return response(url.includes('/1/1000') ? payload(GRIDS.ingredients, Array.from({ length: 1000 }, (_, i) => ingredient(1, `재료${i}`, i)), 1001) : payload(GRIDS.ingredients, [ingredient(1001, '대파')], 1001));
-    return response(payload(GRIDS.steps, []));
+  const search = api.createRecipeSearch('food-test', async (url, options) => {
+    calls.push(url); assert.ok(options.signal instanceof AbortSignal);
+    return response(url.includes('COOKRCP01') ? foodPayload(Array.from({ length: 25 }, (_, i) => row(i))) : basicPayload([basic(1)]));
+  }, 'basic-test');
+  assert.equal((await search(['대파', '두부'])).total, 25);
+  assert.equal((await search(['대파'], 2)).recipes.length, 5);
+  assert.equal((await search(['없는재료'])).total, 0);
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every(url => !url.includes('00227') && !url.includes('00228')));
+});
+test('basic API failures do not block main recipes or return fake matched values', async () => {
+  const search = api.createRecipeSearch('food-test', async url => response(url.includes('COOKRCP01') ? foodPayload([row(1)]) : { result: { code: 'INFO-100' } }), 'basic-test');
+  const result = await search(['대파']);
+  assert.equal(result.total, 1);
+  assert.equal(result.recipes[0].metadata.timeSource, 'estimated');
+  assert.equal(result.recipes[0].metadata.calibrationSamples, 0);
+});
+test('primary API authentication is not hidden by optional fallback', async () => {
+  const search = api.createRecipeSearch('food-test', async url => response(url.includes('COOKRCP01') ? { RESULT: { CODE: 'INFO-100' } } : basicPayload([basic(1)])), 'basic-test');
+  await assert.rejects(search(['대파']), /FOOD_SAFETY_API_KEY/);
+  assert.throws(() => api.parseFoodPage({}), /레시피/);
+});
+test('fetches all primary pages before filtering or calibrating', async () => {
+  let calls = 0;
+  const search = api.createRecipeSearch('food-test', async url => {
+    calls++;
+    return response(url.endsWith('/1/1000') ? foodPayload(Array.from({ length: 1000 }, (_, i) => ({ ...row(i), RCP_PARTS_DTLS: '양파 1개' })), 1001) : foodPayload([row(1001)], 1001));
   });
   assert.equal((await search(['대파'])).total, 1);
-  assert.equal(calls.filter(url => url.includes(GRIDS.ingredients)).length, 2);
+  assert.equal(calls, 2);
 });
-
-test('empty results differ from auth, quota and malformed errors', async () => {
-  assert.deepEqual(parseGridPage({ result: { code: 'INFO-200' } }, GRIDS.basic), { rows: [], total: 0 });
-  for (const code of ['INFO-100', 'ERROR-310', 'ERROR-350', 'ERROR-500', 'ERROR-336']) {
-    assert.throws(() => parseGridPage({ result: { code } }, GRIDS.basic));
-  }
-  assert.throws(() => parseGridPage({}, GRIDS.basic));
-  const malformed = payload(GRIDS.basic, [], 1);
-  delete malformed[GRIDS.basic].row;
-  assert.throws(() => parseGridPage(malformed, GRIDS.basic));
-  const search = createRecipeSearch('test-only-key', async () => response({ result: { code: 'INFO-200' } }));
-  assert.equal((await search(['대파'])).total, 0);
-});
-
-test('validates input before external calls and missing keys are actionable', async () => {
-  const search = createRecipeSearch(undefined, () => { throw new Error('must not fetch'); });
-  for (const ingredients of [[], [''], Array(11).fill('대파'), ['a'.repeat(61)], ['\n']]) await assert.rejects(search(ingredients), { status: 400 });
-  await assert.rejects(search(['대파'], 0), { status: 400 });
-  await assert.rejects(search(['대파'], 1.5), { status: 400 });
-  await assert.rejects(search(['대파']), { status: 503 });
-});
-
-test('egg aliases match both spellings', async () => {
-  const search = createRecipeSearch('test-only-key', upstream({ basics: [basic(1), basic(2)], ingredients: [ingredient(1, '달걀'), ingredient(2, '계란')] }));
-  assert.equal((await search(['계란'])).total, 2);
-  assert.equal((await search(['달걀'])).total, 2);
-});
-
-test('simultaneous requests share upstream work; failures can retry', async () => {
-  const calls = [];
-  const search = createRecipeSearch('test-only-key', upstream({ basics: [basic(1)], ingredients: [ingredient(1, '대파')] }, calls));
-  await Promise.all([search(['대파']), search(['두부'])]);
-  assert.equal(calls.length, 3);
+test('input validation, empty results, concurrency and failed-cache retries', async () => {
+  const missing = api.createRecipeSearch(undefined);
+  await assert.rejects(missing(['대파']), /FOOD_SAFETY_API_KEY/);
+  await assert.rejects(missing([]), { status: 400 });
+  await assert.rejects(missing(['대파'], 0), { status: 400 });
+  let calls = 0;
+  const search = api.createRecipeSearch('food-test', async () => { calls++; return response({ RESULT: { CODE: 'INFO-200' } }); });
+  const values = await Promise.all([search(['대파']), search(['양파'])]);
+  assert.equal(calls, 1); assert.equal(values[0].total, 0);
   let attempt = 0;
-  const ok = upstream({ basics: [basic(1)], ingredients: [ingredient(1, '대파')] });
-  const retry = createRecipeSearch('test-only-key', async (url, options) => { if (++attempt === 1) throw new Error('network'); return ok(url, options); });
+  const retry = api.createRecipeSearch('food-test', async () => { if (++attempt === 1) throw new Error('network'); return response(foodPayload([row(1)])); });
   await assert.rejects(retry(['대파']));
   assert.equal((await retry(['대파'])).total, 1);
 });
-
-test('HTTP middleware returns JSON errors without leaking credentials or request URLs', async () => {
-  const middleware = recipesMiddleware(undefined);
-  let body, status;
-  const res = { setHeader() {}, set statusCode(value) { status = value; }, end(value) { body = JSON.parse(value); } };
-  await middleware({ method: 'GET', url: '/?ingredient=대파' }, res);
-  assert.equal(status, 503);
-  assert.match(body.error, /FOOD_API_KEY/);
-  await middleware({ method: 'POST', url: '/' }, res);
-  assert.equal(status, 405);
-});
-
-test('client passes selected ingredients and abort signal; empty and error responses are distinct', async t => {
-  const original = globalThis.fetch;
-  t.after(() => { globalThis.fetch = original; });
+test('client sends ingredient names and abort signal, separating empty results from errors', async t => {
+  const original = globalThis.fetch; t.after(() => { globalThis.fetch = original; });
   const controller = new AbortController();
   globalThis.fetch = async (url, options) => {
-    const params = new URL(url, 'http://localhost').searchParams;
-    assert.deepEqual(params.getAll('ingredient'), ['대파', '두부']);
+    assert.deepEqual(new URL(url, 'http://localhost').searchParams.getAll('ingredient'), ['대파', '두부']);
     assert.equal(options.signal, controller.signal);
     return response({ recipes: [], total: 0, page: 1, pageSize: 20 });
   };
   assert.equal((await searchRecipes(['대파', '두부'], 1, controller.signal)).total, 0);
   globalThis.fetch = async () => new Response(JSON.stringify({ error: '연결 실패' }), { status: 502 });
   await assert.rejects(searchRecipes(['대파']), /연결 실패/);
-  globalThis.fetch = async () => new Response('<html>Not an API</html>');
-  await assert.rejects(searchRecipes(['대파']), /서버 응답/);
+});
+test('HTTP middleware does not expose keys in missing-key errors', async () => {
+  const middleware = api.recipesMiddleware(undefined); let status, body;
+  const res = { setHeader() {}, set statusCode(value) { status = value; }, end(value) { body = JSON.parse(value); } };
+  await middleware({ method: 'GET', url: '/?ingredient=대파' }, res);
+  assert.equal(status, 503); assert.match(body.error, /FOOD_SAFETY_API_KEY/);
+  await middleware({ method: 'POST', url: '/' }, res); assert.equal(status, 405);
 });

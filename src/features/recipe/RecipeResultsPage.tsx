@@ -2,6 +2,7 @@ import { SubHeader } from '../../components/SubHeader';
 import { CardShell } from '../../components/CardShell';
 import { asset } from '../../lib/assets';
 import type { RecipeSummary } from './types';
+import { approximateTime } from './apiPresentation';
 
 export function RecipeResultsPage({ recipes, selectedIngredients, onBack, onOpen }: { onOpen?: (id: string) => void; recipes: readonly RecipeSummary[]; selectedIngredients: readonly string[]; onBack: () => void }) {
   return <main className="recipe-results-page" data-figma-node="3061:13305">
@@ -16,7 +17,7 @@ export function RecipeResultsPage({ recipes, selectedIngredients, onBack, onOpen
         <CardShell className="recipe-result-card">
           <img className="recipe-result-image" src={recipe.imageUrl} alt={recipe.title} />
           <div className="recipe-result-content"><h3>{recipe.title}</h3>
-            <div className="recipe-result-metadata">{recipe.time && <span><img src={asset('recipe-detail-time.svg')} alt="" />{recipe.time}</span>}{recipe.time && recipe.difficulty && <span aria-hidden="true">·</span>}{recipe.difficulty && <span><img src={asset('recipe-detail-level.svg')} alt="" />{recipe.difficulty}</span>}</div>
+            <div className="recipe-result-metadata">{recipe.time && <span><img src={asset('recipe-detail-time.svg')} alt="" />{approximateTime(recipe.time)}</span>}{recipe.time && recipe.difficulty && <span aria-hidden="true">·</span>}{recipe.difficulty && <span><img src={asset('recipe-detail-level.svg')} alt="" />{recipe.difficulty}</span>}</div>
             <ul className="recipe-result-tags" aria-label="재료">{recipe.tags.map(tag => <li key={tag}>#{tag}</li>)}</ul>
           </div>
         </CardShell>

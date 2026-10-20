@@ -1,152 +1,132 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Recipe, RecipeSearchResult } from '../src/features/recipe/types';
+import { enrichRecipes, normalizeDifficulty, parseMinutes, type BasicRecipe } from './recipeEnrichment';
+import { splitIngredientText } from '../src/features/recipe/ingredientText';
 
-// 농림수산식품교육문화정보원 레시피 Open API (2018년부터 IP 주소로 제공, HTTP만 지원)
-const API = 'http://211.237.50.150:7080/openapi';
-export const GRIDS = {
-  basic: 'Grid_20150827000000000226_1', // 레시피 기본정보
-  ingredients: 'Grid_20150827000000000227_1', // 레시피 재료정보
-  steps: 'Grid_20150827000000000228_1', // 레시피 과정정보
-} as const;
-const PAGE = 1000; // 요청당 최대 1,000건
-const MAX_ROWS = 50000;
-const CACHE_MS = 12 * 60 * 60 * 1000; // 2015년 이후 갱신이 거의 없는 정적 데이터
-
+const FOOD_API = 'https://openapi.foodsafetykorea.go.kr/api';
+const MAFRA_API = 'http://211.237.50.150:7080/openapi';
+export const BASIC_GRID = 'Grid_20150827000000000226_1';
+const PAGE_SIZE = 1000, MAX_ROWS = 10000;
 type Row = Record<string, unknown>;
 const text = (value: unknown) => typeof value === 'string' ? value.trim() : typeof value === 'number' ? String(value) : '';
-const normalize = (value: string) => value.normalize('NFC').toLowerCase().replace(/\s+/g, '');
-export const canonical = (value: string) => normalize(value).replace(/계란/g, '달걀');
-
-function imageUrl(value: unknown): string {
-  try {
-    const url = new URL(text(value));
-    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
-  } catch { return ''; }
+export const canonical = (value: string) => value.normalize('NFC').toLowerCase().replace(/\s+/g, '').replace(/계란/g, '달걀').replace(/쇠고기/g, '소고기');
+function imageUrl(value: unknown) {
+  try { const url = new URL(text(value)); if (!['http:', 'https:'].includes(url.protocol)) return ''; if (url.hostname.endsWith('.foodsafetykorea.go.kr')) url.protocol = 'https:'; return url.toString(); } catch { return ''; }
 }
+export class RecipeApiError extends Error { constructor(public status: number, message: string) { super(message); } }
 
-export class RecipeApiError extends Error {
-  constructor(public status: number, message: string) { super(message); }
-}
-
-/** 한 Grid 응답 페이지를 검사하고 row 배열과 전체 건수를 돌려준다. */
-export function parseGridPage(data: unknown, grid: string): { rows: Row[]; total: number } {
-  if (!data || typeof data !== 'object') throw new RecipeApiError(502, '레시피 응답을 읽을 수 없어요. 다시 시도해 주세요.');
-  const root = data as Row;
-  const service = (root[grid] ?? root) as Row;
-  const result = (service.result ?? service.RESULT ?? root.result ?? root.RESULT) as Row | undefined;
-  const code = text(result?.code ?? result?.CODE);
-  if (code === 'INFO-200') return { rows: [], total: 0 };
-  if (code === 'INFO-100' || code === 'ERROR-310') throw new RecipeApiError(502, '농림수산식품교육문화정보원 인증키를 확인해 주세요.');
-  if (code === 'ERROR-350') throw new RecipeApiError(503, '레시피 API 일일 호출 한도에 도달했어요. 잠시 후 다시 시도해 주세요.');
-  if (code !== 'INFO-000') throw new RecipeApiError(502, '레시피 정보를 불러오지 못했어요. 다시 시도해 주세요.');
-  const total = Number(service.totalCnt);
-  if (!Number.isInteger(total) || total < 0 || (total > 0 && !Array.isArray(service.row))) throw new RecipeApiError(502, '레시피 응답 형식이 올바르지 않아요.');
-  const rows = Array.isArray(service.row) ? service.row : [];
-  if (rows.some(row => !row || typeof row !== 'object')) throw new RecipeApiError(502, '레시피 응답 형식이 올바르지 않아요.');
-  return { rows: rows as Row[], total };
-}
-
-/** 기본·재료·과정 정보를 RECIPE_ID로 합친다. 재료가 없는 레시피는 검색할 수 없으므로 제외한다. */
-export function buildRecipes(basic: Row[], ingredientRows: Row[], stepRows: Row[]): Recipe[] {
-  const group = (rows: Row[]) => {
-    const map = new Map<string, Row[]>();
-    for (const row of rows) {
-      const id = text(row.RECIPE_ID);
-      if (!id) continue;
-      if (!map.has(id)) map.set(id, []);
-      map.get(id)!.push(row);
-    }
-    return map;
-  };
-  const ingredients = group(ingredientRows), steps = group(stepRows);
-  const order = (key: string) => (a: Row, b: Row) => Number(a[key]) - Number(b[key]);
-  const seen = new Set<string>();
-  return basic.flatMap(row => {
-    const id = text(row.RECIPE_ID), name = text(row.RECIPE_NM_KO);
-    if (!id || !name || seen.has(id)) return [];
-    const parts = (ingredients.get(id) ?? []).sort(order('IRDNT_SN')).map(item => ({ name: text(item.IRDNT_NM), amount: text(item.IRDNT_CPCTY), type: text(item.IRDNT_TY_NM) })).filter(item => item.name);
-    if (!parts.length) return [];
-    seen.add(id);
-    return [{
-      id, name, summary: text(row.SUMRY), category: text(row.TY_NM) || text(row.NATION_NM),
-      image: imageUrl(row.IMG_URL), calories: text(row.CALORIE),
-      time: text(row.COOKING_TIME), difficulty: text(row.LEVEL_NM), servings: text(row.QNT),
-      ingredients: parts,
-      steps: (steps.get(id) ?? []).sort(order('COOKING_NO')).flatMap(step => {
-        const instruction = text(step.COOKING_DC);
-        return instruction ? [{ text: instruction, image: imageUrl(step.STRE_STEP_IMAGE_URL), tip: text(step.STEP_TIP) }] : [];
-      }),
-    }];
+/** Preserve source text; split measured ingredients for the existing detail UI. */
+export function parseIngredients(raw: string): Recipe['ingredients'] {
+  const chunks: string[] = []; let depth = 0, chunk = '';
+  for (const char of raw) {
+    if ('(['.includes(char)) depth++;
+    if (')]'.includes(char)) depth = Math.max(0, depth - 1);
+    if ((char === ',' || char === '，' || char === '\n' || char === ';') && !depth) { if (chunk.trim()) chunks.push(chunk.trim()); chunk = ''; }
+    else chunk += char;
+  }
+  if (chunk.trim()) chunks.push(chunk.trim());
+  return chunks.flatMap(value => {
+    const { name, amount } = splitIngredientText(value);
+    return name ? [{ name, amount, type: '' }] : [];
   });
 }
-
-export function createRecipeSearch(apiKey: string | undefined, fetcher: typeof fetch = fetch) {
+export function normalizeFoodRecipe(row: Row): Recipe | null {
+  const id = text(row.RCP_SEQ), name = text(row.RCP_NM), rawIngredients = text(row.RCP_PARTS_DTLS);
+  // Some official rows omit ingredient text. Keep the recipe without inventing parts;
+  // ingredient searches naturally exclude it while other rows remain usable.
+  if (!id || !name) return null;
+  return {
+    id, name, rawIngredients, method: text(row.RCP_WAY2), summary: text(row.RCP_NA_TIP), category: text(row.RCP_PAT2),
+    image: imageUrl(row.ATT_FILE_NO_MAIN || row.ATT_FILE_NO_MK), calories: text(row.INFO_ENG) ? `${text(row.INFO_ENG)} kcal` : '',
+    time: '', difficulty: '', servings: '', ingredients: parseIngredients(rawIngredients),
+    nutrition: { carbohydrate: text(row.INFO_CAR), protein: text(row.INFO_PRO), fat: text(row.INFO_FAT), sodium: text(row.INFO_NA) },
+    steps: Array.from({ length: 20 }, (_, i) => String(i + 1).padStart(2, '0')).flatMap(index => {
+      const instruction = text(row[`MANUAL${index}`]);
+      return instruction ? [{ text: instruction, image: imageUrl(row[`MANUAL_IMG${index}`]), tip: '' }] : [];
+    }),
+  };
+}
+export function parseFoodPage(data: unknown): { recipes: Recipe[]; total: number } {
+  if (!data || typeof data !== 'object') throw new RecipeApiError(502, '식품안전나라 응답을 읽을 수 없어요.');
+  const root = data as Row, service = (root.COOKRCP01 ?? root) as Row;
+  const code = text(((service.RESULT ?? root.RESULT) as Row | undefined)?.CODE);
+  if (code === 'INFO-200') return { recipes: [], total: 0 };
+  if (['INFO-100', 'INFO-110', 'INFO-120', 'INFO-400', 'INFO-600'].includes(code)) throw new RecipeApiError(502, '식품안전나라 FOOD_SAFETY_API_KEY와 COOKRCP01 활용 승인을 확인해 주세요.');
+  if (['INFO-300', 'INFO-320', 'ERROR-503'].includes(code)) throw new RecipeApiError(503, '식품안전나라 호출 한도에 도달했어요. 잠시 후 다시 시도해 주세요.');
+  if (code !== 'INFO-000') throw new RecipeApiError(502, '식품안전나라 레시피를 불러오지 못했어요.');
+  const total = Number(service.total_count);
+  if (!Number.isInteger(total) || total < 0 || total > MAX_ROWS || (total > 0 && !Array.isArray(service.row))) throw new RecipeApiError(502, '식품안전나라 응답 형식이나 데이터 범위를 확인해 주세요.');
+  const recipes = (Array.isArray(service.row) ? service.row : []).map((row: unknown) => row && typeof row === 'object' ? normalizeFoodRecipe(row as Row) : null);
+  if (recipes.some(recipe => recipe === null)) throw new RecipeApiError(502, '식품안전나라 레시피의 필수 정보가 없어요.');
+  return { recipes: recipes as Recipe[], total };
+}
+export function parseBasicPage(data: unknown): { rows: BasicRecipe[]; total: number } {
+  if (!data || typeof data !== 'object') throw new Error('Invalid basic data');
+  const root = data as Row, service = (root[BASIC_GRID] ?? root) as Row;
+  const code = text(((service.result ?? root.result) as Row | undefined)?.code);
+  if (code === 'INFO-200') return { rows: [], total: 0 };
+  if (code !== 'INFO-000') throw new Error('Basic API unavailable');
+  const total = Number(service.totalCnt);
+  if (!Number.isInteger(total) || total < 0 || total > MAX_ROWS || (total > 0 && !Array.isArray(service.row))) throw new Error('Invalid basic page');
+  return { total, rows: (Array.isArray(service.row) ? service.row : []).flatMap((row: Row) => {
+    if (!row || typeof row !== 'object') throw new Error('Invalid basic row');
+    const id = text(row.RECIPE_ID), name = text(row.RECIPE_NM_KO);
+    return id && name ? [{ id, name, minutes: parseMinutes(text(row.COOKING_TIME)), difficulty: normalizeDifficulty(text(row.LEVEL_NM)) }] : [];
+  }) };
+}
+export function createRecipeSearch(foodSafetyKey: string | undefined, fetcher: typeof fetch = fetch, mafraKey?: string) {
   let cache: { expires: number; recipes: Recipe[] } | null = null;
   let pending: Promise<Recipe[]> | null = null;
-
-  async function fetchGrid(grid: string): Promise<Row[]> {
-    const rows: Row[] = [];
-    for (let start = 1; start <= MAX_ROWS; start += PAGE) {
-      const response = await fetcher(`${API}/${encodeURIComponent(apiKey!)}/json/${grid}/${start}/${start + PAGE - 1}`, { signal: AbortSignal.timeout(15000), redirect: 'error' });
-      if (!response.ok) throw new RecipeApiError(502, '레시피 API 서버에 연결하지 못했어요.');
-      const page = parseGridPage(await response.json(), grid);
-      rows.push(...page.rows);
-      if (page.total > MAX_ROWS) throw new RecipeApiError(502, '레시피 데이터가 예상보다 많아요. 서버 설정을 확인해 주세요.');
-      if (start + PAGE - 1 >= page.total) break;
-      if (!page.rows.length) throw new RecipeApiError(502, '레시피 목록을 끝까지 불러오지 못했어요. 다시 시도해 주세요.');
+  async function fetchFood() {
+    const recipes = new Map<string, Recipe>();
+    for (let start = 1; start <= MAX_ROWS; start += PAGE_SIZE) {
+      const response = await fetcher(`${FOOD_API}/${encodeURIComponent(foodSafetyKey!.trim())}/COOKRCP01/json/${start}/${start + PAGE_SIZE - 1}`, { signal: AbortSignal.timeout(15000), redirect: 'error' });
+      if (!response.ok) throw new RecipeApiError(502, '식품안전나라 서버에 연결하지 못했어요.');
+      const page = parseFoodPage(await response.json());
+      for (const recipe of page.recipes) recipes.set(recipe.id, recipe);
+      if (start + PAGE_SIZE - 1 >= page.total) break;
+      if (!page.recipes.length) throw new RecipeApiError(502, '식품안전나라 목록을 끝까지 불러오지 못했어요.');
+    }
+    return [...recipes.values()];
+  }
+  async function fetchBasic() {
+    if (!mafraKey?.trim()) return [];
+    const rows: BasicRecipe[] = [], signal = AbortSignal.timeout(8000);
+    for (let start = 1; start <= MAX_ROWS; start += PAGE_SIZE) {
+      const response = await fetcher(`${MAFRA_API}/${encodeURIComponent(mafraKey.trim())}/json/${BASIC_GRID}/${start}/${start + PAGE_SIZE - 1}`, { signal, redirect: 'error' });
+      if (!response.ok) throw new Error('Basic API unavailable');
+      const page = parseBasicPage(await response.json()); rows.push(...page.rows);
+      if (start + PAGE_SIZE - 1 >= page.total) break;
+      if (!page.rows.length) throw new Error('Incomplete basic dataset');
     }
     return rows;
   }
-
-  // 전체 데이터가 약 500여 건이라 세 Grid를 한 번에 받아 서버에서 조인·검색한다.
-  async function dataset(): Promise<Recipe[]> {
+  async function dataset() {
     if (cache && cache.expires > Date.now()) return cache.recipes;
     if (pending) return pending;
     pending = (async () => {
-      const [basic, ingredients, steps] = await Promise.all([fetchGrid(GRIDS.basic), fetchGrid(GRIDS.ingredients), fetchGrid(GRIDS.steps)]);
-      const recipes = buildRecipes(basic, ingredients, steps);
-      cache = { recipes, expires: Date.now() + CACHE_MS };
+      const [food, basic] = await Promise.all([fetchFood(), fetchBasic().catch(() => [])]);
+      const recipes = enrichRecipes(food, basic);
+      // Optional enrichment failure must not block primary search; retry it soon.
+      cache = { recipes, expires: Date.now() + (basic.length ? 12 * 60 * 60 * 1000 : 5 * 60 * 1000) };
       return recipes;
     })();
     try { return await pending; } finally { pending = null; }
   }
-
   return async (names: string[], page = 1): Promise<RecipeSearchResult> => {
     if (!names.length || names.length > 10 || names.some(name => typeof name !== 'string' || !name.trim() || name.length > 60 || /[\u0000-\u001f]/.test(name)) || !Number.isInteger(page) || page < 1 || page > 500) throw new RecipeApiError(400, '재료를 1~10개 선택하고 올바른 페이지를 요청해 주세요.');
-    if (!apiKey?.trim()) throw new RecipeApiError(503, '레시피 검색 준비 중이에요. 서버의 FOOD_API_KEY 설정을 확인해 주세요.');
-    const selected = [...new Set(names.map(name => canonical(name)))];
-    const scored = (await dataset()).flatMap(recipe => {
-      const parts = recipe.ingredients.map(item => ({ key: canonical(item.name), main: item.type === '주재료' }));
-      const hits = selected.map(name => parts.find(part => part.key.includes(name)));
-      if (hits.some(hit => !hit)) return [];
-      return [{ recipe, main: hits.filter(hit => hit!.main).length }];
-    });
-    // 선택 재료가 주재료로 쓰이는 레시피를 먼저 보여준다.
-    scored.sort((a, b) => b.main - a.main);
-    const pageSize = 20;
-    return { recipes: scored.slice((page - 1) * pageSize, page * pageSize).map(item => item.recipe), total: scored.length, page, pageSize };
+    if (!foodSafetyKey?.trim()) throw new RecipeApiError(503, '식품안전나라 FOOD_SAFETY_API_KEY를 설정하고 개발 서버를 다시 시작해 주세요.');
+    const selected = [...new Set(names.map(canonical))];
+    const matches = (await dataset()).filter(recipe => selected.every(name => canonical(recipe.rawIngredients ?? recipe.ingredients.map(item => item.name).join(' ')).includes(name)));
+    return { recipes: matches.slice((page - 1) * 20, page * 20), total: matches.length, page, pageSize: 20 };
   };
 }
-
-export function recipesMiddleware(apiKey: string | undefined) {
-  const search = createRecipeSearch(apiKey);
+export function recipesMiddleware(foodSafetyKey: string | undefined, mafraKey?: string) {
+  const search = createRecipeSearch(foodSafetyKey, fetch, mafraKey);
   return async (req: IncomingMessage, res: ServerResponse) => {
-    const send = (status: number, body: object) => {
-      res.statusCode = status;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-store');
-      res.end(JSON.stringify(body));
-    };
+    const send = (status: number, body: object) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.setHeader('Cache-Control', 'no-store'); res.end(JSON.stringify(body)); };
     if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return send(405, { error: 'GET만 지원해요.' }); }
-    try {
-      const url = new URL(req.url ?? '/', 'http://localhost');
-      const ingredients = url.searchParams.getAll('ingredient');
-      const page = Number(url.searchParams.get('page') ?? '1');
-      send(200, await search(ingredients, page));
-    } catch (error) {
-      // Never return or log upstream URLs: they contain the secret key.
-      if (error instanceof RecipeApiError) return send(error.status, { error: error.message });
-      send(502, { error: '레시피 검색 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.' });
-    }
+    try { const url = new URL(req.url ?? '/', 'http://localhost'); send(200, await search(url.searchParams.getAll('ingredient'), Number(url.searchParams.get('page') ?? '1'))); }
+    catch (error) { if (error instanceof RecipeApiError) return send(error.status, { error: error.message }); send(502, { error: '레시피 검색 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.' }); }
   };
 }
