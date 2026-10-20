@@ -8,7 +8,8 @@ import { FridgeGuidePage, ProductGuidePage } from './features/registration/Fridg
 import { ManualEntryPage } from './features/registration/ManualEntryPage';
 import { RecipeEmptyPage } from './features/recipe/RecipeEmptyPage';
 import { RecipePage } from './features/recipe/RecipePage';
-import { RecipeNoResultPage } from './features/recipe/RecipeNoResultPage';
+import { RecipeResults } from './features/recipe/RecipeResults';
+import { matchIngredient } from './features/ingredients/classify';
 import { RecipeNoUrgentPage } from './features/recipe/RecipeNoUrgentPage';
 import { selectRecipeIngredients } from './features/recipe/selectRecipeIngredients';
 import { FridgePage } from './features/fridge/FridgePage';
@@ -101,7 +102,8 @@ export function App() {
     // 재료 선택 화면과 같은 순서(임박순)로 보여준다.
     const selected = (recipeSelection ?? []).flatMap(id => ingredientItems.filter(item => item.id === id));
     if (!selected.length) return null;
-    return <div className="app-shell"><StatusBar /><RecipeNoResultPage selected={selected} onBack={() => navigate('recipe')} onReselect={() => navigate('recipe')} /></div>;
+    const names = [...new Set(selected.map(item => matchIngredient(item.name)?.keyword ?? item.name.trim()))];
+    return <div className="app-shell"><StatusBar /><RecipeResults key={JSON.stringify(names)} ingredients={names} selectionContext={{ selected, onBack: () => navigate('recipe'), onReselect: () => navigate('recipe') }} /></div>;
   }
   // 식재료는 있지만 D-3 이내·기한경과 재료가 없으면 탭바 없는 안내 화면을 보여준다. 식재료가 아예 없으면 아래 RecipeEmptyPage.
   if (screen === 'recipe' && ingredientItems.length && !selectRecipeIngredients(ingredientItems, new Date()).length) {

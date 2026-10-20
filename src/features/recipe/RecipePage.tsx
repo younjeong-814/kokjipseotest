@@ -55,7 +55,8 @@ export function RecipePage({ items, initialSelected, onRecommend }: Props) {
       </div>
     </section>}
     <div className="large-button-section">
-      <ActionButton className="action-button-large" disabled={!selectedItems.length} onClick={() => onRecommend?.(selectedItems)}>레시피 추천받기</ActionButton>
+      {selectedItems.length > 10 && <p className="ingredient-error" role="alert">한 번에 최대 10개 재료로 검색할 수 있어요. 선택을 줄여 주세요.</p>}
+      <ActionButton className="action-button-large" disabled={!selectedItems.length || selectedItems.length > 10} onClick={() => onRecommend?.(selectedItems)}>레시피 추천받기</ActionButton>
     </div>
   </main>;
 }
