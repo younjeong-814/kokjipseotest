@@ -34,11 +34,11 @@ export function RecipeResults({ ingredients, onOpen, selectionContext, renderRes
         <p className="recipe-match-description">선택한 재료가 모두 포함된 레시피예요. 추가 재료가 필요할 수 있어요.</p>
         <ul className="recipe-result-list">{state.data.recipes.map(recipe => <li key={recipe.id}><article className="recipe-result-card">
           <img src={recipe.image || asset('recipe-empty.png')} alt={recipe.name} loading="lazy" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = asset('recipe-empty.png'); }} />
-          <div><h3>{recipe.name}</h3><p>{[recipe.category, recipe.method, recipe.calories && `${recipe.calories} kcal`].filter(Boolean).join(' · ')}</p><p className="recipe-result-ingredients">{recipe.ingredients}</p>{onOpen && <button type="button" onClick={() => onOpen(recipe)}>{recipe.name} 상세 보기</button>}</div>
+          <div><h3>{recipe.name}</h3><p>{[recipe.time, recipe.difficulty, recipe.servings, recipe.calories].filter(Boolean).join(' · ')}</p><p className="recipe-result-ingredients">{recipe.ingredients.map(item => item.name).join(', ')}</p>{onOpen && <button type="button" onClick={() => onOpen(recipe)}>{recipe.name} 상세 보기</button>}</div>
         </article></li>)}</ul>
         <nav className="recipe-pagination" aria-label="레시피 검색 페이지"><button type="button" disabled={page === 1} onClick={() => setPage(value => value - 1)}>이전</button><span>{page} / {Math.max(1, Math.ceil(state.data.total / state.data.pageSize))}</span><button type="button" disabled={page * state.data.pageSize >= state.data.total} onClick={() => setPage(value => value + 1)}>다음</button></nav>
       </>}
-      <p className="recipe-source">출처: 식품의약품안전처 식품안전나라</p>
+      <p className="recipe-source">출처: 농림수산식품교육문화정보원</p>
     </>}
   </section>;
   return selectionContext ? <main className="recipe-no-result">

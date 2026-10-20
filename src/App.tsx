@@ -101,13 +101,13 @@ export function App() {
   };
   if (screen === 'recipe-detail') {
     const id = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('recipe');
-    return <div className="app-shell"><StatusBar />{openedRecipe && openedRecipe.id === id ? <><RecipeDetailPage recipe={toRecipeDetail(openedRecipe)} onBack={() => navigate('recipe-results')} /><p className="recipe-source">출처: 식품의약품안전처 식품안전나라</p></> : <main className="ingredient-not-found"><p>레시피 목록에서 다시 선택해 주세요.</p><button onClick={() => navigate('recipe')}>재료 선택으로 가기</button></main>}</div>;
+    return <div className="app-shell"><StatusBar />{openedRecipe && openedRecipe.id === id ? <><RecipeDetailPage recipe={toRecipeDetail(openedRecipe)} onBack={() => navigate('recipe-results')} /><p className="recipe-source">출처: 농림수산식품교육문화정보원</p></> : <main className="ingredient-not-found"><p>레시피 목록에서 다시 선택해 주세요.</p><button onClick={() => navigate('recipe')}>재료 선택으로 가기</button></main>}</div>;
   }
   if (screen === 'recipe-results') {
     const selected = (recipeSelection ?? []).flatMap(id => ingredientItems.filter(item => item.id === id));
     if (!selected.length) return null;
     const names = [...new Set(selected.map(item => matchIngredient(item.name)?.keyword ?? item.name.trim()))];
-    return <div className="app-shell"><StatusBar /><RecipeResults key={JSON.stringify(names)} ingredients={names} selectionContext={{ selected, onBack: () => navigate('recipe'), onReselect: () => navigate('recipe') }} renderResults={(data, pagination) => <><RecipeResultsPage recipes={data.recipes.map(recipe => toRecipeSummary(recipe, names))} selectedIngredients={selected.map(item => item.name)} onBack={() => navigate('recipe')} onOpen={id => { const recipe = data.recipes.find(item => item.id === id); if (recipe) { setOpenedRecipe(recipe); window.location.hash = `recipe-detail?recipe=${encodeURIComponent(id)}`; } }} />{pagination}<p className="recipe-source">출처: 식품의약품안전처 식품안전나라</p></>} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
+    return <div className="app-shell"><StatusBar /><RecipeResults key={JSON.stringify(names)} ingredients={names} selectionContext={{ selected, onBack: () => navigate('recipe'), onReselect: () => navigate('recipe') }} renderResults={(data, pagination) => <><RecipeResultsPage recipes={data.recipes.map(recipe => toRecipeSummary(recipe, names))} selectedIngredients={selected.map(item => item.name)} onBack={() => navigate('recipe')} onOpen={id => { const recipe = data.recipes.find(item => item.id === id); if (recipe) { setOpenedRecipe(recipe); window.location.hash = `recipe-detail?recipe=${encodeURIComponent(id)}`; } }} />{pagination}<p className="recipe-source">출처: 농림수산식품교육문화정보원</p></>} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
   }
   if (screen === 'ingredient-detail') {
     const item = ingredients.items.find(value => value.id === detailId);
