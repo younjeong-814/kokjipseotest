@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { ActionButton } from '../../components/ActionButton';
 import { asset } from '../../lib/assets';
 import type { Navigate } from '../../prototype/flow';
+import { CardShell } from '../../components/CardShell';
+import type { WeeklyReport } from '../report/weeklyReport';
 
 const periods = ['주간', '월간', '전체'] as const;
 
-export function MyPage({ navigate }: { navigate: Navigate }) {
+export function MyPage({ navigate, report }: { navigate: Navigate; report: WeeklyReport }) {
   const [period, setPeriod] = useState<(typeof periods)[number]>('주간');
 
   return (
@@ -24,6 +26,15 @@ export function MyPage({ navigate }: { navigate: Navigate }) {
           </button>
         ))}
       </div>
+      {/* 임시 진입점: 마이페이지 대시보드가 완성되면 대시보드의 '이번주 관리 현황'으로 교체 */}
+      <button type="button" className="mypage-report-entry" onClick={() => navigate('weekly-report')}>
+        <span className="mypage-report-entry-title">이번주 관리 현황 <span aria-hidden="true">›</span></span>
+        <CardShell className="mypage-report-entry-card">
+          <span>보관 <b>{report.stored}개</b></span>
+          <span>소비 <b>{report.consumed}개</b></span>
+          <span>폐기 <b>{report.discarded}개</b></span>
+        </CardShell>
+      </button>
       <section className="mypage-empty-state" aria-label="신규 사용자 빈 상태">
         <img className="mypage-empty-illustration" src={asset('empty-fridge.png')} alt="" />
         <div className="mypage-empty-copy">

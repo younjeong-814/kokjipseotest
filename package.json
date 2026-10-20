@@ -8,7 +8,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test tests/ingredients.test.mjs tests/receipt.test.mjs tests/classify.test.mjs tests/recipe.test.mjs tests/recipes.test.mjs tests/recipe-presentation.test.mjs"
+    "test": "node --test tests/ingredients.test.mjs tests/receipt.test.mjs tests/classify.test.mjs tests/recipe.test.mjs tests/recipes.test.mjs tests/recipe-presentation.test.mjs tests/report.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",

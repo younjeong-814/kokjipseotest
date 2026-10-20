@@ -18,6 +18,7 @@ export const screens = {
   'recipe': { title: '레시피', menu: 3, figma: '5770:18522' },
   'recipe-no-result': { title: '추천 레시피', menu: 3, figma: '3061:13500' },
   'mypage': { title: '마이페이지', menu: 4, figma: '3061:13127' },
+  'weekly-report': { title: '냉장고 리포트', menu: 4, figma: '3196:12098' },
 } as const;
 export type ScreenId = keyof typeof screens;
 export type Navigate = (destination: ScreenId) => void;
@@ -44,6 +45,7 @@ export const navigationDestinations: Record<ScreenId, readonly (string | null)[]
   'recipe': ['home', 'fridge', 'registration', null, 'mypage'],
   'recipe-no-result': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
   'mypage': ['home', 'fridge', 'registration', 'recipe', null],
+  'weekly-report': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
 };
 // `source` is the Figma node of the trigger; destinations outside the screen scope stay as Figma node IDs.
 export const additionalConnections = {

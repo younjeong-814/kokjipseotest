@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { updateIngredientInfo } from './repository';
 import type { IngredientInfoPatch } from './IngredientEditModal';
+import { recordDisposal } from '../report/weeklyReport';
 import { deleteIngredient, INGREDIENTS_KEY, loadIngredients, saveIngredient, updateIngredientDetails, recordIngredientCondition, saveRecognizedIngredients, type IngredientCondition, type Ingredient, type IngredientDraft } from './repository';
 
 export function useIngredients() {
@@ -40,8 +41,11 @@ export function useIngredients() {
       catch (error) { throw new Error(error instanceof Error && error.message.includes('항목') ? error.message : '저장하지 못했어요. 브라우저 저장 공간과 설정을 확인해 주세요.'); }
     },
     remove: (id: string) => {
+      const removed = state.items.find(item => item.id === id);
       try { setState({ items: deleteIngredient(localStorage, id), error: '' }); }
       catch { throw new Error('삭제하지 못했어요. 브라우저 저장 공간과 설정을 확인해 주세요.'); }
+      // 리포트 기록은 실패해도 삭제 자체는 유지한다.
+      if (removed) try { recordDisposal(localStorage, removed); } catch { /* 저장 공간 부족 등은 무시 */ }
     },
   };
 }
