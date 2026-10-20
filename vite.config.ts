@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react';
 import { visionOcrMiddleware } from './server/visionOcr';
 import { recipesMiddleware } from './server/recipes';
 
-function recipeApi(apiKey: string | undefined): Plugin {
-  const middleware = recipesMiddleware(apiKey);
+function recipeApi(foodSafetyKey: string | undefined, mafraKey: string | undefined): Plugin {
+  const middleware = recipesMiddleware(foodSafetyKey, mafraKey);
   return {
-    name: 'mafra-recipes',
+    name: 'hybrid-recipes',
     configureServer: server => { server.middlewares.use('/api/recipes', middleware); },
     configurePreviewServer: server => { server.middlewares.use('/api/recipes', middleware); },
   };
@@ -21,7 +21,10 @@ function visionOcr(apiKey: string | undefined): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react(), visionOcr(loadEnv(mode, '.', '').GOOGLE_VISION_API_KEY), recipeApi(loadEnv(mode, '.', '').FOOD_API_KEY)],
-  base: './',
-}));
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, '.', '');
+  return {
+    plugins: [react(), visionOcr(env.GOOGLE_VISION_API_KEY), recipeApi(env.FOOD_SAFETY_API_KEY, env.FOOD_API_KEY)],
+    base: './',
+  };
+});

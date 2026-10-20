@@ -15,17 +15,19 @@ const recipe = {
 test('detail keeps real time, difficulty, servings, ingredient amounts and steps', () => {
   const detail = exports.toRecipeDetail(recipe);
   assert.equal(detail.id, '42');
-  assert.equal(detail.time, '15분');
+  assert.equal(detail.time, '약 15분');
   assert.equal(detail.difficulty, '초보환영');
   assert.equal(detail.servings, '1인분');
   assert.deepEqual(detail.ingredients.map(item => [item.name, item.amount]), [['토마토', '1개'], ['소금', '1g'], ['달걀', '2개'], ['우유', '50ml']]);
   assert.deepEqual(detail.steps, ['재료를 볶아요.']);
   assert.equal(exports.toRecipeDetail({ ...recipe, image: '', time: '' }).imageUrl, '/assets/recipe-empty.png');
   assert.equal(exports.toRecipeDetail({ ...recipe, time: '' }).time, undefined);
+  assert.equal(exports.toRecipeDetail({ ...recipe, time: '약 20분' }).time, '약 20분');
+  assert.equal(exports.toRecipeSummary({ ...recipe, time: '약 20분' }, []).time, '약 20분');
 });
 test('summary tags selected ingredients plus one unselected main ingredient', () => {
   const summary = exports.toRecipeSummary(recipe, ['우유', '토마토']);
-  assert.equal(summary.time, '15분');
+  assert.equal(summary.time, '약 15분');
   assert.equal(summary.difficulty, '초보환영');
   assert.deepEqual(summary.tags, ['우유', '토마토', '달걀']);
   assert.deepEqual(exports.toRecipeSummary(recipe, ['계란', '토마토']).tags, ['계란', '토마토', '우유']);

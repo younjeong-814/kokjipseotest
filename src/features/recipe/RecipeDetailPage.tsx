@@ -3,10 +3,11 @@ import { ActionButton } from '../../components/ActionButton';
 import { asset } from '../../lib/assets';
 import { RecipeIngredients } from './RecipeIngredients';
 import type { RecipeDetail } from './types';
+import { approximateTime } from './apiPresentation';
 
 export function RecipeDetailPage({ recipe, onBack }: { recipe: RecipeDetail; onBack: () => void }) {
   const tags = [
-    { icon: 'recipe-detail-time.svg', label: recipe.time },
+    { icon: 'recipe-detail-time.svg', label: approximateTime(recipe.time ?? '') },
     { icon: 'recipe-detail-level.svg', label: recipe.difficulty },
     { icon: 'recipe-detail-dish.svg', label: recipe.servings },
   ].filter(tag => tag.label);

@@ -38,7 +38,7 @@ export function RecipeResults({ ingredients, onOpen, selectionContext, renderRes
         </article></li>)}</ul>
         <nav className="recipe-pagination" aria-label="레시피 검색 페이지"><button type="button" disabled={page === 1} onClick={() => setPage(value => value - 1)}>이전</button><span>{page} / {Math.max(1, Math.ceil(state.data.total / state.data.pageSize))}</span><button type="button" disabled={page * state.data.pageSize >= state.data.total} onClick={() => setPage(value => value + 1)}>다음</button></nav>
       </>}
-      <p className="recipe-source">출처: 농림수산식품교육문화정보원</p>
+      <p className="recipe-source">레시피: 식품안전나라 · 시간·난이도: 농식품 포털 매칭 또는 추정</p>
     </>}
   </section>;
   return selectionContext ? <main className="recipe-no-result">

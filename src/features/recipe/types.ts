@@ -12,6 +12,10 @@ export type RecipeDetail = {
 
 export type RecipeSummary = Pick<RecipeDetail, 'id' | 'title' | 'imageUrl' | 'time' | 'difficulty'> & { tags: readonly string[] };
 export type Recipe = {
+  method?: string;
+  rawIngredients?: string;
+  nutrition?: { carbohydrate: string; protein: string; fat: string; sodium: string };
+  metadata?: { timeSource: 'mafra' | 'estimated'; difficultySource: 'mafra' | 'estimated'; matchedRecipeId?: string; calibrationSamples: number; difficultyCalibrationSamples: number; estimateVersion: string };
   id: string;
   name: string;
   summary: string;
