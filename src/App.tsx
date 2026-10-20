@@ -6,7 +6,7 @@ import { HomePage } from './features/home/HomePage';
 import { RegistrationPage } from './features/registration/RegistrationPage';
 import { FridgeGuidePage, ProductGuidePage } from './features/registration/FridgeGuidePage';
 import { ManualEntryPage } from './features/registration/ManualEntryPage';
-import { RecipeEmptyPage } from './features/recipe/RecipeEmptyPage';
+import { RecipePage } from './features/recipe/RecipePage';
 import { FridgePage } from './features/fridge/FridgePage';
 import { FridgeFoodPage } from './features/fridge/FridgeFoodPage';
 import { FridgeSearchPage } from './features/fridge/FridgeSearchPage';
@@ -122,7 +122,7 @@ export function App() {
       {displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
       {screen === 'mypage' && <MyPage navigate={navigate} />}
-      {screen === 'recipe' && <RecipeEmptyPage navigate={navigate} />}
+      {screen === 'recipe' && <RecipePage navigate={navigate} items={ingredientItems} />}
       <BottomNavigation screen={displayScreen} navigate={navigate} />
       {(screen === 'fridge-registered' || screen === 'fridge-food') && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}
     </div>
