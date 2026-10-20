@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { ActionButton } from '../../components/ActionButton';
 import { asset } from '../../lib/assets';
@@ -7,7 +8,7 @@ import type { Ingredient } from '../ingredients/repository';
 import { SubHeader } from '../../components/SubHeader';
 import { RecipeNoResultPage } from './RecipeNoResultPage';
 
-export function RecipeResults({ ingredients, onOpen, selectionContext }: { ingredients: readonly string[]; onOpen?: (recipe: Recipe) => void; selectionContext?: { selected: Ingredient[]; onBack: () => void; onReselect: () => void } }) {
+export function RecipeResults({ ingredients, onOpen, selectionContext, renderResults }: { ingredients: readonly string[]; renderResults?: (data: RecipeSearchResult, pagination: ReactNode) => ReactNode; onOpen?: (recipe: Recipe) => void; selectionContext?: { selected: Ingredient[]; onBack: () => void; onReselect: () => void } }) {
   const [page, setPage] = useState(1);
   const [retry, setRetry] = useState(0);
   const [state, setState] = useState<{ loading: boolean; data?: RecipeSearchResult; error?: string }>({ loading: true });
@@ -23,6 +24,7 @@ export function RecipeResults({ ingredients, onOpen, selectionContext }: { ingre
     return () => controller.abort();
   }, [query, page, retry]);
   if (state.data?.total === 0 && selectionContext) return <RecipeNoResultPage {...selectionContext} />;
+  if (state.data && state.data.total > 0 && renderResults) return <>{renderResults(state.data, <nav className="recipe-pagination" aria-label="레시피 검색 페이지"><button type="button" disabled={page === 1} onClick={() => setPage(value => value - 1)}>이전</button><span>{page} / {Math.max(1, Math.ceil(state.data.total / state.data.pageSize))}</span><button type="button" disabled={page * state.data.pageSize >= state.data.total} onClick={() => setPage(value => value + 1)}>다음</button></nav>)}</>;
   const results = <section className="recipe-results" aria-label="레시피 검색 결과" aria-busy={state.loading}>
     {state.loading && <p className="recipe-search-status" role="status">선택한 재료로 레시피를 찾고 있어요.</p>}
     {state.error && <div className="recipe-search-status"><p role="alert">{state.error}</p><ActionButton onClick={() => setRetry(value => value + 1)}>다시 시도</ActionButton></div>}

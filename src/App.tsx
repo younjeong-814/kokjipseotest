@@ -7,6 +7,10 @@ import { RegistrationPage } from './features/registration/RegistrationPage';
 import { FridgeGuidePage, ProductGuidePage } from './features/registration/FridgeGuidePage';
 import { ManualEntryPage } from './features/registration/ManualEntryPage';
 import { RecipeEmptyPage } from './features/recipe/RecipeEmptyPage';
+import { RecipeResultsPage } from './features/recipe/RecipeResultsPage';
+import { RecipeDetailPage } from './features/recipe/RecipeDetailPage';
+import { toRecipeDetail, toRecipeSummary } from './features/recipe/apiPresentation';
+import type { Recipe } from './features/recipe/types';
 import { RecipePage } from './features/recipe/RecipePage';
 import { RecipeResults } from './features/recipe/RecipeResults';
 import { matchIngredient } from './features/ingredients/classify';
@@ -48,6 +52,7 @@ export function App() {
   const [editingFromDetail, setEditingFromDetail] = useState(false);
   const [recognitionError, setRecognitionError] = useState('');
   // 레시피 화면에서 고른 재료. 추천 결과 화면과 '다른 임박 재료 선택'으로 돌아올 때 유지한다.
+  const [openedRecipe, setOpenedRecipe] = useState<Recipe | null>(null);
   const [recipeSelection, setRecipeSelection] = useState<string[] | undefined>();
   const registering = useRef(false);
   const recognition = useRecognition();
@@ -69,7 +74,7 @@ export function App() {
   const foodItems = ingredients.items.filter(isFood);
   const hasRecipeSelection = ingredientItems.some(item => recipeSelection?.includes(item.id));
   // 새로고침 등으로 선택한 재료가 없으면 재료 선택 화면으로 돌아간다.
-  useEffect(() => { if (screen === 'recipe-no-result' && !hasRecipeSelection) window.location.replace('#recipe'); }, [screen, hasRecipeSelection]);
+  useEffect(() => { if ((screen === 'recipe-no-result' || screen === 'recipe-results') && !hasRecipeSelection) window.location.replace('#recipe'); }, [screen, hasRecipeSelection]);
   const info = screens[displayScreen];
   // 영수증 가이드에서 들어온 촬영만 OCR을 거친다. 냉장고·상품 촬영 인식은 아직 샘플 결과를 보여준다.
   const onCapture = async (image: string) => {
@@ -94,6 +99,16 @@ export function App() {
     try { registering.current = true; ingredients.saveRecognized(drafts); setRegistrationMessage(`${message}를 등록했어요`); navigate(ingredientsCount ? 'fridge-registered' : 'fridge-food'); }
     catch (failure) { registering.current = false; setRecognitionError(failure instanceof Error ? failure.message : '저장하지 못했어요.'); }
   };
+  if (screen === 'recipe-detail') {
+    const id = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('recipe');
+    return <div className="app-shell"><StatusBar />{openedRecipe && openedRecipe.id === id ? <><RecipeDetailPage recipe={toRecipeDetail(openedRecipe)} onBack={() => navigate('recipe-results')} /><p className="recipe-source">출처: 식품의약품안전처 식품안전나라</p></> : <main className="ingredient-not-found"><p>레시피 목록에서 다시 선택해 주세요.</p><button onClick={() => navigate('recipe')}>재료 선택으로 가기</button></main>}</div>;
+  }
+  if (screen === 'recipe-results') {
+    const selected = (recipeSelection ?? []).flatMap(id => ingredientItems.filter(item => item.id === id));
+    if (!selected.length) return null;
+    const names = [...new Set(selected.map(item => matchIngredient(item.name)?.keyword ?? item.name.trim()))];
+    return <div className="app-shell"><StatusBar /><RecipeResults key={JSON.stringify(names)} ingredients={names} selectionContext={{ selected, onBack: () => navigate('recipe'), onReselect: () => navigate('recipe') }} renderResults={(data, pagination) => <><RecipeResultsPage recipes={data.recipes.map(recipe => toRecipeSummary(recipe, names))} selectedIngredients={selected.map(item => item.name)} onBack={() => navigate('recipe')} onOpen={id => { const recipe = data.recipes.find(item => item.id === id); if (recipe) { setOpenedRecipe(recipe); window.location.hash = `recipe-detail?recipe=${encodeURIComponent(id)}`; } }} />{pagination}<p className="recipe-source">출처: 식품의약품안전처 식품안전나라</p></>} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
+  }
   if (screen === 'ingredient-detail') {
     const item = ingredients.items.find(value => value.id === detailId);
     return <div className="app-shell"><StatusBar />{item ? <IngredientDetailPage key={item.id} item={item} onBack={() => navigate(detailOrigin)} onEdit={patch => ingredients.updateInfo(item.id, patch)} onSave={patch => ingredients.updateDetails(item.id, patch)} onCondition={status => ingredients.recordCondition(item.id, status)} /> : <main className="ingredient-not-found"><p role="alert">{ingredients.error || '식재료를 찾을 수 없어요. 삭제된 항목인지 확인해 주세요.'}</p><button onClick={() => navigate('fridge')}>냉장고로 돌아가기</button></main>}</div>;
@@ -143,7 +158,7 @@ export function App() {
       {displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
       {screen === 'mypage' && <MyPage navigate={navigate} />}
-      {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-no-result'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
+      {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-results'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
       <BottomNavigation screen={displayScreen} navigate={navigate} />
       {(screen === 'fridge-registered' || screen === 'fridge-food') && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}
     </div>

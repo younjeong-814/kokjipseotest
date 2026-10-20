@@ -36,3 +36,7 @@
 `pnpm test`는 응답 매핑, 다중 재료 검색, 페이지 처리, 캐시, 중복 요청, 오류·결과 없음 분리, 입력 검증, 클라이언트 요청 계약을 검증한다. 인증키 없는 상태에서는 실제 인증 검색 성공까지 검증할 수 없다. 테스트의 응답 데이터는 테스트 파일에만 있으며 실제 UI에 예시 결과를 반환하지 않는다.
 
 공식 명세: https://www.foodsafetykorea.go.kr/api/openApiInfo.do?menu_grp=MENU_GRP31&menu_no=661&show_cnt=10&start_idx=1&svc_no=COOKRCP01
+
+## Figma 목록·상세 통합
+
+현재 추천 버튼은 `/#recipe-results`로 연결됩니다. RecipeResults의 API 요청과 상태 처리를 유지하고 성공 응답을 RecipeResultsPage 카드에 표시합니다. 카드 선택은 실제 응답 Recipe를 상세 표시용 모델로 변환하여 `/#recipe-detail?recipe=ID`로 연결합니다. API 미제공 시간/난이도/인분을 추정하지 않습니다. 기존 `/#recipe-no-result` 경로도 API 연동 상태로 유지합니다.

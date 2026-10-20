@@ -15,7 +15,7 @@ export function BottomNavigation({ screen, navigate }: { screen: ScreenId; navig
         const content = <><span className={`nav-icon${icon && index === 4 ? ' nav-icon-mypage-active' : ''}`}><img src={asset(icon ?? inactiveIcons[index])} alt="" /></span><span>{label}</span></>;
         const destination = navigationDestinations[screen][index];
         return destination
-          ? <PrototypeButton key={label} destination={destination} navigate={navigate}>{content}</PrototypeButton>
+          ? <PrototypeButton key={label} aria-current={index === active ? 'location' : undefined} destination={destination} navigate={navigate}>{content}</PrototypeButton>
           : <button key={label} aria-current="page" disabled>{content}</button>;
       })}
     </nav>
