@@ -113,7 +113,7 @@ test('HTTP middleware returns JSON errors without leaking credentials or request
   const res = { setHeader() {}, set statusCode(value) { status = value; }, end(value) { body = JSON.parse(value); } };
   await middleware({ method: 'GET', url: '/?ingredient=대파' }, res);
   assert.equal(status, 503);
-  assert.match(body.error, /MAFRA_API_KEY/);
+  assert.match(body.error, /FOOD_API_KEY/);
   await middleware({ method: 'POST', url: '/' }, res);
   assert.equal(status, 405);
 });

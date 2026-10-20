@@ -22,6 +22,6 @@ function visionOcr(apiKey: string | undefined): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), visionOcr(loadEnv(mode, '.', '').GOOGLE_VISION_API_KEY), recipeApi(loadEnv(mode, '.', '').MAFRA_API_KEY)],
+  plugins: [react(), visionOcr(loadEnv(mode, '.', '').GOOGLE_VISION_API_KEY), recipeApi(loadEnv(mode, '.', '').FOOD_API_KEY)],
   base: './',
 }));

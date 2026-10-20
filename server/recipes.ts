@@ -113,7 +113,7 @@ export function createRecipeSearch(apiKey: string | undefined, fetcher: typeof f
 
   return async (names: string[], page = 1): Promise<RecipeSearchResult> => {
     if (!names.length || names.length > 10 || names.some(name => typeof name !== 'string' || !name.trim() || name.length > 60 || /[\u0000-\u001f]/.test(name)) || !Number.isInteger(page) || page < 1 || page > 500) throw new RecipeApiError(400, '재료를 1~10개 선택하고 올바른 페이지를 요청해 주세요.');
-    if (!apiKey?.trim()) throw new RecipeApiError(503, '레시피 검색 준비 중이에요. 서버의 MAFRA_API_KEY 설정을 확인해 주세요.');
+    if (!apiKey?.trim()) throw new RecipeApiError(503, '레시피 검색 준비 중이에요. 서버의 FOOD_API_KEY 설정을 확인해 주세요.');
     const selected = [...new Set(names.map(name => canonical(name)))];
     const scored = (await dataset()).flatMap(recipe => {
       const parts = recipe.ingredients.map(item => ({ key: canonical(item.name), main: item.type === '주재료' }));
