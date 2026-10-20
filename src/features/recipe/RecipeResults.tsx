@@ -3,8 +3,11 @@ import { ActionButton } from '../../components/ActionButton';
 import { asset } from '../../lib/assets';
 import { searchRecipes } from './api';
 import type { Recipe, RecipeSearchResult } from './types';
+import type { Ingredient } from '../ingredients/repository';
+import { SubHeader } from '../../components/SubHeader';
+import { RecipeNoResultPage } from './RecipeNoResultPage';
 
-export function RecipeResults({ ingredients, onOpen }: { ingredients: readonly string[]; onOpen?: (recipe: Recipe) => void }) {
+export function RecipeResults({ ingredients, onOpen, selectionContext }: { ingredients: readonly string[]; onOpen?: (recipe: Recipe) => void; selectionContext?: { selected: Ingredient[]; onBack: () => void; onReselect: () => void } }) {
   const [page, setPage] = useState(1);
   const [retry, setRetry] = useState(0);
   const [state, setState] = useState<{ loading: boolean; data?: RecipeSearchResult; error?: string }>({ loading: true });
@@ -19,7 +22,8 @@ export function RecipeResults({ ingredients, onOpen }: { ingredients: readonly s
     });
     return () => controller.abort();
   }, [query, page, retry]);
-  return <section className="recipe-results" aria-label="레시피 검색 결과" aria-busy={state.loading}>
+  if (state.data?.total === 0 && selectionContext) return <RecipeNoResultPage {...selectionContext} />;
+  const results = <section className="recipe-results" aria-label="레시피 검색 결과" aria-busy={state.loading}>
     {state.loading && <p className="recipe-search-status" role="status">선택한 재료로 레시피를 찾고 있어요.</p>}
     {state.error && <div className="recipe-search-status"><p role="alert">{state.error}</p><ActionButton onClick={() => setRetry(value => value + 1)}>다시 시도</ActionButton></div>}
     {state.data && <>
@@ -35,4 +39,10 @@ export function RecipeResults({ ingredients, onOpen }: { ingredients: readonly s
       <p className="recipe-source">출처: 식품의약품안전처 식품안전나라</p>
     </>}
   </section>;
+  return selectionContext ? <main className="recipe-no-result">
+    <SubHeader title="추천 레시피" onBack={selectionContext.onBack} />
+    <section className="recipe-selected" aria-label="선택한 재료"><h2>선택한 재료</h2><ul className="recipe-chips">{selectionContext.selected.map(item => <li key={item.id}><span className="recipe-chip selected"><span>{item.name}</span><img src={asset('recipe-chip-check.svg')} alt="" width={24} height={24} /></span></li>)}</ul></section>
+    {results}
+    <div className="recipe-no-result-action"><ActionButton className="action-button-large" onClick={selectionContext.onReselect}>다른 임박 재료 선택하기</ActionButton></div>
+  </main> : results;
 }

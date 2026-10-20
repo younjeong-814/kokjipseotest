@@ -10,14 +10,7 @@
 .recipe-empty-text p { font-size: var(--t3); line-height: var(--lh3); color: var(--gray-800); }
 .recipe-register { width: 100%; padding: var(--s5); }
 .recipe-register .action-button { font-size: var(--t3); line-height: var(--lh3); }
-.recipe-page { flex: 1; }
-.recipe-page .recipe-ingredients-header button:not(:disabled) { cursor: pointer; color: var(--blue-800); }
-.recipe-search-controls { padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 16px; }
-.recipe-search-controls > p, .recipe-match-description, .recipe-source { font-size: 12px; line-height: 19px; color: var(--gray-800); }
-.recipe-ingredient-choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.recipe-ingredient-choices button { padding: 8px 12px; border: 1px solid var(--gray-400); border-radius: 20px; background: white; color: var(--gray-900); font-size: 14px; }
-.recipe-ingredient-choices button[aria-pressed="true"] { background: var(--blue-50); border-color: var(--blue-500); color: var(--blue-800); }
-.recipe-page button:disabled { opacity: .5; cursor: default; }
+.recipe-match-description, .recipe-source { font-size: 12px; line-height: 19px; color: var(--gray-800); }
 .recipe-results { padding: 0 20px 24px; }
 .recipe-results > h2 { font-size: 20px; line-height: 27px; margin-bottom: 12px; }
 .recipe-search-status { padding: 32px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; color: var(--gray-800); font-size: 14px; line-height: 22px; }
@@ -32,3 +25,38 @@
 .recipe-result-ingredients { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .recipe-pagination { display: flex; align-items: center; justify-content: space-between; font-size: 14px; gap: 12px; margin: 16px 0; }
 .recipe-pagination button { padding: 10px 16px; border-radius: 12px; color: var(--blue-800); background: var(--blue-50); }
+
+/* Figma 3061:14914 레시피 첫 화면 - 재료 선택 */
+.recipe-page { flex: 1; display: flex; flex-direction: column; }
+.recipe-content { padding: var(--s2) 0; display: flex; flex-direction: column; gap: var(--s5); }
+.recipe-content .recipe-ingredients-header { height: auto; padding: 0 var(--s5); }
+.recipe-ingredients-header button:not(:disabled) { cursor: pointer; }
+.recipe-chips { margin: 0; padding: 0 var(--s5); list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.recipe-chip { height: 35px; padding: var(--s2) var(--s5); border: 1px solid transparent; border-radius: var(--r5); background: var(--gray-200, #f3f4f5); color: var(--blue-800, #113f63); font-family: inherit; font-size: var(--t2); line-height: var(--lh2); font-weight: 400; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; white-space: nowrap; }
+.recipe-chip.selected { background: var(--blue-100); border-color: var(--blue-500); color: var(--blue-500); font-weight: 700; }
+.recipe-chip img { flex-shrink: 0; }
+.recipe-chips-empty { padding: 0 var(--s5); font-size: var(--t2); line-height: var(--lh2); color: var(--gray-700); }
+.recipe-banner-section { margin-top: auto; padding: var(--s4) var(--s5); }
+.recipe-banner { padding: var(--s5); border-radius: var(--r5); background: var(--blue-100); display: flex; flex-direction: column; gap: var(--s3); }
+.recipe-banner h2 { font-size: var(--t5); line-height: var(--lh5); font-weight: 700; color: var(--gray-900); }
+.recipe-banner p { font-size: var(--t3); line-height: var(--lh3); color: var(--gray-800); }
+.recipe-content + .large-button-section { margin-top: auto; }
+.recipe-page .action-button-large:disabled { background: var(--gray-200, #f3f4f5); color: var(--gray-700); cursor: default; }
+
+/* Figma 3061:13500 레시피 검색 결과 없음 */
+.recipe-no-result { flex: 1; display: flex; flex-direction: column; }
+.recipe-selected { padding: var(--s2) 0; display: flex; flex-direction: column; gap: 18px; }
+.recipe-selected h2 { padding: 0 var(--s5); font-size: var(--t4); line-height: var(--lh4); font-weight: 700; color: #1b1b1b; }
+.recipe-selected .recipe-chip { cursor: default; }
+.recipe-no-result-state { flex: 1; padding: 42px 0; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
+.recipe-no-result-state h2 { font-size: var(--t5); line-height: var(--lh5); font-weight: 700; color: #1a1c20; }
+.recipe-no-result-state p { font-size: var(--t3); line-height: var(--lh3); color: var(--gray-700); }
+.recipe-no-result-action { padding: var(--s5); }
+
+/* Figma 6024:20536 임박한 재료 없음 */
+.recipe-no-urgent { flex: 1; display: flex; flex-direction: column; }
+.recipe-no-urgent .recipe-ingredients-header { height: 32px; padding: 0 var(--s5); }
+.recipe-no-urgent-state { flex: 1; padding: 162px var(--s5) 0; display: flex; flex-direction: column; align-items: center; gap: var(--s6, 24px); text-align: center; }
+.recipe-no-urgent-state .recipe-empty-image { width: 350px; max-width: 100%; }
+.recipe-no-urgent-state h2 { font-size: var(--t5); line-height: var(--lh5); font-weight: 700; color: #1a1c20; }
+.recipe-no-urgent-state p { font-size: var(--t3); line-height: var(--lh3); color: var(--gray-700); }

@@ -1,6 +1,6 @@
 # 레시피 API · 검색 · 결과 화면
 
-작업 범위: 담당 3번. 공통 화면 및 상세 화면을 새로 구현하지 않고, 기존 레시피 빈 화면과 버튼을 재사용한다. 현재 재료 선택 화면이 없어 `RecipePage`에 최소한의 선택 연결을 제공했다.
+작업 범위: 담당 3번. `master`에 반영된 재료 선택(`RecipePage`), 빈 화면, 임박 재료 없음, 결과 없음 디자인을 재사용한다. 재료 선택 화면의 `onRecommend`로 선택한 ID를 보관하고 `/#recipe-no-result`에서 실제 API를 호출한다. 해당 경로는 검색 결과와 실제 0건 결과를 모두 표시한다.
 
 ## 실행 설정
 
@@ -17,6 +17,7 @@
 - 성공: `{ recipes, total, page, pageSize }`. 실패: HTTP 오류 상태와 `{ error }`.
 - `src/features/recipe/api.ts`의 `searchRecipes(names, page, signal)`이 프런트엔드 진입점이다.
 - `RecipeResults`의 `ingredients`에 선택된 이름 배열을 전달한다. 검색 조건을 바꿀 때는 `key={JSON.stringify(names)}`로 새 검색 세션을 시작한다.
+- 앱은 `selectionContext`로 선택된 원본 재료와 뒤로/다시 선택 콜백을 전달한다. 0건일 때만 `RecipeNoResultPage`를 표시하고, 검색 중이나 오류를 결과 없음으로 표시하지 않는다. 재료 선택으로 돌아오면 기존 선택을 유지한다.
 - `onOpen(recipe)`를 전달하면 상세 보기 버튼이 나타난다. 상세 담당자는 `types.ts`의 `Recipe`를 그대로 사용할 수 있다(사진, 재료, 영양 정보, 조리 순서/이미지 포함).
 - 재료 선택 연결에서는 상품명을 기존 분류 사전의 식재료 키워드로 변환하고 중복을 제거한다. 예: 상품명에 포함된 `두부`로 검색. API 자체는 전달된 이름으로 검색하므로 다른 선택 화면에서도 동일한 계약을 사용한다.
 
