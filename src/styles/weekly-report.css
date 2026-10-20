@@ -1,0 +1,28 @@
+/* 냉장고 리포트 - 이번주 관리 현황 상세 3196:12098 */
+.weekly-report { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.weekly-report .sub-header h1 { width: 100%; padding-left: 24px; }
+.weekly-report-icon { width: 24px; height: 24px; position: relative; flex-shrink: 0; }
+.weekly-report-icon > span { position: absolute; overflow: hidden; }
+.weekly-report-icon img { position: absolute; max-width: none; }
+.weekly-report-icon-stored > span { left: 1px; top: 2px; width: 22px; height: 20px; }
+.weekly-report-icon-stored img { width: 438.66%; height: 160.98%; left: -55.26%; top: -21.06%; }
+.weekly-report-icon-consumed > span { inset: 0; }
+.weekly-report-icon-consumed img { width: 480.49%; height: 169.63%; left: -193.79%; top: -30.14%; }
+.weekly-report-icon-discarded > span { left: 2px; top: 0; width: 20px; height: 24px; }
+.weekly-report-icon-discarded img { width: 567.28%; height: 160.26%; left: -384.82%; top: -20.75%; }
+.weekly-report-top { background: var(--gray-0); }
+.weekly-report-top h3 { margin: 0; font-size: var(--t2); line-height: var(--lh2); font-weight: 700; }
+.weekly-report-top ol { margin: 0; padding: 0; list-style: none; }
+.weekly-report-top li { height: 32px; padding: var(--s2) 0; display: flex; align-items: center; gap: var(--s2); }
+.weekly-report-top li b { width: 12px; flex-shrink: 0; font-size: var(--t1); line-height: var(--lh1); font-weight: 700; }
+.weekly-report-top li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gray-900); font-size: 14px; line-height: 19px; font-weight: 500; }
+.weekly-report-top-consumed h3, .weekly-report-top-consumed li b { color: var(--green-500); }
+.weekly-report-top-discarded h3, .weekly-report-top-discarded li b { color: var(--red-500); }
+.weekly-report-banner { margin-top: auto; padding: var(--s4) var(--s5); }
+.weekly-report-top li.weekly-report-top-empty span { color: var(--gray-600); font-weight: 400; }
+
+/* 마이페이지 임시 진입점 (대시보드 완성 시 제거) */
+.mypage-report-entry { margin: var(--s3) var(--s5) 0; padding: 0; background: none; display: flex; flex-direction: column; gap: var(--s2); text-align: left; color: var(--gray-900); }
+.mypage-report-entry-title { font-size: var(--t4); line-height: var(--lh4); font-weight: 700; }
+.mypage-report-entry-card { width: 100%; display: flex; justify-content: space-around; color: var(--gray-700); font-size: var(--t2); line-height: var(--lh2); }
+.mypage-report-entry-card b { color: var(--gray-900); }

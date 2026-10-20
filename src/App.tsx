@@ -32,6 +32,8 @@ import { useIngredients } from './features/ingredients/useIngredients';
 import type { Ingredient } from './features/ingredients/repository';
 import { isFood } from './features/ingredients/expiry';
 import { MyPage } from './features/mypage/MyPage';
+import { WeeklyReportPage } from './features/report/WeeklyReportPage';
+import { buildWeeklyReport, loadHistory } from './features/report/weeklyReport';
 import { RegistrationToast } from './components/RegistrationToast';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
 function readScreen(): ScreenId {
@@ -109,6 +111,9 @@ export function App() {
     const names = [...new Set(selected.map(item => matchIngredient(item.name)?.keyword ?? item.name.trim()))];
     return <div className="app-shell"><StatusBar /><RecipeResults key={JSON.stringify(names)} ingredients={names} selectionContext={{ selected, onBack: () => navigate('recipe'), onReselect: () => navigate('recipe') }} renderResults={(data, pagination) => <><RecipeResultsPage recipes={data.recipes.map(recipe => toRecipeSummary(recipe, names))} selectedIngredients={selected.map(item => item.name)} onBack={() => navigate('recipe')} onOpen={id => { const recipe = data.recipes.find(item => item.id === id); if (recipe) { setOpenedRecipe(recipe); window.location.hash = `recipe-detail?recipe=${encodeURIComponent(id)}`; } }} />{pagination}<p className="recipe-source">출처: 농림수산식품교육문화정보원</p></>} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
   }
+  if (screen === 'weekly-report') {
+    return <div className="app-shell"><StatusBar /><WeeklyReportPage report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} onBack={() => navigate('mypage')} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
+  }
   if (screen === 'ingredient-detail') {
     const item = ingredients.items.find(value => value.id === detailId);
     return <div className="app-shell"><StatusBar />{item ? <IngredientDetailPage key={item.id} item={item} onBack={() => navigate(detailOrigin)} onEdit={patch => ingredients.updateInfo(item.id, patch)} onSave={patch => ingredients.updateDetails(item.id, patch)} onCondition={status => ingredients.recordCondition(item.id, status)} onDiscard={() => { ingredients.remove(item.id); navigate(detailOrigin); }} /> : <main className="ingredient-not-found"><p role="alert">{ingredients.error || '식재료를 찾을 수 없어요. 삭제된 항목인지 확인해 주세요.'}</p><button onClick={() => navigate('fridge')}>냉장고로 돌아가기</button></main>}</div>;
@@ -157,7 +162,7 @@ export function App() {
       {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
       {displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
-      {screen === 'mypage' && <MyPage navigate={navigate} />}
+      {screen === 'mypage' && <MyPage navigate={navigate} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} />}
       {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-results'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
       <BottomNavigation screen={displayScreen} navigate={navigate} />
       {(screen === 'fridge-registered' || screen === 'fridge-food') && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}
