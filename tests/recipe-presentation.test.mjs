@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+const source = readFileSync(new URL('../src/features/recipe/apiPresentation.ts', import.meta.url), 'utf8');
+const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const exports = {};
+new Function('exports', 'require', compiled)(exports, () => ({ asset: name => `/assets/${name}` }));
+const recipe = { id:'42', name:'달걀볶음', image:'https://example.com/recipe.png', ingredients:'달걀 2개, 토마토 1개 (150g, 중간 크기), 소금 1g', steps:[{text:'재료를 볶아요.',image:''}] };
+test('API presentation preserves real identity, ingredients, quantities and steps without inventing metadata', () => {
+  const detail = exports.toRecipeDetail(recipe);
+  assert.equal(detail.id, '42');
+  assert.equal(detail.title, recipe.name);
+  assert.equal(detail.imageUrl, recipe.image);
+  assert.deepEqual(detail.ingredients.map(item => item.name), ['달걀 2개','토마토 1개 (150g, 중간 크기)','소금 1g']);
+  assert.deepEqual(detail.steps, ['재료를 볶아요.']);
+  assert.equal(detail.time, undefined);
+  assert.equal(detail.difficulty, undefined);
+  assert.equal(detail.servings, undefined);
+  assert.deepEqual(exports.toRecipeSummary(recipe, ['계란','토마토','우유']).tags, ['계란','토마토']);
+  assert.equal(exports.toRecipeDetail({...recipe,image:''}).imageUrl, '/assets/recipe-empty.png');
+});

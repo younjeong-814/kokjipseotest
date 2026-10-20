@@ -15,14 +15,20 @@ export function DateOverlay({ value, onSave, onClose, label = '촬영 날짜 선
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
   const start = new Date(year, monthIndex, 1).getDay();
-  function shiftMonth(delta: number) { setMonth(new Date(year, monthIndex + delta, 1)); }
+  // 달 옆 화살표를 누르면 날짜 대신 1~12월 목록을 보여 준다. 이때 좌우 화살표는 연도를 바꾼다.
+  const [picking, setPicking] = useState(false);
+  function shiftMonth(delta: number) { setMonth(new Date(year, monthIndex + delta * (picking ? 12 : 1), 1)); }
+  function pickMonth(index: number) { setMonth(new Date(year, index, 1)); setPicking(false); }
   return <OverlayDialog label={label} onClose={onClose} className="date-overlay">
-    <div className="calendar" data-figma-node="5096:5586"><div className="calendar-header"><span>{year}년 {monthIndex + 1}월<img src={asset('calendar-expand.svg')} alt="" /></span><button aria-label="이전 달" onClick={() => shiftMonth(-1)}><img src={asset('calendar-prev.svg')} alt="" /></button><button aria-label="다음 달" onClick={() => shiftMonth(1)}><img src={asset('calendar-next.svg')} alt="" /></button></div><div className="calendar-weekdays">{['일','월','화','수','목','금','토'].map(day => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{Array.from({length:42}, (_, index) => {
-      const day = new Date(year, monthIndex, index - start + 1);
-      const key = toDateKey(day);
-      const outside = day.getMonth() !== monthIndex;
-      return <button key={key} disabled={outside} aria-label={key} aria-pressed={key === draft} className={key === draft ? 'selected' : ''} onClick={() => setDraft(key)}>{day.getDate()}</button>;
-    })}</div></div>
+    <div className="calendar" data-figma-node="5096:5586"><div className="calendar-header"><button type="button" className={`calendar-title${picking ? ' expanded' : ''}`} aria-expanded={picking} aria-label={`${year}년 ${monthIndex + 1}월, ${picking ? '날짜 보기' : '월 선택'}`} onClick={() => setPicking(!picking)}>{year}년 {monthIndex + 1}월<img src={asset('calendar-expand.svg')} alt="" /></button><button type="button" aria-label={picking ? '이전 해' : '이전 달'} onClick={() => shiftMonth(-1)}><img src={asset('calendar-prev.svg')} alt="" /></button><button type="button" aria-label={picking ? '다음 해' : '다음 달'} onClick={() => shiftMonth(1)}><img src={asset('calendar-next.svg')} alt="" /></button></div>
+      {picking
+        ? <div className="calendar-months">{Array.from({ length: 12 }, (_, index) => <button type="button" key={index} aria-pressed={index === monthIndex} className={index === monthIndex ? 'selected' : ''} onClick={() => pickMonth(index)}>{index + 1}월</button>)}</div>
+        : <><div className="calendar-weekdays">{['일','월','화','수','목','금','토'].map(day => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{Array.from({length:42}, (_, index) => {
+          const day = new Date(year, monthIndex, index - start + 1);
+          const key = toDateKey(day);
+          const outside = day.getMonth() !== monthIndex;
+          return <button key={key} disabled={outside} aria-label={key} aria-pressed={key === draft} className={key === draft ? 'selected' : ''} onClick={() => setDraft(key)}>{day.getDate()}</button>;
+        })}</div></>}</div>
     <OverlayActions onCancel={onClose} onSave={() => onSave(draft)} />
   </OverlayDialog>;
 }

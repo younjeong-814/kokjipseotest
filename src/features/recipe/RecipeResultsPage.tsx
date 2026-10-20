@@ -3,7 +3,7 @@ import { CardShell } from '../../components/CardShell';
 import { asset } from '../../lib/assets';
 import type { RecipeSummary } from './types';
 
-export function RecipeResultsPage({ recipes, selectedIngredients, onBack }: { recipes: readonly RecipeSummary[]; selectedIngredients: readonly string[]; onBack: () => void }) {
+export function RecipeResultsPage({ recipes, selectedIngredients, onBack, onOpen }: { onOpen?: (id: string) => void; recipes: readonly RecipeSummary[]; selectedIngredients: readonly string[]; onBack: () => void }) {
   return <main className="recipe-results-page" data-figma-node="3061:13305">
     <SubHeader title="추천 레시피" backIcon="recipe-detail-back.svg" onBack={onBack} />
     <section className="recipe-selected" aria-labelledby="recipe-selected-heading">
@@ -12,7 +12,7 @@ export function RecipeResultsPage({ recipes, selectedIngredients, onBack }: { re
     </section>
     <section className="recipe-results" aria-labelledby="recipe-results-heading">
       <h2 id="recipe-results-heading">레시피</h2>
-      <ul>{recipes.map(recipe => <li key={recipe.id}><a href={`#recipe-detail?recipe=${encodeURIComponent(recipe.id)}`} aria-label={`${recipe.title} 상세 보기`}>
+      <ul>{recipes.map(recipe => <li key={recipe.id}><a onClick={event => { if (onOpen) { event.preventDefault(); onOpen(recipe.id); } }} href={`#recipe-detail?recipe=${encodeURIComponent(recipe.id)}`} aria-label={`${recipe.title} 상세 보기`}>
         <CardShell className="recipe-result-card">
           <img className="recipe-result-image" src={recipe.imageUrl} alt={recipe.title} />
           <div className="recipe-result-content"><h3>{recipe.title}</h3>

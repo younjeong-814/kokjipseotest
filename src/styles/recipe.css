@@ -10,6 +10,21 @@
 .recipe-empty-text p { font-size: var(--t3); line-height: var(--lh3); color: var(--gray-800); }
 .recipe-register { width: 100%; padding: var(--s5); }
 .recipe-register .action-button { font-size: var(--t3); line-height: var(--lh3); }
+.recipe-match-description, .recipe-source { font-size: 12px; line-height: 19px; color: var(--gray-800); }
+.recipe-results { padding: 0 20px 24px; }
+.recipe-results > h2 { font-size: 20px; line-height: 27px; margin-bottom: 12px; }
+.recipe-search-status { padding: 32px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; color: var(--gray-800); font-size: 14px; line-height: 22px; }
+.recipe-search-status img { width: 100%; max-width: 310px; height: 170px; object-fit: contain; }
+.recipe-search-status h3 { margin: 0; font-size: 18px; color: var(--gray-900); }
+.recipe-result-list { list-style: none; margin: 16px 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.recipe-result-card { border: 1px solid var(--gray-400); border-radius: 16px; overflow: hidden; }
+.recipe-result-card > img { width: 100%; height: 170px; object-fit: cover; display: block; }
+.recipe-result-card > div { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.recipe-result-card h3 { font-size: 18px; line-height: 24px; margin: 0; }
+.recipe-result-card p { font-size: 12px; line-height: 19px; color: var(--gray-800); }
+.recipe-result-ingredients { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.recipe-pagination { display: flex; align-items: center; justify-content: space-between; font-size: 14px; gap: 12px; margin: 16px 0; }
+.recipe-pagination button { padding: 10px 16px; border-radius: 12px; color: var(--blue-800); background: var(--blue-50); }
 
 /* Figma 3061:14914 레시피 첫 화면 - 재료 선택 */
 .recipe-page { flex: 1; display: flex; flex-direction: column; }
