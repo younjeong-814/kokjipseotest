@@ -14,6 +14,7 @@ export const screens = {
   'camera': { title: '영수증 촬영', menu: 2, figma: '5579:702' },
   'recognition-result': { title: '인식 결과 확인', menu: 2, figma: '5572:19525' },
   'recipe': { title: '레시피', menu: 3, figma: '5770:18522' },
+  'recipe-no-result': { title: '추천 레시피', menu: 3, figma: '3061:13500' },
   'mypage': { title: '마이페이지', menu: 4, figma: '3061:13127' },
 } as const;
 export type ScreenId = keyof typeof screens;
@@ -37,6 +38,7 @@ export const navigationDestinations: Record<ScreenId, readonly (string | null)[]
   'camera': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
   'recognition-result': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
   'recipe': ['home', 'fridge', 'registration', null, 'mypage'],
+  'recipe-no-result': ['home', 'fridge', 'registration', 'recipe', 'mypage'],
   'mypage': ['home', 'fridge', 'registration', 'recipe', null],
 };
 // `source` is the Figma node of the trigger; destinations outside the screen scope stay as Figma node IDs.
