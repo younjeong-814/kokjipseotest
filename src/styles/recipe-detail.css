@@ -1,0 +1,29 @@
+.recipe-detail-page { flex: 1; padding-top: 15px; }
+.recipe-detail-page .sub-header { height: 58px; }
+.recipe-detail-page .sub-header h1 { width: 100%; padding-left: 24px; }
+.recipe-detail-body { display: flex; flex-direction: column; gap: 15px; padding: 15px 20px 0; }
+.recipe-detail-hero { width: 100%; height: 170px; object-fit: cover; border-radius: 4px; display: block; }
+.recipe-detail-summary { display: flex; flex-direction: column; gap: 8px; }
+.recipe-detail-summary h2 { font-size: 24px; line-height: 32px; }
+.recipe-detail-tags { list-style: none; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; color: var(--gray-800); font-size: 14px; line-height: 19px; }
+.recipe-detail-tags li { display: flex; align-items: center; gap: 4px; }
+.recipe-detail-tags li + li::before { content: '·'; margin-right: 0; }
+.recipe-detail-tags img { flex-shrink: 0; display: block; }
+.recipe-detail-ingredients { display: flex; flex-direction: column; gap: 15px; }
+.recipe-detail-page section > h2 { font-size: 20px; line-height: 27px; }
+.recipe-detail-page .recipe-detail-summary h2 { font-size: 24px; line-height: 24px; }
+.recipe-ingredient-card { padding: 8px 16px; background: var(--gray-200); border-radius: 16px; }
+.recipe-ingredient-rows { list-style: none; padding: 8px 16px; margin: 0; }
+.recipe-ingredient-rows li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 0; font-size: 16px; line-height: 22px; color: #191c1e; }
+.recipe-ingredient-rows li + li { border-top: 1px solid var(--gray-400); }
+.recipe-ingredient-rows li > span:last-child { color: #4c4546; text-align: right; }
+.recipe-ingredients-toggle { height: 48px; width: 100%; margin-top: 8px; border: 1px solid #d1d3d8; background: var(--gray-200); border-radius: 8px; padding: 12px 8px; font-size: 16px; line-height: 22px; color: var(--gray-900); }
+.recipe-cooking-steps { display: flex; flex-direction: column; gap: 18px; }
+.recipe-cooking-steps ol { display: flex; flex-direction: column; gap: 16px; padding: 0; margin: 0; list-style: none; }
+.recipe-cooking-steps li { display: flex; align-items: center; gap: 12px; }
+.recipe-step-number { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: var(--blue-500); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 22px; }
+.recipe-cooking-steps p { font-size: 14px; line-height: 19px; color: var(--gray-900); }
+.recipe-detail-footer { padding: 31px 20px 16px; display: flex; flex-direction: column; gap: 10px; }
+.recipe-detail-footer .action-button { display: flex; align-items: center; justify-content: center; height: 56px; min-height: 56px; border-radius: 16px; font-size: 18px; line-height: 24px; text-align: center; }
+.recipe-detail-footer .recipe-back-list { border: 1px solid var(--blue-500); background: var(--blue-50); color: var(--blue-500); }
+.recipe-detail-empty { font-size: 14px; line-height: 19px; color: var(--gray-700); }
