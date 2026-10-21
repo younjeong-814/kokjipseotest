@@ -32,6 +32,7 @@ import { useIngredients } from './features/ingredients/useIngredients';
 import type { Ingredient } from './features/ingredients/repository';
 import { isFood } from './features/ingredients/expiry';
 import { useDashboardReports } from './features/mypage/useDashboardReports';
+import type { ReportPeriod } from './features/mypage/report';
 
 import { MyPage } from './features/mypage/MyPage';
 import { WeeklyReportPage } from './features/report/WeeklyReportPage';
@@ -45,6 +46,7 @@ function readScreen(): ScreenId {
 const readDetailId = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('item');
 export function App() {
   const [screen, setScreen] = useState(readScreen);
+  const [managedPeriod, setManagedPeriod] = useState<ReportPeriod>('주간');
   const [searchOrigin, setSearchOrigin] = useState<'fridge' | 'fridge-food' | 'fridge-registered'>('fridge');
   const [captureGuide, setCaptureGuide] = useState<ScreenId>('guide-receipt');
   const [showRegistrationToast, setShowRegistrationToast] = useState(false);
@@ -115,7 +117,7 @@ export function App() {
     return <div className="app-shell"><StatusBar /><RecipeResults key={JSON.stringify(names)} ingredients={names} selectionContext={{ selected, onBack: () => navigate('recipe'), onReselect: () => navigate('recipe') }} renderResults={(data, pagination) => <><RecipeResultsPage recipes={data.recipes.map(recipe => toRecipeSummary(recipe, names))} selectedIngredients={selected.map(item => item.name)} onBack={() => navigate('recipe')} onOpen={id => { const recipe = data.recipes.find(item => item.id === id); if (recipe) { setOpenedRecipe(recipe); window.location.hash = `recipe-detail?recipe=${encodeURIComponent(id)}`; } }} /><footer className="recipe-results-footer">{pagination}<p className="recipe-source">출처: 농림수산식품교육문화정보원</p></footer></>} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
   }
   if (screen === 'weekly-report') {
-    return <div className="app-shell"><StatusBar /><WeeklyReportPage report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} onBack={() => navigate('mypage')} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
+    return <div className="app-shell"><StatusBar /><WeeklyReportPage period={managedPeriod} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage), new Date(), managedPeriod)} onBack={() => navigate('mypage')} /><BottomNavigation screen={screen} navigate={navigate} /></div>;
   }
   if (screen === 'ingredient-detail') {
     const item = ingredients.items.find(value => value.id === detailId);
@@ -165,7 +167,7 @@ export function App() {
       {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
       {displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
-      {screen === 'mypage' && <MyPage navigate={navigate} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} registeredCount={ingredientItems.length} reports={dashboard.reports} error={dashboard.error} />}
+      {screen === 'mypage' && <MyPage navigate={navigate} onOpenManaged={period => { setManagedPeriod(period); navigate('weekly-report'); }} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} registeredCount={ingredientItems.length} reports={dashboard.reports} error={dashboard.error} />}
       {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-results'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
       <BottomNavigation screen={displayScreen} navigate={navigate} />
       {(screen === 'fridge-registered' || screen === 'fridge-food') && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}
