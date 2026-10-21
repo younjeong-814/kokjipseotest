@@ -56,6 +56,9 @@ test('quantity wrappers do not strand parentheses on ingredient names', () => {
     ['대파 1/2대', '대파', '1/2대'],
     ['소금(약간)', '소금', '약간'],
     ['표고버섯(말린 것) 20g', '표고버섯(말린 것)', '20g'],
+    ['닭고기(가슴살, 120g)', '닭고기(가슴살)', '120g'],
+    ['새우(대하, 3마리)', '새우(대하)', '3마리'],
+    ['파프리카(빨강, 노랑 각 ½개)', '파프리카(빨강, 노랑)', '각 ½개'],
     ['식초(2배 농축) 5ml', '식초(2배 농축)', '5ml'],
     ['3색 파프리카(100g)', '3색 파프리카', '100g'],
     ['두부(100g(1/2모))', '두부', '100g(1/2모)'],
@@ -68,6 +71,27 @@ test('cached split wrappers are repaired without dropping useful quantity refere
   assert.deepEqual(cleanIngredientParts('황태채(', '100g)'), { name: '황태채', amount: '100g' });
   assert.deepEqual(cleanIngredientParts('두부(', '100g(1/2모))'), { name: '두부', amount: '100g(1/2모)' });
   assert.deepEqual(cleanIngredientParts('계란', '(2알)'), { name: '계란', amount: '2알' });
+});
+test('malformed duplicated or unclosed quantity parentheses never swallow following ingredients', () => {
+  const raw = '배추(100g), 미나리(20g), 두부((30g), 부추(20g)\n표고버섯(20g), 느타리(20g), 소고기(30g), 저염간장(10g)\n대파(10g), 마늘(10g), 참기름(10g), 통깨(3g)\n후춧가루(0.05g)\n- 육수 : 양지육(50g), 무(30g), 마늘(10g), 저염간장(10g)';
+  const parts = api.parseIngredients(raw);
+  assert.equal(parts.length, 17);
+  assert.deepEqual(parts[2], { name: '두부', amount: '30g', type: '' });
+  assert.equal(parts[13].name, '양지육');
+  assert.ok(parts.every(part => !/[\n,]/.test(part.name)));
+  const missing = api.parseIngredients('대파(10g, 마늘(5g), 소금(0.1g');
+  assert.deepEqual(missing.map(part => [part.name, part.amount]), [['대파', '10g'], ['마늘', '5g'], ['소금', '0.1g']]);
+});
+test('source headings are removed with and without colons while real ingredient names remain', () => {
+  const parts = api.parseIngredients('재료 느타리버섯(10g), 두부(50g)\n다시마육수 다시마(3g), 대파(20g)\n고기완자양념 생강즙(2g)\n양념장 : 다진쇠고기 30g\n소 다진 쇠고기(15g)\n오렌지소스 오렌지주스(50g)');
+  assert.deepEqual(parts.map(part => part.name), ['느타리버섯', '두부', '다시마', '대파', '생강즙', '다진쇠고기', '다진 쇠고기', '오렌지주스']);
+  assert.equal(api.parseIngredients('재료\n당근(20g)').length, 1);
+  assert.equal(api.parseIngredients('재료 1인분 봄동(10g)')[0].name, '봄동');
+  assert.equal(api.parseIngredients('재료(2인분) : 대파(10g)')[0].name, '대파');
+  assert.equal(api.parseIngredients('굴소스(10g)')[0].name, '굴소스');
+  assert.equal(api.parseIngredients('3가지색 소면(분홍, 초록, 흰색 각 20g), 당근(10g)').length, 2);
+  assert.deepEqual(api.parseIngredients('다시마(3g) 대파(10g), 두부 30g 부추 20g').map(part => [part.name, part.amount]), [['다시마', '3g'], ['대파', '10g'], ['두부', '30g'], ['부추', '20g']]);
+  assert.deepEqual(api.parseIngredients('소금물(물 100g, 소금 3g) - 양념장 : 까나리액젓(1.5g)').map(part => part.name), ['소금물(물)', '까나리액젓']);
 });
 test('matching uses normalized unique names and never fuzzy or duplicate matches', () => {
   const [a, b] = enrichment.enrichRecipes([api.normalizeFoodRecipe(row(1, '소고기 계란 볶음')), recipe(2)], [

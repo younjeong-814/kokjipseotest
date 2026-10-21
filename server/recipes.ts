@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Recipe, RecipeSearchResult } from '../src/features/recipe/types';
 import { enrichRecipes, normalizeDifficulty, parseMinutes, type BasicRecipe } from './recipeEnrichment';
-import { splitIngredientText } from '../src/features/recipe/ingredientText';
+import { splitIngredientText, tokenizeIngredientText } from '../src/features/recipe/ingredientText';
 
 const FOOD_API = 'https://openapi.foodsafetykorea.go.kr/api';
 const MAFRA_API = 'http://211.237.50.150:7080/openapi';
@@ -17,15 +17,7 @@ export class RecipeApiError extends Error { constructor(public status: number, m
 
 /** Preserve source text; split measured ingredients for the existing detail UI. */
 export function parseIngredients(raw: string): Recipe['ingredients'] {
-  const chunks: string[] = []; let depth = 0, chunk = '';
-  for (const char of raw) {
-    if ('(['.includes(char)) depth++;
-    if (')]'.includes(char)) depth = Math.max(0, depth - 1);
-    if ((char === ',' || char === '，' || char === '\n' || char === ';') && !depth) { if (chunk.trim()) chunks.push(chunk.trim()); chunk = ''; }
-    else chunk += char;
-  }
-  if (chunk.trim()) chunks.push(chunk.trim());
-  return chunks.flatMap(value => {
+  return tokenizeIngredientText(raw).flatMap(value => {
     const { name, amount } = splitIngredientText(value);
     return name ? [{ name, amount, type: '' }] : [];
   });
