@@ -1,5 +1,9 @@
-.recipe-results-page { flex: 1; padding-bottom: 20px; }
-.recipe-results-footer { padding: 0 20px 24px; display: flex; flex-direction: column; gap: 24px; }
+.app-shell:has(> .recipe-results-page) { height: 844px; }
+/* 헤더·선택한 재료·'레시피' 제목은 고정하고 목록만 스크롤한다. */
+.recipe-results-page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.recipe-results-page .recipe-results { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.recipe-results-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-bottom: 20px; }
+.recipe-results-footer { padding: 0 0 4px; display: flex; flex-direction: column; gap: 24px; }
 .recipe-results-footer .recipe-pagination { margin: 16px 0 0; }
 .recipe-results-footer .recipe-source { margin: 0; }
 .recipe-results-page .sub-header { height: 58px; }
@@ -11,8 +15,8 @@
 .recipe-results-page .recipe-selected img { display: block; flex-shrink: 0; }
 .recipe-results-page .recipe-results { margin-top: 26px; padding: 0 20px; }
 .recipe-results-page .recipe-results > h2 { font-size: 18px; line-height: 24px; margin-bottom: 12px; }
-.recipe-results-page .recipe-results > ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.recipe-results-page .recipe-results > ul > li > a { text-decoration: none; color: inherit; display: block; border-radius: 16px; }
+.recipe-results-page .recipe-results-scroll > ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.recipe-results-page .recipe-results-scroll > ul > li > a { text-decoration: none; color: inherit; display: block; border-radius: 16px; }
 .recipe-results-page .recipe-result-card { background: var(--gray-50, #fafdff); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; }
 .recipe-results-page .recipe-result-image { width: 104px; height: 104px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
 .recipe-results-page .recipe-result-content { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
