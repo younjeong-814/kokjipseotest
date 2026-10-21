@@ -1,5 +1,5 @@
 import type { ReportActivity } from './activityLog';
-import { pendingReports, type MyPageReports, type ReportPeriod } from './report';
+import { discardFeedback, pendingReports, withAnd, type MyPageReports, type ReportPeriod } from './report';
 import { managementScore, managementGrade } from './score';
 export function periodStart(period: ReportPeriod, end: number): number {
   const date = new Date(end);
@@ -46,8 +46,7 @@ export function reportsFromActivities(events: ReportActivity[], now = new Date()
       previousLabel:labels[0],currentLabel:labels[1],
       consumed:{current:a.consumed,previous:previous?.consumed ?? null}, discarded:{current:a.discarded,previous:previous?.discarded ?? null},
       consumptionRate:a.consumptionRate, managementRate:a.managementRate,
-      feedbackTitle:previous && previous.discarded > 0 ? `${labels[0]}보다 폐기율이 ${Math.round((previous.discarded-a.discarded)/previous.discarded*100)}% ${previous.discarded >= a.discarded ? '줄었어요' : '늘었어요'}!` : `${labels[0]}보다 폐기율을 비교할 기록을 모으고 있어요`,
-      feedbackDescription:a.legacy ? '과거 등록일이 없는 기록은 처리일 기준으로 집계했어요.' : '같은 재료의 반복 소비·관리는 기간마다 한 번만 집계해요.',
+      ...discardFeedback(labels[0],labels[1],previous.discarded,a.discarded),
     });
   }
   return reports;
@@ -67,9 +66,15 @@ export function applyDailyScores(storage: Pick<Storage,'getItem'|'setItem'>, rep
     storage.setItem(SCORE_KEY,JSON.stringify(snapshot));
   }
   for (const p of ['주간','월간','연간'] as const) {
-    reports[p].score = snapshot.scores[p];
-    reports[p].grade = managementGrade(snapshot.scores[p]);
-    reports[p].scoreChange = '관리점수는 기기 현지 시간 매일 오전 6시 기준으로 갱신해요';
+    // 직전 기간 마지막 시점의 점수와 비교한다. 직전 기간에 소비·폐기 기록이 없으면
+    // 등록만 된 재료로 0점이 계산되므로 비교하지 않고 언제부터 비교되는지 안내한다.
+    const previous = reportsFromActivities(events,new Date(periodStart(p,snapshot.cutoff) - 1))[p];
+    const hasPrevious = (previous.consumed.current ?? 0) + (previous.discarded.current ?? 0) > 0;
+    const score = snapshot.scores[p], before = hasPrevious ? managementScore(previous.consumptionRate,previous.managementRate ?? null) : null, label = reports[p].previousLabel;
+    reports[p].score = score;
+    reports[p].grade = managementGrade(score);
+    reports[p].scoreChange = score === null || before === null ? `${p === '주간' ? '다음 주' : p === '월간' ? '다음 달' : '내년'}부터 ${withAnd(label)} 비교해 드릴게요`
+      : score > before ? `↗ ${label}보다 ${score - before}점 올랐어요` : score < before ? `↘ ${label}보다 ${before - score}점 내렸어요` : `${withAnd(label)} 같은 점수예요`;
     reports[p].scoreUpdatedAt = new Date(snapshot.cutoff).toISOString();
   }
   return reports;
