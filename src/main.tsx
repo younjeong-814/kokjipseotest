@@ -16,3 +16,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><
 import './styles/recipe-results.css';
 import './styles/recipe-detail.css';
 import './styles/weekly-report.css';
+
+import './styles/mypage-dashboard.css';

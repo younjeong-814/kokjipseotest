@@ -5,7 +5,7 @@ import { particle } from '../../lib/korean';
 
 export const REPORT_HISTORY_KEY = 'kokjipseo.ingredient-history.v1';
 export type DisposalAction = 'consumed' | 'discarded';
-export type DisposalRecord = { id: string; name: string; action: DisposalAction; recordedAt: string };
+export type DisposalRecord = { id: string; name: string; action: DisposalAction; recordedAt: string; createdAt?: string; category?: string; kind?: 'ingredient' | 'food'; expiryDate?: string };
 export type WeeklyReport = {
   stored: number;
   consumed: number;
@@ -33,8 +33,8 @@ export function loadHistory(storage: Pick<Storage, 'getItem'>): DisposalRecord[]
   } catch { return []; }
 }
 
-export function recordDisposal(storage: LocalStorage, item: Pick<Ingredient, 'id' | 'name' | 'date' | 'conditionHistory'>, now = new Date()): DisposalRecord[] {
-  const record: DisposalRecord = { id: item.id, name: item.name.trim(), action: classifyDisposal(item, now), recordedAt: now.toISOString() };
+export function recordDisposal(storage: LocalStorage, item: Pick<Ingredient, 'id' | 'name' | 'date' | 'conditionHistory'> & Partial<Pick<Ingredient, 'createdAt' | 'category' | 'kind'>>, now = new Date(), action?: DisposalAction): DisposalRecord[] {
+  const record: DisposalRecord = { id: item.id, name: item.name.trim(), action: action ?? classifyDisposal(item, now), recordedAt: now.toISOString(), createdAt: item.createdAt, category: item.category, kind: item.kind, expiryDate: item.date };
   const next = [record, ...loadHistory(storage)].slice(0, 500);
   storage.setItem(REPORT_HISTORY_KEY, JSON.stringify(next));
   return next;
