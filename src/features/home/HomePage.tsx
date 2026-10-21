@@ -16,5 +16,5 @@ export function HomePage({ navigate, items, onOpen }: { navigate: Navigate; item
     return () => { window.clearTimeout(timeout); document.removeEventListener('visibilitychange', refresh); };
   }, [today]);
   const selection = selectHomeIngredients(items, today);
-  return <main data-figma-node={!items.length ? '5558:18818' : selection.mode === 'urgent' ? '3061:12522' : '3139:2332'}><WelcomeBanner hasIngredients={items.length > 0} /><FridgeSummary items={items} />{items.length ? <HomeIngredientList selection={selection} onOpen={onOpen} /> : <EmptyFridge onRegister={() => navigate('registration')} />}</main>;
+  return <main data-figma-node={!items.length ? '5558:18818' : selection.mode === 'urgent' ? '3061:12522' : '3139:2332'}><WelcomeBanner hasIngredients={items.length > 0} hasUrgentIngredients={selection.mode === 'urgent'} /><FridgeSummary items={items} />{items.length ? <HomeIngredientList selection={selection} onOpen={onOpen} /> : <EmptyFridge onRegister={() => navigate('registration')} />}</main>;
 }
