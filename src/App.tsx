@@ -31,6 +31,8 @@ import { StoredIngredientsPage } from './features/ingredients/StoredIngredientsP
 import { useIngredients } from './features/ingredients/useIngredients';
 import type { Ingredient } from './features/ingredients/repository';
 import { isFood } from './features/ingredients/expiry';
+import { useDashboardReports } from './features/mypage/useDashboardReports';
+
 import { MyPage } from './features/mypage/MyPage';
 import { WeeklyReportPage } from './features/report/WeeklyReportPage';
 import { buildWeeklyReport, loadHistory } from './features/report/weeklyReport';
@@ -47,6 +49,7 @@ export function App() {
   const [captureGuide, setCaptureGuide] = useState<ScreenId>('guide-receipt');
   const [showRegistrationToast, setShowRegistrationToast] = useState(false);
   const ingredients = useIngredients();
+  const dashboard = useDashboardReports(ingredients.items, ingredients.error);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | undefined>();
   const [registrationMessage, setRegistrationMessage] = useState('');
   const [detailId, setDetailId] = useState(readDetailId);
@@ -116,7 +119,7 @@ export function App() {
   }
   if (screen === 'ingredient-detail') {
     const item = ingredients.items.find(value => value.id === detailId);
-    return <div className="app-shell"><StatusBar />{item ? <IngredientDetailPage key={item.id} item={item} onBack={() => navigate(detailOrigin)} onEdit={patch => ingredients.updateInfo(item.id, patch)} onSave={patch => ingredients.updateDetails(item.id, patch)} onCondition={status => ingredients.recordCondition(item.id, status)} onDiscard={() => { ingredients.remove(item.id); navigate(detailOrigin); }} /> : <main className="ingredient-not-found"><p role="alert">{ingredients.error || '식재료를 찾을 수 없어요. 삭제된 항목인지 확인해 주세요.'}</p><button onClick={() => navigate('fridge')}>냉장고로 돌아가기</button></main>}</div>;
+    return <div className="app-shell"><StatusBar />{item ? <IngredientDetailPage key={item.id} item={item} onBack={() => navigate(detailOrigin)} onEdit={patch => ingredients.updateInfo(item.id, patch)} onSave={patch => ingredients.updateDetails(item.id, patch)} onCondition={status => ingredients.recordCondition(item.id, status)} onDiscard={() => { ingredients.remove(item.id); navigate(detailOrigin); }} onConsume={() => { ingredients.consume(item.id); navigate(detailOrigin); }} /> : <main className="ingredient-not-found"><p role="alert">{ingredients.error || '식재료를 찾을 수 없어요. 삭제된 항목인지 확인해 주세요.'}</p><button onClick={() => navigate('fridge')}>냉장고로 돌아가기</button></main>}</div>;
   }
   if (screen === 'recipe-no-result') {
     // 재료 선택 화면과 같은 순서(임박순)로 보여준다.
@@ -162,7 +165,7 @@ export function App() {
       {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
       {displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
-      {screen === 'mypage' && <MyPage navigate={navigate} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} />}
+      {screen === 'mypage' && <MyPage navigate={navigate} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} registeredCount={ingredientItems.length} reports={dashboard.reports} error={dashboard.error} />}
       {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-results'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
       <BottomNavigation screen={displayScreen} navigate={navigate} />
       {(screen === 'fridge-registered' || screen === 'fridge-food') && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}

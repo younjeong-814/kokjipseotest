@@ -1,3 +1,6 @@
+import { syncActivities } from '../mypage/activityLog';
+import { loadHistory } from '../report/weeklyReport';
+import { consumeIngredient } from './consumeIngredient';
 import { useEffect, useState } from 'react';
 import { updateIngredientInfo } from './repository';
 import type { IngredientInfoPatch } from './IngredientEditModal';
@@ -18,34 +21,46 @@ export function useIngredients() {
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
   }, []);
+  const commit = (items: Ingredient[]) => {
+    let warning = '';
+    try { syncActivities(localStorage, items, loadHistory(localStorage), state.items); }
+    catch { warning = '식재료 변경은 저장했지만 리포트 이력을 저장하지 못했어요. 저장 공간을 확인해 주세요.'; }
+    setState({ items, error: warning });
+  };
   return {
     ...state,
     updateInfo: (id: string, patch: IngredientInfoPatch) => {
-      try { setState({ items: updateIngredientInfo(localStorage, id, patch), error: '' }); }
+      try { commit(updateIngredientInfo(localStorage, id, patch)); }
       catch (error) { throw new Error(error instanceof Error ? error.message : '저장하지 못했어요.'); }
     },
     updateDetails: (id: string, patch: { storage: string; date: string; dateSource?: 'manual' | 'automatic'; remainingPercent: number; remainingAdjusted?: boolean }) => {
-      try { setState({ items: updateIngredientDetails(localStorage, id, patch), error: '' }); }
+      try { commit(updateIngredientDetails(localStorage, id, patch)); }
       catch { throw new Error('저장하지 못했어요. 저장 공간과 항목 상태를 확인해 주세요.'); }
     },
     recordCondition: (id: string, status: IngredientCondition) => {
-      try { setState({ items: recordIngredientCondition(localStorage, id, status), error: '' }); }
+      try { commit(recordIngredientCondition(localStorage, id, status)); }
       catch { throw new Error('상태를 저장하지 못했어요. 다시 시도해 주세요.'); }
     },
     saveRecognized: (drafts: IngredientDraft[]) => {
-      try { setState({ items: saveRecognizedIngredients(localStorage, drafts), error: '' }); }
+      try { commit(saveRecognizedIngredients(localStorage, drafts)); }
       catch { throw new Error('인식한 재료를 저장하지 못했어요. 다시 시도해 주세요.'); }
     },
     save: (draft: IngredientDraft, id?: string) => {
-      try { setState({ items: saveIngredient(localStorage, draft, id), error: '' }); }
+      try { commit(saveIngredient(localStorage, draft, id)); }
       catch (error) { throw new Error(error instanceof Error && error.message.includes('항목') ? error.message : '저장하지 못했어요. 브라우저 저장 공간과 설정을 확인해 주세요.'); }
+    },
+    consume: (id: string) => {
+      try { commit(consumeIngredient(localStorage, id)); }
+      catch (failure) { throw new Error(failure instanceof Error ? failure.message : '소비 완료를 저장하지 못했어요.'); }
     },
     remove: (id: string) => {
       const removed = state.items.find(item => item.id === id);
-      try { setState({ items: deleteIngredient(localStorage, id), error: '' }); }
+      let next: Ingredient[];
+      try { next = deleteIngredient(localStorage, id); }
       catch { throw new Error('삭제하지 못했어요. 브라우저 저장 공간과 설정을 확인해 주세요.'); }
       // 리포트 기록은 실패해도 삭제 자체는 유지한다.
-      if (removed) try { recordDisposal(localStorage, removed); } catch { /* 저장 공간 부족 등은 무시 */ }
+      if (removed) try { recordDisposal(localStorage, removed); } catch { /* 기존 삭제 동작 유지 */ }
+      commit(next);
     },
   };
 }

@@ -40,7 +40,18 @@ function DiscardConfirm({ item, onClose, onDiscard }: { item: Ingredient; onClos
   </OverlayDialog>;
 }
 
-export function IngredientDetailPage({ item, onBack, onEdit, onSave, onCondition, onDiscard }: { item: Ingredient; onBack: () => void; onEdit: (patch: IngredientInfoPatch) => void; onSave: (patch: { storage: string; date: string; dateSource?: 'manual' | 'automatic'; remainingPercent: number; remainingAdjusted?: boolean }) => void; onCondition: (status: IngredientCondition) => void; onDiscard: () => void }) {
+function ConsumeConfirm({ item, onClose, onConsume }: { item: Ingredient; onClose: () => void; onConsume: () => void }) {
+  const [error, setError] = useState('');
+  const saving = useRef(false);
+  return <OverlayDialog label={`${item.name} 소비 완료 확인`} className="ingredient-edit-modal consume-confirm" onClose={onClose}>
+    <form onSubmit={event => { event.preventDefault(); if (saving.current) return; try { saving.current = true; onConsume(); } catch (failure) { saving.current = false; setError(failure instanceof Error ? failure.message : '소비 완료를 저장하지 못했어요.'); } }}>
+      <header><div><h2>모두 소비하셨나요?</h2><p>{item.name}{particle(item.name, '을', '를')} 냉장고에서 지우고 소비 완료로 기록해요.</p></div></header>
+      {error && <p role="alert" className="ingredient-error">{error}</p>}
+      <footer><ActionButton type="button" className="ingredient-edit-cancel action-button-large" onClick={onClose}>취소</ActionButton><ActionButton type="submit" className="action-button-large">소비 완료</ActionButton></footer>
+    </form>
+  </OverlayDialog>;
+}
+export function IngredientDetailPage({ item, onBack, onEdit, onSave, onCondition, onDiscard, onConsume }: { item: Ingredient; onBack: () => void; onEdit: (patch: IngredientInfoPatch) => void; onSave: (patch: { storage: string; date: string; dateSource?: 'manual' | 'automatic'; remainingPercent: number; remainingAdjusted?: boolean }) => void; onCondition: (status: IngredientCondition) => void; onDiscard: () => void; onConsume: () => void }) {
   const food = isFood(item);
   const noun = food ? '음식' : '식재료';
   const stateLabel = (value: IngredientCondition) => food ? value === conditionLabels[0] ? '아직 괜찮아요' : value === conditionLabels[1] ? '먹을 수 있어요' : '상했어요' : value === conditionLabels[2] ? '상했어요' : value;
@@ -51,7 +62,7 @@ export function IngredientDetailPage({ item, onBack, onEdit, onSave, onCondition
   const [dateSource, setDateSource] = useState(item.dateSource);
   useEffect(() => { setDate(item.date); setDateSource(item.dateSource); }, [item.date, item.dateSource]);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [overlay, setOverlay] = useState<'date' | 'condition' | 'discard' | 'help' | 'edit' | null>(null);
+  const [overlay, setOverlay] = useState<'date' | 'condition' | 'discard' | 'consume' | 'help' | 'edit' | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [snackbar, setSnackbar] = useState<{ id: number; message: string } | null>(null);
@@ -75,10 +86,11 @@ export function IngredientDetailPage({ item, onBack, onEdit, onSave, onCondition
       </section>
     </div>
     {error && <p className="ingredient-error" role="alert">{error}</p>}{message && <p className="detail-message" role="status">{message}</p>}
-    <footer className="detail-footer"><ActionButton className="detail-outline action-button-large" onClick={() => setOverlay('condition')}>{noun} 상태 기록하기</ActionButton><ActionButton className="detail-edit action-button-large" onClick={() => setOverlay('edit')}>{noun} 정보 수정</ActionButton><ActionButton className="action-button-large" onClick={() => { try { onSave({ storage, date, dateSource, remainingPercent, remainingAdjusted }); showSaved('변경한 내용을 저장했어요.'); } catch (failure) { setError(failure instanceof Error ? failure.message : '저장하지 못했어요.'); } }}>저장</ActionButton></footer>
+    <footer className="detail-footer"><ActionButton className="detail-outline action-button-large" onClick={() => setOverlay('condition')}>{noun} 상태 기록하기</ActionButton><ActionButton className="detail-edit action-button-large" onClick={() => setOverlay('edit')}>{noun} 정보 수정</ActionButton><ActionButton className="action-button-large" onClick={() => { if (remainingPercent === 0) { setOverlay('consume'); return; } try { onSave({ storage, date, dateSource, remainingPercent, remainingAdjusted }); showSaved('변경한 내용을 저장했어요.'); } catch (failure) { setError(failure instanceof Error ? failure.message : '저장하지 못했어요.'); } }}>저장</ActionButton></footer>
     {snackbar && <Snackbar key={snackbar.id} variant="success" message={snackbar.message} className="detail-snackbar" onDismiss={() => setSnackbar(null)} />}
     {overlay === 'edit' && <IngredientEditModal item={item} quantityLocked={remainingAdjusted || item.remainingAdjusted || remainingPercent < 100 || (item.remainingPercent ?? 100) < 100} onClose={() => setOverlay(null)} onSave={patch => { onEdit(patch); showSaved(`${noun} 정보가 수정되었어요.`); }} />}
     {overlay === 'condition' && <ConditionSheet item={item} onClose={() => setOverlay(null)} onUpdate={status => { onCondition(status); setHistoryOpen(true); setMessage('상태를 업데이트했어요'); setOverlay(status === conditionLabels[2] ? 'discard' : null); }} />}
+    {overlay === 'consume' && <ConsumeConfirm item={item} onClose={() => setOverlay(null)} onConsume={onConsume} />}
     {overlay === 'discard' && <DiscardConfirm item={item} onClose={() => setOverlay(null)} onDiscard={onDiscard} />}
     {overlay === 'date' && <DateOverlay label="소비 권장일 선택" value={date} onClose={() => setOverlay(null)} onSave={value => { setDate(value); setDateSource('manual'); setOverlay(null); }} />}
     {overlay === 'help' && <HelpOverlay figmaNode="5893:21525" onClose={() => setOverlay(null)} />}
