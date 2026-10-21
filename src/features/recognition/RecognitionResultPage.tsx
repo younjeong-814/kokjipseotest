@@ -37,7 +37,7 @@ export function RecognitionResultPage({ navigate, recognition, onRegister }: Pro
       <SubHeader title="인식 결과 확인" backIcon="ai-back.svg" onBack={() => window.history.back()} />
       <div className="recognition-content">
         <section className="capture-date"><div className="capture-date-row"><button type="button" aria-label="촬영 날짜 수정" onClick={() => setOverlay({kind: 'date'})}><b>{dateLabel}</b><span>수정</span></button><button type="button" aria-label="촬영 시간 수정" onClick={() => setOverlay({kind: 'time'})}><b>{timeLabel}</b><span>수정</span></button></div><p>촬영한 날짜와 시간을 확인해 주세요.</p></section>
-        <section className="recognition-banner"><ReminderBanner title="AI 인식 완료" description="인식 오류 품목을 확인해 주세요." /></section>
+        <section className="recognition-banner"><ReminderBanner title="인식 결과를 확인해 주세요" description="인식이 잘못된 재료는 수정하고, 필요 없는 재료는 삭제해 보세요" /></section>
         <section className="recognized-list" aria-label="AI 인식 식재료">
           {/* 구분선은 보이는 항목 사이에만 그린다. 맨 아래 선은 목록의 border-bottom이 맡는다. */}
           {recognition.items.map((item, index) => <Fragment key={item.id}>

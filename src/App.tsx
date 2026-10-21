@@ -85,11 +85,17 @@ export function App() {
   const info = screens[displayScreen];
   // 영수증 가이드에서 들어온 촬영만 OCR을 거친다. 냉장고·상품 촬영 인식은 아직 샘플 결과를 보여준다.
   const onCapture = async (image: string) => {
-    const receipt = captureGuide === 'guide-receipt' ? await recognizeReceipt(image) : null;
     registering.current = false;
     setRecognitionError('');
-    if (receipt) recognition.showReceipt(receipt);
-    else recognition.showSample();
+    if (captureGuide === 'guide-receipt') {
+      // 영수증 경로에서는 OCR 결과를 반드시 사용한다. OCR 실패 시 recognizeReceipt가
+      // 오류를 던져 카메라 화면에 안내하고, 샘플 결과 화면으로 넘어가지 않는다.
+      const receipt = await recognizeReceipt(image);
+      recognition.showReceipt(receipt);
+    } else {
+      // 냉장고 칸·상품 촬영은 실제 인식 연동 전까지 샘플 결과를 보여준다.
+      recognition.showSample();
+    }
     navigate('recognition-result');
   };
   const openDetail = (item: Ingredient) => { window.location.hash = `ingredient-detail?item=${encodeURIComponent(item.id)}`; };
