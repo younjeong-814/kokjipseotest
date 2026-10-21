@@ -2,6 +2,7 @@
 // 냉장고에서 식재료를 삭제하면 소비/폐기 기록을 남기고, 이번 주(월~일) 기록과 현재 보관 중인 재료로 리포트를 만든다.
 import type { Ingredient } from '../ingredients/repository';
 import { particle } from '../../lib/korean';
+import type { ReportPeriod } from '../mypage/report';
 
 export const REPORT_HISTORY_KEY = 'kokjipseo.ingredient-history.v1';
 export type DisposalAction = 'consumed' | 'discarded';
@@ -58,19 +59,20 @@ function top3(records: DisposalRecord[]) {
   return [...counts].sort((a, b) => b[1].count - a[1].count || b[1].latest - a[1].latest).slice(0, 3).map(([name]) => name);
 }
 
-export function buildWeeklyReport(items: Ingredient[], history: DisposalRecord[], now = new Date()): WeeklyReport {
-  const from = startOfWeek(now).getTime();
-  const thisWeek = history.filter(record => { const time = Date.parse(record.recordedAt); return time >= from && time <= now.getTime(); });
-  const consumed = thisWeek.filter(record => record.action === 'consumed');
-  const discarded = thisWeek.filter(record => record.action === 'discarded');
+export function buildWeeklyReport(items: Ingredient[], history: DisposalRecord[], now = new Date(), period: ReportPeriod = '주간'): WeeklyReport {
+  const from = period === '주간' ? startOfWeek(now).getTime() : period === '월간' ? new Date(now.getFullYear(), now.getMonth(), 1).getTime() : new Date(now.getFullYear(), 0, 1).getTime();
+  const records = history.filter(record => { const time = Date.parse(record.recordedAt); return time >= from && time <= now.getTime(); });
+  const consumed = records.filter(record => record.action === 'consumed');
+  const discarded = records.filter(record => record.action === 'discarded');
   return { stored: items.length, consumed: consumed.length, discarded: discarded.length, topConsumed: top3(consumed), topDiscarded: top3(discarded) };
 }
 
 // 배너 '콕집서의 한 줄 제안' 문구: 자주 폐기한 재료 1~2개를 짚어 준다 (Figma 3206:2488)
-export function suggestionLines(report: Pick<WeeklyReport, 'topDiscarded'>): [string, string] {
+export function suggestionLines(report: Pick<WeeklyReport, 'topDiscarded'>, period: ReportPeriod = '주간'): [string, string] {
+  const periodWord = period === '주간' ? '이번 주' : period === '월간' ? '이번 달' : '올해';
   const [first, second] = report.topDiscarded;
-  if (!first) return ['이번 주는 버린 재료가 없어요', '지금처럼 필요한 만큼만 사서 챙겨 드세요'];
+  if (!first) return [`${periodWord}는 버린 재료가 없어요`, '지금처럼 필요한 만큼만 사서 챙겨 드세요'];
   const subject = second ? `${first}${particle(first, '과', '와')} ${second}` : first;
   const last = second ?? first;
-  return [`${subject}${particle(last, '이', '가')} 자주 남아요`, '다음에는 조금 적게 사도 충분할 것 같아요'];
+  return [`${periodWord} ${subject}${particle(last, '이', '가')} 자주 남아요`, '다음에는 조금 적게 사도 충분할 것 같아요'];
 }

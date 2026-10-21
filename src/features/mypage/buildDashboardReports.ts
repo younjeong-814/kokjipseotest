@@ -9,14 +9,16 @@ export function buildDashboardReports(items: Ingredient[], history: DisposalReco
   const previousWeek = new Date(week); previousWeek.setDate(previousWeek.getDate() - 7);
   const month = new Date(now.getFullYear(), now.getMonth(), 1);
   const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const year = new Date(now.getFullYear(), 0, 1);
+  const previousYear = new Date(now.getFullYear() - 1, 0, 1);
   const count = (from: number, to: number, inclusiveEnd = false) => {
     const records = history.filter(record => { const time = Date.parse(record.recordedAt); return time >= from && (inclusiveEnd ? time <= to : time < to); });
     return { consumed: records.filter(record => record.action === 'consumed').length, discarded: records.filter(record => record.action === 'discarded').length };
   };
-  for (const period of ['주간','월간','전체'] as ReportPeriod[]) {
-    const from = period === '주간' ? week.getTime() : period === '월간' ? month.getTime() : -Infinity;
+  for (const period of ['주간','월간','연간'] as ReportPeriod[]) {
+    const from = period === '주간' ? week.getTime() : period === '월간' ? month.getTime() : year.getTime();
     const current = count(from, now.getTime(), true);
-    const previous = period === '전체' ? null : count(period === '주간' ? previousWeek.getTime() : previousMonth.getTime(), from);
+    const previous = count(period === '주간' ? previousWeek.getTime() : period === '월간' ? previousMonth.getTime() : previousYear.getTime(), from);
     const report = reports[period];
     report.completedItemCount = current.consumed + current.discarded;
     report.consumed = { previous: previous?.consumed ?? null, current: current.consumed };
@@ -25,10 +27,14 @@ export function buildDashboardReports(items: Ingredient[], history: DisposalReco
     // 등록 6개 → 소비 2개, 폐기 2개, 보관 2개라면 소비율은 33%다.
     const totalManaged = items.length + report.completedItemCount;
     report.consumptionRate = totalManaged > 0 ? Math.round(current.consumed / totalManaged * 100) : null;
-    const weekly = count(week.getTime(), now.getTime(), true);
-    report.managedCount = items.length + weekly.consumed + weekly.discarded;
-    report.managedLabel = '이번주 관리 현황';
-    report.feedbackTitle = `소비 ${current.consumed}개 · 폐기 ${current.discarded}개를 기록했어요`;
+    report.managedCount = items.length + current.consumed + current.discarded;
+    report.managedLabel = period === '주간' ? '이번주 관리 현황' : period === '월간' ? '이번달 관리 현황' : '이번년도 관리 현황';
+    const firstDayOffset = (new Date(now.getFullYear(),now.getMonth(),1).getDay()+6)%7;
+    report.scoreLabel = period === '주간' ? `${now.getMonth()+1}월 ${Math.ceil((now.getDate()+firstDayOffset)/7)}째주 냉장고 관리 점수` : period === '월간' ? `${now.getMonth()+1}월 냉장고 관리 점수` : `${now.getFullYear()}년 냉장고 관리 점수`;
+    const periodName = period === '주간' ? '지난주' : period === '월간' ? '지난달' : '지난해';
+    report.previousLabel = periodName;
+    report.currentLabel = period === '주간' ? '이번 주' : period === '월간' ? '이번 달' : '올해';
+    report.feedbackTitle = previous.discarded > 0 ? `${periodName}보다 폐기율이 ${Math.round((previous.discarded-current.discarded)/previous.discarded*100)}% ${previous.discarded >= current.discarded ? '줄었어요' : '늘었어요'}!` : `${periodName}보다 폐기율을 비교할 기록을 모으고 있어요`;
     report.feedbackDescription = '저장된 소비·폐기 기록을 반영했어요.';
     // 관리 점수는 관리율 산식이 확정될 때 연결한다.
   }

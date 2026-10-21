@@ -8,9 +8,9 @@ import { MyPageDashboard } from './MyPageDashboard';
 
 import { hasEnoughReportData, pendingReports, type MyPageReports } from './report';
 
-const periods = ['주간', '월간', '전체'] as const;
+const periods = ['주간', '월간', '연간'] as const;
 
-export function MyPage({ navigate, registeredCount = 0, reports, error, report: weeklyReport }: { navigate: Navigate; registeredCount?: number; reports?: MyPageReports; error?: string; report?: WeeklyReport }) {
+export function MyPage({ navigate, onOpenManaged, registeredCount = 0, reports, error, report: weeklyReport }: { navigate: Navigate; onOpenManaged?: (period: (typeof periods)[number]) => void; registeredCount?: number; reports?: MyPageReports; error?: string; report?: WeeklyReport }) {
   const [period, setPeriod] = useState<(typeof periods)[number]>('주간');
 
   const hasReport = Boolean(reports && Object.values(reports).some(value => value.managedCount > 0 || (value.completedItemCount ?? 0) > 0)) || registeredCount > 0 || Boolean(weeklyReport && (weeklyReport.consumed > 0 || weeklyReport.discarded > 0));
@@ -34,7 +34,7 @@ export function MyPage({ navigate, registeredCount = 0, reports, error, report: 
         ))}
       </div>
       {error && <p role="alert">{error}<button onClick={() => window.location.reload()}>다시 시도</button></p>}
-      {hasReport ? <MyPageDashboard report={report} onOpenManaged={() => navigate('weekly-report')} /> : <><section className="mypage-empty-state" aria-label="신규 사용자 빈 상태">
+      {hasReport || period !== '주간' ? <MyPageDashboard report={report} onOpenManaged={() => onOpenManaged ? onOpenManaged(period) : navigate('weekly-report')} /> : <><section className="mypage-empty-state" aria-label="신규 사용자 빈 상태">
         <img className="mypage-empty-illustration" src={asset('empty-fridge.png')} alt="" />
         <div className="mypage-empty-copy">
           <h2>아직 냉장고 리포트가 없어요</h2>
