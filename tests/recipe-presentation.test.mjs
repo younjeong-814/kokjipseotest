@@ -5,7 +5,10 @@ import ts from 'typescript';
 const source = readFileSync(new URL('../src/features/recipe/apiPresentation.ts', import.meta.url), 'utf8');
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const exports = {};
-new Function('exports', 'require', compiled)(exports, () => ({ asset: name => `/assets/${name}` }));
+const ingredientSource = readFileSync(new URL('../src/features/recipe/ingredientText.ts', import.meta.url), 'utf8');
+const ingredientExports = {};
+new Function('exports', ts.transpileModule(ingredientSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(ingredientExports);
+new Function('exports', 'require', compiled)(exports, name => name.endsWith('ingredientText') ? ingredientExports : { asset: name => `/assets/${name}` });
 const recipe = {
   id: '42', name: '토마토 달걀볶음', summary: '', category: '볶음', image: 'https://example.com/recipe.png', calories: '200Kcal',
   time: '15분', difficulty: '초보환영', servings: '1인분',
@@ -31,4 +34,9 @@ test('summary tags selected ingredients plus one unselected main ingredient', ()
   assert.equal(summary.difficulty, '초보환영');
   assert.deepEqual(summary.tags, ['우유', '토마토', '달걀']);
   assert.deepEqual(exports.toRecipeSummary(recipe, ['계란', '토마토']).tags, ['계란', '토마토', '우유']);
+});
+test('detail and result hashtags share heading removal for cached recipe entries', () => {
+  const dirty = { ...recipe, ingredients: [{ name: '재료 느타리버섯', amount: '10g', type: '' }, { name: '두부', amount: '50g', type: '' }] };
+  assert.deepEqual(exports.toRecipeSummary(dirty, ['두부']).tags, ['두부', '느타리버섯']);
+  assert.deepEqual(exports.toRecipeDetail(dirty).ingredients.map(item => item.name), ['느타리버섯', '두부']);
 });
