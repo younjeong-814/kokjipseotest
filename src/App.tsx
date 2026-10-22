@@ -18,7 +18,7 @@ import { RecipeNoUrgentPage } from './features/recipe/RecipeNoUrgentPage';
 import { selectRecipeIngredients } from './features/recipe/selectRecipeIngredients';
 import { FridgePage } from './features/fridge/FridgePage';
 import { FridgeFoodPage } from './features/fridge/FridgeFoodPage';
-import { FridgeSearchEmpty, FridgeSearchPage } from './features/fridge/FridgeSearchPage';
+import { FridgeSearchEmpty, FridgeSearchGuide, FridgeSearchPage } from './features/fridge/FridgeSearchPage';
 import { parseQuery, searchIngredients, type SearchQuery } from './features/fridge/search';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
@@ -50,6 +50,8 @@ export function App() {
   const [managedPeriod, setManagedPeriod] = useState<ReportPeriod>('주간');
   const [searchOrigin, setSearchOrigin] = useState<'fridge' | 'fridge-food' | 'fridge-registered'>('fridge');
   const [searchQuery, setSearchQuery] = useState<SearchQuery>({ type: 'idle' });
+  // 입력창 글자. 검색 결과 → 상세 → 뒤로 가기로 돌아왔을 때 같은 검색어를 다시 채운다.
+  const [searchText, setSearchText] = useState('');
   const [captureGuide, setCaptureGuide] = useState<ScreenId>('guide-receipt');
   const [showRegistrationToast, setShowRegistrationToast] = useState(false);
   const ingredients = useIngredients();
@@ -57,7 +59,7 @@ export function App() {
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | undefined>();
   const [registrationMessage, setRegistrationMessage] = useState('');
   const [detailId, setDetailId] = useState(readDetailId);
-  const [detailOrigin, setDetailOrigin] = useState<'home' | 'fridge' | 'fridge-registered' | 'fridge-food'>('fridge-registered');
+  const [detailOrigin, setDetailOrigin] = useState<'home' | 'fridge' | 'fridge-registered' | 'fridge-food' | 'fridge-search'>('fridge-registered');
   const [editingFromDetail, setEditingFromDetail] = useState(false);
   const [recognitionError, setRecognitionError] = useState('');
   // 레시피 화면에서 고른 재료. 추천 결과 화면과 '다른 임박 재료 선택'으로 돌아올 때 유지한다.
@@ -73,7 +75,8 @@ export function App() {
   const navigate = (destination: ScreenId) => {
     if (destination !== 'manual-entry') setEditingIngredient(undefined);
     if (destination === 'fridge-search' && (screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered')) setSearchOrigin(screen);
-    if (destination === 'fridge-search') setSearchQuery({ type: 'idle' });
+    // 냉장고 탭에서 새로 열 때만 비운다. 상세에서 돌아올 때는 직전 검색을 그대로 보여 준다.
+    if (destination === 'fridge-search' && screen !== 'ingredient-detail') { setSearchQuery({ type: 'idle' }); setSearchText(''); }
     if (destination === 'camera' && (screen === 'guide-fridge' || screen === 'guide-product' || screen === 'guide-receipt')) setCaptureGuide(screen);
     setShowRegistrationToast((screen === 'recognition-result' || screen === 'manual-entry') && (destination === 'fridge-registered' || destination === 'fridge-food'));
     window.location.hash = destination;
@@ -169,15 +172,17 @@ export function App() {
   }
   return (
     <div className={`app-shell screen-${info.menu}${isSearching ? ' fridge-search-open' : ''}`} onClick={event => {
-      if (isSearching && event.target instanceof Element && !event.target.closest('button, input, select, textarea, form, a')) navigate(searchOrigin);
+      // 검색 결과 줄은 스와이프용 포인터 캡처 때문에 클릭 대상이 버튼이 아닌 줄 div가 되므로, 목록 안 클릭은 검색 닫기에서 뺀다.
+      if (isSearching && event.target instanceof Element && !event.target.closest('button, input, select, textarea, form, a, .stored-ingredients')) navigate(searchOrigin);
     }}>
       <StatusBar />
-      {isSearching ? <FridgeSearchPage navigate={navigate} onClose={() => navigate(searchOrigin)} onSearch={raw => { const parsed = parseQuery(raw); if (parsed.type !== 'hold') setSearchQuery(parsed); }} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
+      {isSearching ? <FridgeSearchPage navigate={navigate} initialQuery={searchText} onClose={() => navigate(searchOrigin)} onSearch={raw => { setSearchText(raw); const parsed = parseQuery(raw); if (parsed.type !== 'hold') setSearchQuery(parsed); }} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
       {ingredients.error && <p className="ingredient-error" role="alert">{ingredients.error}</p>}
       {screen === 'home' && <HomePage navigate={navigate} items={ingredients.items} onOpen={item => { setDetailOrigin('home'); openDetail(item); }} />}
-      {searchMatches && 'raw' in searchQuery && (searchMatches.size ? <StoredIngredientsPage key="search" navigate={navigate} items={ingredients.items} matches={searchMatches} onOpen={item => { setDetailOrigin(searchOrigin); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeSearchEmpty query={searchQuery.raw} onRegister={() => navigate('registration')} />)}
-      {!searchMatches && (displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
-      {!searchMatches && displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
+      {searchMatches && 'raw' in searchQuery && (searchMatches.size ? <StoredIngredientsPage key="search" navigate={navigate} items={ingredients.items} matches={searchMatches} onOpen={item => { setDetailOrigin('fridge-search'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeSearchEmpty query={searchQuery.raw} onRegister={() => navigate('registration')} />)}
+      {isSearching && !searchMatches && <FridgeSearchGuide />}
+      {!isSearching && (displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
+      {!isSearching && displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
       {screen === 'mypage' && <MyPage navigate={navigate} onOpenManaged={period => { setManagedPeriod(period); navigate('weekly-report'); }} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} registeredCount={ingredientItems.length} reports={dashboard.reports} error={dashboard.error} />}
       {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-results'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
