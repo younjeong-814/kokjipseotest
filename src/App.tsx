@@ -18,7 +18,8 @@ import { RecipeNoUrgentPage } from './features/recipe/RecipeNoUrgentPage';
 import { selectRecipeIngredients } from './features/recipe/selectRecipeIngredients';
 import { FridgePage } from './features/fridge/FridgePage';
 import { FridgeFoodPage } from './features/fridge/FridgeFoodPage';
-import { FridgeSearchPage } from './features/fridge/FridgeSearchPage';
+import { FridgeSearchEmpty, FridgeSearchPage } from './features/fridge/FridgeSearchPage';
+import { parseQuery, searchIngredients, type SearchQuery } from './features/fridge/search';
 import { ReceiptCameraPage } from './features/receipt/ReceiptCameraPage';
 import { ReceiptGuidePage } from './features/receipt/ReceiptGuidePage';
 import { RecognitionResultPage } from './features/recognition/RecognitionResultPage';
@@ -48,6 +49,7 @@ export function App() {
   const [screen, setScreen] = useState(readScreen);
   const [managedPeriod, setManagedPeriod] = useState<ReportPeriod>('주간');
   const [searchOrigin, setSearchOrigin] = useState<'fridge' | 'fridge-food' | 'fridge-registered'>('fridge');
+  const [searchQuery, setSearchQuery] = useState<SearchQuery>({ type: 'idle' });
   const [captureGuide, setCaptureGuide] = useState<ScreenId>('guide-receipt');
   const [showRegistrationToast, setShowRegistrationToast] = useState(false);
   const ingredients = useIngredients();
@@ -71,12 +73,15 @@ export function App() {
   const navigate = (destination: ScreenId) => {
     if (destination !== 'manual-entry') setEditingIngredient(undefined);
     if (destination === 'fridge-search' && (screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered')) setSearchOrigin(screen);
+    if (destination === 'fridge-search') setSearchQuery({ type: 'idle' });
     if (destination === 'camera' && (screen === 'guide-fridge' || screen === 'guide-product' || screen === 'guide-receipt')) setCaptureGuide(screen);
     setShowRegistrationToast((screen === 'recognition-result' || screen === 'manual-entry') && (destination === 'fridge-registered' || destination === 'fridge-food'));
     window.location.hash = destination;
   };
   const isSearching = screen === 'fridge-search';
   const displayScreen = isSearching ? searchOrigin : screen;
+  // 검색은 식재료·음식 탭을 가리지 않고 냉장고 전체를 대상으로 한다.
+  const searchMatches = isSearching && (searchQuery.type === 'text' || searchQuery.type === 'choseong') ? searchIngredients(ingredients.items, searchQuery) : null;
   const ingredientItems = ingredients.items.filter(item => !isFood(item));
   const foodItems = ingredients.items.filter(isFood);
   const hasRecipeSelection = ingredientItems.some(item => recipeSelection?.includes(item.id));
@@ -167,11 +172,12 @@ export function App() {
       if (isSearching && event.target instanceof Element && !event.target.closest('button, input, select, textarea, form, a')) navigate(searchOrigin);
     }}>
       <StatusBar />
-      {isSearching ? <FridgeSearchPage navigate={navigate} onClose={() => navigate(searchOrigin)} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
+      {isSearching ? <FridgeSearchPage navigate={navigate} onClose={() => navigate(searchOrigin)} onSearch={raw => { const parsed = parseQuery(raw); if (parsed.type !== 'hold') setSearchQuery(parsed); }} /> : <TopHeader title={info.title} search={screen === 'fridge' || screen === 'fridge-food' || screen === 'fridge-registered' ? additionalConnections.search.destination : undefined} navigate={navigate} />}
       {ingredients.error && <p className="ingredient-error" role="alert">{ingredients.error}</p>}
       {screen === 'home' && <HomePage navigate={navigate} items={ingredients.items} onOpen={item => { setDetailOrigin('home'); openDetail(item); }} />}
-      {(displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
-      {displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
+      {searchMatches && 'raw' in searchQuery && (searchMatches.size ? <StoredIngredientsPage key="search" navigate={navigate} items={ingredients.items} matches={searchMatches} onOpen={item => { setDetailOrigin(searchOrigin); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeSearchEmpty query={searchQuery.raw} onRegister={() => navigate('registration')} />)}
+      {!searchMatches && (displayScreen === 'fridge' || displayScreen === 'fridge-registered') && (ingredientItems.length ? <StoredIngredientsPage key={displayScreen} navigate={navigate} items={ingredientItems} registered={displayScreen === 'fridge-registered'} onOpen={item => { setDetailOrigin(displayScreen === 'fridge-registered' ? 'fridge-registered' : 'fridge'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgePage navigate={navigate} />)}
+      {!searchMatches && displayScreen === 'fridge-food' && (foodItems.length ? <StoredIngredientsPage key="food" food navigate={navigate} items={foodItems} onOpen={item => { setDetailOrigin('fridge-food'); openDetail(item); }} onDelete={ingredients.remove} /> : <FridgeFoodPage navigate={navigate} />)}
       {screen === 'registration' && <RegistrationPage navigate={navigate} />}
       {screen === 'mypage' && <MyPage navigate={navigate} onOpenManaged={period => { setManagedPeriod(period); navigate('weekly-report'); }} report={buildWeeklyReport(ingredients.items, loadHistory(localStorage))} registeredCount={ingredientItems.length} reports={dashboard.reports} error={dashboard.error} />}
       {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-results'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
