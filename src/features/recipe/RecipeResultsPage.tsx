@@ -5,7 +5,7 @@ import { asset } from '../../lib/assets';
 import type { RecipeSummary } from './types';
 import { approximateTime } from './apiPresentation';
 
-export function RecipeResultsPage({ recipes, selectedIngredients, onBack, onOpen, footer }: { footer?: ReactNode; onOpen?: (id: string) => void; recipes: readonly RecipeSummary[]; selectedIngredients: readonly string[]; onBack: () => void }) {
+export function RecipeResultsPage({ recipes, total = recipes.length, selectedIngredients, onBack, onOpen, footer }: { total?: number; footer?: ReactNode; onOpen?: (id: string) => void; recipes: readonly RecipeSummary[]; selectedIngredients: readonly string[]; onBack: () => void }) {
   return <main className="recipe-results-page" data-figma-node="3061:13305">
     <SubHeader title="추천 레시피" backIcon="recipe-detail-back.svg" onBack={onBack} />
     <section className="recipe-selected" aria-labelledby="recipe-selected-heading">
@@ -13,7 +13,7 @@ export function RecipeResultsPage({ recipes, selectedIngredients, onBack, onOpen
       <ul>{selectedIngredients.map(name => <li key={name}>{name}<img src={asset('recipe-result-check.svg')} alt="선택됨" /></li>)}</ul>
     </section>
     <section className="recipe-results" aria-labelledby="recipe-results-heading">
-      <h2 id="recipe-results-heading">레시피</h2>
+      <h2 id="recipe-results-heading">레시피<span className="recipe-results-count" aria-label={`검색 결과 ${total.toLocaleString('ko-KR')}개`}>{total.toLocaleString('ko-KR')}</span></h2>
       <div className="recipe-results-scroll">
       <ul>{recipes.map(recipe => <li key={recipe.id}><a onClick={event => { if (onOpen) { event.preventDefault(); onOpen(recipe.id); } }} href={`#recipe-detail?recipe=${encodeURIComponent(recipe.id)}`} aria-label={`${recipe.title} 상세 보기`}>
         <CardShell className="recipe-result-card">
