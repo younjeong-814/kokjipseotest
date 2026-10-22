@@ -1,6 +1,6 @@
 import type { Ingredient } from '../ingredients/repository';
 import { startOfWeek, type DisposalRecord } from '../report/weeklyReport';
-import { pendingReports, type MyPageReports, type ReportPeriod } from './report';
+import { discardFeedback, pendingReports, type MyPageReports, type ReportPeriod } from './report';
 
 /** 기존 삭제 이력을 읽기만 하며 저장/소비·폐기 분류는 변경하지 않는다. */
 export function buildDashboardReports(items: Ingredient[], history: DisposalRecord[], now = new Date()): MyPageReports {
@@ -34,8 +34,7 @@ export function buildDashboardReports(items: Ingredient[], history: DisposalReco
     const periodName = period === '주간' ? '지난주' : period === '월간' ? '지난달' : '지난해';
     report.previousLabel = periodName;
     report.currentLabel = period === '주간' ? '이번 주' : period === '월간' ? '이번 달' : '올해';
-    report.feedbackTitle = previous.discarded > 0 ? `${periodName}보다 폐기율이 ${Math.round((previous.discarded-current.discarded)/previous.discarded*100)}% ${previous.discarded >= current.discarded ? '줄었어요' : '늘었어요'}!` : `${periodName}보다 폐기율을 비교할 기록을 모으고 있어요`;
-    report.feedbackDescription = '저장된 소비·폐기 기록을 반영했어요.';
+    Object.assign(report, discardFeedback(periodName, report.currentLabel, previous.discarded, current.discarded));
     // 관리 점수는 관리율 산식이 확정될 때 연결한다.
   }
   return reports;
