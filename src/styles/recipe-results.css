@@ -6,6 +6,10 @@
 .recipe-results-footer { padding: 0 0 4px; display: flex; flex-direction: column; gap: 24px; }
 .recipe-results-footer .recipe-pagination { margin: 16px 0 0; }
 .recipe-results-footer .recipe-source { margin: 0; }
+.recipe-load-more { display: flex; flex-direction: column; align-items: center; gap: var(--s2); margin-top: var(--s4); }
+.recipe-load-more:empty { display: none; }
+.recipe-load-more .action-button { width: 100%; }
+.recipe-load-more > span, .recipe-load-more > p { font-size: 12px; line-height: 19px; color: var(--gray-800); }
 .recipe-results-page .sub-header { height: 58px; }
 .recipe-results-page .sub-header h1 { padding-left: 24px; }
 .recipe-results-page .recipe-selected { padding: 0 20px; }

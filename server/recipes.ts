@@ -110,7 +110,7 @@ export function createRecipeSearch(foodSafetyKey: string | undefined, fetcher: t
     if (!foodSafetyKey?.trim()) throw new RecipeApiError(503, '식품안전나라 FOOD_SAFETY_API_KEY를 설정하고 개발 서버를 다시 시작해 주세요.');
     const selected = [...new Set(names.map(canonical))];
     const matches = (await dataset()).filter(recipe => selected.every(name => canonical(recipe.rawIngredients ?? recipe.ingredients.map(item => item.name).join(' ')).includes(name)));
-    return { recipes: matches.slice((page - 1) * 20, page * 20), total: matches.length, page, pageSize: 20 };
+    return { recipes: matches.slice((page - 1) * 30, page * 30), total: matches.length, page, pageSize: 30 };
   };
 }
 export function recipesMiddleware(foodSafetyKey: string | undefined, mafraKey?: string) {

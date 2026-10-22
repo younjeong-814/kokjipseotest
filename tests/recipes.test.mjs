@@ -148,9 +148,9 @@ test('search calls only food safety and the optional basic grid, filters all ing
   const calls = [];
   const search = api.createRecipeSearch('food-test', async (url, options) => {
     calls.push(url); assert.ok(options.signal instanceof AbortSignal);
-    return response(url.includes('COOKRCP01') ? foodPayload(Array.from({ length: 25 }, (_, i) => row(i))) : basicPayload([basic(1)]));
+    return response(url.includes('COOKRCP01') ? foodPayload(Array.from({ length: 35 }, (_, i) => row(i))) : basicPayload([basic(1)]));
   }, 'basic-test');
-  assert.equal((await search(['대파', '두부'])).total, 25);
+  assert.equal((await search(['대파', '두부'])).total, 35);
   assert.equal((await search(['대파'], 2)).recipes.length, 5);
   assert.equal((await search(['없는재료'])).total, 0);
   assert.equal(calls.length, 2);
@@ -177,6 +177,15 @@ test('fetches all primary pages before filtering or calibrating', async () => {
   assert.equal((await search(['대파'])).total, 1);
   assert.equal(calls, 2);
 });
+test('recipe browsing returns 30 at a time without missing or repeating the final batch', async () => {
+  const search = api.createRecipeSearch('food-test', async () => response(foodPayload(Array.from({ length: 65 }, (_, i) => row(i + 1)))));
+  const pages = await Promise.all([search(['대파'], 1), search(['대파'], 2), search(['대파'], 3)]);
+  assert.deepEqual(pages.map(page => page.recipes.length), [30, 30, 5]);
+  assert.ok(pages.every(page => page.total === 65 && page.pageSize === 30));
+  assert.equal(new Set(pages.flatMap(page => page.recipes.map(recipe => recipe.id))).size, 65);
+  assert.equal((await search(['대파'], 4)).recipes.length, 0);
+});
+
 test('input validation, empty results, concurrency and failed-cache retries', async () => {
   const missing = api.createRecipeSearch(undefined);
   await assert.rejects(missing(['대파']), /FOOD_SAFETY_API_KEY/);
@@ -197,7 +206,7 @@ test('client sends ingredient names and abort signal, separating empty results f
   globalThis.fetch = async (url, options) => {
     assert.deepEqual(new URL(url, 'http://localhost').searchParams.getAll('ingredient'), ['대파', '두부']);
     assert.equal(options.signal, controller.signal);
-    return response({ recipes: [], total: 0, page: 1, pageSize: 20 });
+    return response({ recipes: [], total: 0, page: 1, pageSize: 30 });
   };
   assert.equal((await searchRecipes(['대파', '두부'], 1, controller.signal)).total, 0);
   globalThis.fetch = async () => new Response(JSON.stringify({ error: '연결 실패' }), { status: 502 });
