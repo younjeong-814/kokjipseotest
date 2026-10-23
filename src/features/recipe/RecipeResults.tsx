@@ -8,23 +8,34 @@ import type { Ingredient } from '../ingredients/repository';
 import { SubHeader } from '../../components/SubHeader';
 import { RecipeNoResultPage } from './RecipeNoResultPage';
 
-export function RecipeResults({ ingredients, onOpen, selectionContext, renderResults }: { ingredients: readonly string[]; renderResults?: (data: RecipeSearchResult, pagination: ReactNode) => ReactNode; onOpen?: (recipe: Recipe) => void; selectionContext?: { selected: Ingredient[]; onBack: () => void; onReselect: () => void } }) {
+function RecipeResultsContent({ ingredients, onOpen, selectionContext, renderResults }: { ingredients: readonly string[]; renderResults?: (data: RecipeSearchResult, pagination: ReactNode) => ReactNode; onOpen?: (recipe: Recipe) => void; selectionContext?: { selected: Ingredient[]; onBack: () => void; onReselect: () => void } }) {
   const [page, setPage] = useState(1);
   const [retry, setRetry] = useState(0);
   const [state, setState] = useState<{ loading: boolean; data?: RecipeSearchResult; error?: string }>({ loading: true });
   const query = JSON.stringify(ingredients);
   useEffect(() => {
     const controller = new AbortController();
-    setState({ loading: true });
+    setState(previous => ({ loading: true, data: previous.data }));
     searchRecipes(JSON.parse(query), page, controller.signal).then(data => {
-      if (!controller.signal.aborted) setState({ loading: false, data });
+      if (!controller.signal.aborted) setState(previous => ({ loading: false, data: { ...data, recipes: page === 1 ? data.recipes : [...(previous.data?.recipes ?? []), ...data.recipes] } }));
     }).catch(error => {
-      if (!controller.signal.aborted) setState({ loading: false, error: error instanceof Error ? error.message : '레시피 검색에 실패했어요.' });
+      if (!controller.signal.aborted) setState(previous => ({ loading: false, data: previous.data, error: error instanceof Error ? error.message : '레시피 검색에 실패했어요.' }));
     });
     return () => controller.abort();
   }, [query, page, retry]);
+  const loadMore = <div className="recipe-load-more" aria-busy={state.loading}>
+    {state.data && state.data.recipes.length < state.data.total && <>
+      {state.error && <p role="alert">{state.error}</p>}
+      <ActionButton type="button" disabled={state.loading} onClick={() => {
+        setState(previous => ({ ...previous, loading: true, error: undefined }));
+        if (state.error) setRetry(value => value + 1);
+        else setPage(value => value + 1);
+      }}>{state.loading ? '불러오는 중…' : state.error ? '다시 시도' : '더보기'}</ActionButton>
+      <span role="status">{state.data.recipes.length.toLocaleString('ko-KR')} / {state.data.total.toLocaleString('ko-KR')}</span>
+    </>}
+  </div>;
   if (state.data?.total === 0 && selectionContext) return <RecipeNoResultPage {...selectionContext} />;
-  if (state.data && state.data.total > 0 && renderResults) return <>{renderResults(state.data, <nav className="recipe-pagination" aria-label="레시피 검색 페이지"><button type="button" disabled={page === 1} onClick={() => setPage(value => value - 1)}>이전</button><span>{page} / {Math.max(1, Math.ceil(state.data.total / state.data.pageSize))}</span><button type="button" disabled={page * state.data.pageSize >= state.data.total} onClick={() => setPage(value => value + 1)}>다음</button></nav>)}</>;
+  if (state.data && state.data.total > 0 && renderResults) return <>{renderResults(state.data, loadMore)}</>;
   const results = <section className="recipe-results" aria-label="레시피 검색 결과" aria-busy={state.loading}>
     {state.loading && <p className="recipe-search-status" role="status">선택한 재료로 레시피를 찾고 있어요.</p>}
     {state.error && <div className="recipe-search-status"><p role="alert">{state.error}</p><ActionButton onClick={() => setRetry(value => value + 1)}>다시 시도</ActionButton></div>}
@@ -36,7 +47,7 @@ export function RecipeResults({ ingredients, onOpen, selectionContext, renderRes
           <img src={recipe.image || asset('recipe-empty.png')} alt={recipe.name} loading="lazy" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = asset('recipe-empty.png'); }} />
           <div><h3>{recipe.name}</h3><p>{[recipe.time, recipe.difficulty, recipe.servings, recipe.calories].filter(Boolean).join(' · ')}</p><p className="recipe-result-ingredients">{recipe.ingredients.map(item => item.name).join(', ')}</p>{onOpen && <button type="button" onClick={() => onOpen(recipe)}>{recipe.name} 상세 보기</button>}</div>
         </article></li>)}</ul>
-        <nav className="recipe-pagination" aria-label="레시피 검색 페이지"><button type="button" disabled={page === 1} onClick={() => setPage(value => value - 1)}>이전</button><span>{page} / {Math.max(1, Math.ceil(state.data.total / state.data.pageSize))}</span><button type="button" disabled={page * state.data.pageSize >= state.data.total} onClick={() => setPage(value => value + 1)}>다음</button></nav>
+        {loadMore}
       </>}
       <p className="recipe-source">레시피: 식품안전나라 · 시간·난이도: 농식품 포털 매칭 또는 추정</p>
     </>}
@@ -47,4 +58,9 @@ export function RecipeResults({ ingredients, onOpen, selectionContext, renderRes
     {results}
     <div className="recipe-no-result-action"><ActionButton className="action-button-large" onClick={selectionContext.onReselect}>다른 임박 재료 선택하기</ActionButton></div>
   </main> : results;
+}
+
+// A different ingredient selection starts a fresh list and cancels pending requests.
+export function RecipeResults(props: Parameters<typeof RecipeResultsContent>[0]) {
+  return <RecipeResultsContent key={JSON.stringify(props.ingredients)} {...props} />;
 }
