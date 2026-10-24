@@ -12,7 +12,8 @@ import { isFood } from './expiry';
 import { asset } from '../../lib/assets';
 
 export function StoredIngredientsPage({ navigate, items, onOpen, onDelete, registered = false, food = false, matches }: { navigate: Navigate; items: Ingredient[]; onOpen: (item: Ingredient) => void; onDelete: (id: string) => void; registered?: boolean; food?: boolean; matches?: ReadonlyMap<string, SearchMatch> }) {
-  const { sort, direction, onChange } = useFridgeSort(readRequestedSort());
+  const requestedSort = readRequestedSort();
+  const { sort, direction, onChange } = useFridgeSort(requestedSort?.sort ?? null, requestedSort?.direction);
   const [openItem, setOpenItem] = useState<string | null>(null);
   const drag = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
   const suppressDeleteClick = useRef(false);
@@ -88,12 +89,12 @@ export function StoredIngredientsPage({ navigate, items, onOpen, onDelete, regis
   </main>;
 }
 
-function readRequestedSort(): FridgeSort | null {
+function readRequestedSort(): { sort: FridgeSort; direction: 'asc' } | null {
   try {
     const requested = sessionStorage.getItem('kokjipseo:fridge-sort');
-    if (requested === '소비기한' || requested === '등록순' || requested === '남은양순') {
+    if (requested === '소비기한:asc') {
       sessionStorage.removeItem('kokjipseo:fridge-sort');
-      return requested;
+      return { sort: '소비기한', direction: 'asc' };
     }
   } catch { /* 기본 정렬 사용 */ }
   return null;
