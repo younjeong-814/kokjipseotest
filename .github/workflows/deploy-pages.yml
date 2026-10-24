@@ -33,6 +33,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Test
         run: pnpm test
+      - name: Check shared Edge parsers
+        run: pnpm edge:check
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
@@ -43,6 +45,10 @@ jobs:
           VITE_RECIPE_ENDPOINT: ${{ vars.VITE_RECIPE_ENDPOINT }}
           VITE_OCR_ENDPOINT: ${{ vars.VITE_OCR_ENDPOINT }}
           VITE_RECOGNIZE_ENDPOINT: ${{ vars.VITE_RECOGNIZE_ENDPOINT }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - name: Check built files for secret leakage
+        run: pnpm check:build-secrets
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:

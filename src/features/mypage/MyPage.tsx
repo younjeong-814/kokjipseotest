@@ -10,8 +10,10 @@ import { hasEnoughReportData, pendingReports, type MyPageReports } from './repor
 
 const periods = ['주간', '월간', '연간'] as const;
 
-export function MyPage({ navigate, onOpenManaged, registeredCount = 0, reports, error, report: weeklyReport }: { navigate: Navigate; onOpenManaged?: (period: (typeof periods)[number]) => void; registeredCount?: number; reports?: MyPageReports; error?: string; report?: WeeklyReport }) {
-  const [period, setPeriod] = useState<(typeof periods)[number]>('주간');
+export function MyPage({ navigate, onOpenManaged, registeredCount = 0, reports, error, report: weeklyReport, selectedPeriod, onPeriodChange }: { navigate: Navigate; selectedPeriod?: (typeof periods)[number]; onPeriodChange?: (period: (typeof periods)[number]) => void; onOpenManaged?: (period: (typeof periods)[number]) => void; registeredCount?: number; reports?: MyPageReports; error?: string; report?: WeeklyReport }) {
+  const [localPeriod, setLocalPeriod] = useState<(typeof periods)[number]>('주간');
+  const period = selectedPeriod ?? localPeriod;
+  const setPeriod = onPeriodChange ?? setLocalPeriod;
 
   const hasReport = Boolean(reports && Object.values(reports).some(value => value.managedCount > 0 || (value.completedItemCount ?? 0) > 0)) || registeredCount > 0 || Boolean(weeklyReport && (weeklyReport.consumed > 0 || weeklyReport.discarded > 0));
   const report = (reports ?? pendingReports(registeredCount))[period];

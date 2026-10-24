@@ -81,6 +81,7 @@ export function ReceiptCameraPage({ navigate, onCapture, backDestination = 'guid
             </button>
             <span className="camera-actions-spacer" />
           </div>
+          {error&&<button type="button" disabled={busy} onClick={()=>navigate('manual-entry')}>직접 입력하기</button>}
           <p className="camera-label">{copy.title}</p>
           <span className="home-indicator" />
         </div>

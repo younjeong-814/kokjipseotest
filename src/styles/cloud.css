@@ -1,0 +1,40 @@
+.cloud-account { max-width:390px; margin:0 auto; padding:16px 20px; background:#fff; color:#28303b; box-sizing:border-box; font-size:13px; line-height:1.6; }
+.cloud-account strong {display:block;font-size:16px}
+.cloud-account button,.cloud-save-warning button {border:1px solid #dce2e8;border-radius:8px;background:white;color:#1679c5;padding:8px 12px;margin:5px 6px 5px 0;cursor:pointer}
+.cloud-account summary {cursor:pointer;padding:8px 0}
+.recipe-save-button {border:1px solid #dce2e8;background:#fff;border-radius:10px;padding:10px 14px;color:#1679c5;margin-bottom:12px;cursor:pointer}
+.cloud-account [role=alert],.cloud-save-warning {color:#b33636}
+.cloud-save-warning {position:fixed;left:50%;transform:translateX(-50%);bottom:76px;background:#fff3f1;border:1px solid #edb9b2;border-radius:12px;width:min(350px,90vw);padding:12px;z-index:100;font-size:13px}
+
+/* Figma 6224:19350: 32px icon slot, inset 8.33%, original SVG dimensions. */
+.settings-button { width:44px; height:44px; padding:0; margin-right:-6px; display:flex; align-items:center; justify-content:center; background:none; cursor:pointer; }
+.settings-button img { display:block; }
+.settings-button:focus-visible { outline:2px solid var(--blue-500); border-radius:8px; }
+/* Settings composes the existing Paperlogy, blue, spacing and radius tokens. */
+.screen-settings .sub-header h1 { width:100%; padding-left:24px; }
+.settings-page { padding:var(--s5) var(--s5) 40px; }
+.settings-page .cloud-account { max-width:none; margin:0; padding:0; background:transparent; color:var(--gray-900); font-size:var(--t2); line-height:var(--lh3); }
+.settings-profile { display:flex; align-items:center; gap:var(--s4); padding:var(--s5); border:1px solid var(--blue-100); border-radius:var(--r4); background:var(--blue-50); }
+.settings-profile > div { min-width:0; }
+.settings-avatar { width:48px; height:48px; flex-shrink:0; display:grid; place-items:center; border-radius:50%; background:var(--gray-0); color:var(--blue-500); font-size:var(--t6); font-weight:700; }
+.settings-section-label { display:block; margin-bottom:var(--s1); font-size:var(--t1); color:var(--gray-800); }
+.settings-profile strong { font-size:var(--t4); line-height:var(--lh4); }
+.settings-page .account-email { overflow-wrap:anywhere; font-size:var(--t1); color:var(--gray-800); margin:var(--s1) 0 0; }
+.settings-page .cloud-account button { margin:0; padding:var(--s4); background:var(--gray-0); border:0; border-radius:var(--r3); width:100%; text-align:left; color:var(--gray-900); font-family:inherit; font-size:var(--t2); line-height:var(--lh3); font-weight:500; min-height:56px; cursor:pointer; }
+.settings-page .cloud-account button::after { content:'›'; float:right; font-size:var(--t5); color:var(--gray-700); font-weight:400; }
+.settings-page .cloud-account button:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+.settings-account-actions { margin-top:var(--s3); border:1px solid var(--blue-100); border-radius:var(--r3); overflow:hidden; }
+.settings-account-actions button { color:var(--gray-800) !important; }
+.settings-sync-status { display:flex; align-items:center; gap:var(--s2); margin-top:var(--s4); padding:var(--s3) var(--s4); border-radius:var(--r3); background:var(--blue-50); color:var(--blue-500); font-size:var(--t1); }
+.settings-sync-status > span { width:18px; height:18px; display:grid; place-items:center; border-radius:50%; color:var(--gray-0); background:var(--blue-500); font-size:12px; }
+.settings-sync-status p { margin:0; }
+.settings-section-title { margin:32px 0 var(--s3); font-size:var(--t3); line-height:var(--lh3); font-weight:700; color:var(--gray-900); }
+.settings-data-actions { border:1px solid var(--blue-100); border-radius:var(--r4); overflow:hidden; }
+.settings-data-actions > button + button { border-top:1px solid var(--blue-100) !important; border-radius:0 !important; }.connection-status-icon { display:inline-flex; align-items:center; justify-content:center; width:12px; height:12px; flex:0 0 12px; border-radius:50%; }
+.connection-status-icon.is-success { background:var(--green-500); }
+.connection-status-icon.is-error { background:var(--red-500); }
+.settings-sync-status > .connection-status-icon { width:12px; height:12px; font-size:inherit; }
+.settings-sync-status > .connection-status-icon.is-success { background:var(--green-500); }
+.settings-sync-status > .connection-status-icon.is-error { background:var(--red-500); }
+.connection-status-icon img { display:block; max-width:none; }
+.settings-sync-status.has-error { background:#fff1f4; color:var(--red-500); }

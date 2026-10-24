@@ -1,17 +1,10 @@
+import type { PhotoRecognitionItem } from './photoApi';
 import { useState } from 'react';
 import type { ReceiptResult } from '../receipt/parseReceipt';
 import { categoryImage } from '../ingredients/images';
 import { classifyIngredient, matchIngredient } from '../ingredients/classify';
 
 export type RecognizedItem = { id: number; name: string; quantity: number; category: string; image: string; error: boolean; corrected: boolean };
-
-// Figma prototype variables name0..name3 and visible/item0..item3. 인식 결과가 들어오기 전 기본값이다.
-const sampleItems: RecognizedItem[] = [
-  { id: 0, name: '대퍄', quantity: 1, category: '채소', image: 'thumb-vegetable.png', error: true, corrected: false },
-  { id: 1, name: '양파', quantity: 1, category: '채소', image: 'thumb-vegetable.png', error: false, corrected: false },
-  { id: 2, name: '두부', quantity: 1, category: '두부·콩류', image: 'thumb-bean.png', error: false, corrected: false },
-  { id: 3, name: '콩', quantity: 1, category: '두부·콩류', image: 'thumb-bean.png', error: false, corrected: false },
-];
 
 const pad = (value: number) => String(value).padStart(2, '0');
 const now = () => {
@@ -20,12 +13,12 @@ const now = () => {
 };
 
 export function useRecognition() {
-  const [source, setSource] = useState<'sample' | 'receipt' | 'camera'>('sample');
-  const [items, setItems] = useState(sampleItems);
+  const [source, setSource] = useState<'camera' | 'receipt'>('camera');
+  const [items, setItems] = useState<RecognizedItem[]>([]);
   const [editing, setEditing] = useState('0');
-  const [pendingName, setPendingName] = useState('대파');
-  const [date, setDate] = useState('2026-08-08');
-  const [time, setTime] = useState('10:49');
+  const [pendingName, setPendingName] = useState('');
+  const [date, setDate] = useState(now().date);
+  const [time, setTime] = useState(now().time);
   const start = (next: RecognizedItem[], at: { date: string; time: string }) => {
     setItems(next);
     setEditing(String(next[0]?.id ?? 0));
@@ -48,15 +41,17 @@ export function useRecognition() {
       setPendingName(name);
     },
     remove: (id: number) => setItems(current => current.filter(item => item.id !== id)),
-    showSample: () => { setSource('sample'); start(sampleItems, now()); },
     // 냉장고 칸·상품 촬영은 이름만 인식하므로 수량은 1개로 둔다.
-    showDetected: (names: string[]) => {
+    showDetected: (names: (string | PhotoRecognitionItem)[]) => {
       setSource('camera');
-      start(names.map((name, id) => {
+      start(names.map((value, id) => {
+        if (typeof value !== 'string') return {...value,id,image:categoryImage(value.category),error:value.uncertain,corrected:false};
+        const name = value;
         const category = classifyIngredient(name);
         return { id, name, quantity: 1, category, image: categoryImage(category), error: !matchIngredient(name), corrected: false };
       }), now());
     },
+    showPhoto: (results:PhotoRecognitionItem[]) => {setSource('camera');start(results.map((item,id)=>({...item,id,image:categoryImage(item.category),error:item.uncertain,corrected:false})),now());},
     showReceipt: (result: ReceiptResult) => {
       const at = now();
       setSource('receipt');

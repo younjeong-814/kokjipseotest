@@ -3,3 +3,10 @@ dist/
 *.tsbuildinfo
 .env.local
 .pnpm-store/
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+supabase/.temp/
+supabase/bundles/
