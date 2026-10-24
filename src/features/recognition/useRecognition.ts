@@ -5,7 +5,7 @@ import { classifyIngredient, matchIngredient } from '../ingredients/classify';
 
 export type RecognizedItem = { id: number; name: string; quantity: number; category: string; image: string; error: boolean; corrected: boolean };
 
-// Figma prototype variables name0..name3 and visible/item0..item3. 냉장고·상품 촬영은 아직 이 샘플을 보여준다.
+// Figma prototype variables name0..name3 and visible/item0..item3. 인식 결과가 들어오기 전 기본값이다.
 const sampleItems: RecognizedItem[] = [
   { id: 0, name: '대퍄', quantity: 1, category: '채소', image: 'thumb-vegetable.png', error: true, corrected: false },
   { id: 1, name: '양파', quantity: 1, category: '채소', image: 'thumb-vegetable.png', error: false, corrected: false },
@@ -20,7 +20,7 @@ const now = () => {
 };
 
 export function useRecognition() {
-  const [source, setSource] = useState<'sample' | 'receipt'>('sample');
+  const [source, setSource] = useState<'sample' | 'receipt' | 'camera'>('sample');
   const [items, setItems] = useState(sampleItems);
   const [editing, setEditing] = useState('0');
   const [pendingName, setPendingName] = useState('대파');
@@ -49,6 +49,14 @@ export function useRecognition() {
     },
     remove: (id: number) => setItems(current => current.filter(item => item.id !== id)),
     showSample: () => { setSource('sample'); start(sampleItems, now()); },
+    // 냉장고 칸·상품 촬영은 이름만 인식하므로 수량은 1개로 둔다.
+    showDetected: (names: string[]) => {
+      setSource('camera');
+      start(names.map((name, id) => {
+        const category = classifyIngredient(name);
+        return { id, name, quantity: 1, category, image: categoryImage(category), error: !matchIngredient(name), corrected: false };
+      }), now());
+    },
     showReceipt: (result: ReceiptResult) => {
       const at = now();
       setSource('receipt');

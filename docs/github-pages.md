@@ -13,8 +13,9 @@ GitHub Pages는 정적 호스팅이므로 Vite 개발 서버의 /api/recipes, /a
 
 - VITE_RECIPE_ENDPOINT: 레시피 서버의 전체 엔드포인트 URL
 - VITE_OCR_ENDPOINT: OCR 서버의 전체 엔드포인트 URL
+- VITE_RECOGNIZE_ENDPOINT: 냉장고 칸·상품 촬영 식재료 인식(Gemini) 서버의 전체 엔드포인트 URL
 
-서버는 Pages 출처에 대해 CORS를 허용해야 합니다. 위 변수에 키를 넣지 마세요. FOOD_SAFETY_API_KEY, FOOD_API_KEY, GOOGLE_VISION_API_KEY는 별도 서버의 비밀 환경 변수로만 설정합니다. 로컬 .env.local은 Git 제외 상태를 유지하며 워크플로에서 읽지 않습니다. 서버 URL 미설정 상태에서는 화면과 브라우저 localStorage 기능을 확인할 수 있으며 실제 레시피 검색·OCR은 사용할 수 없습니다.
+서버는 Pages 출처에 대해 CORS를 허용해야 합니다. 위 변수에 키를 넣지 마세요. FOOD_SAFETY_API_KEY, FOOD_API_KEY, GOOGLE_VISION_API_KEY, GEMINI_API_KEY(필요하면 GEMINI_MODEL)는 별도 서버의 비밀 환경 변수로만 설정합니다. 로컬 .env.local은 Git 제외 상태를 유지하며 워크플로에서 읽지 않습니다. 서버 URL 미설정 상태에서는 화면과 브라우저 localStorage 기능을 확인할 수 있으며 실제 레시피 검색·OCR은 사용할 수 없습니다.
 
 기존 localhost 저장 데이터는 Pages로 자동 이전되지 않으며 접속 브라우저/출처별로 별도 저장됩니다.
 

@@ -26,6 +26,7 @@ import { RecognitionResultPage } from './features/recognition/RecognitionResultP
 import { useRecognition } from './features/recognition/useRecognition';
 import { IngredientDetailPage } from './features/ingredients/IngredientDetailPage';
 import { recognizeReceipt } from './features/receipt/ocr';
+import { recognizeIngredients } from './features/recognition/recognize';
 import { defaultStorage } from './features/ingredients/expiry';
 import { toDateKey } from './lib/date';
 import { StoredIngredientsPage } from './features/ingredients/StoredIngredientsPage';
@@ -91,19 +92,13 @@ export function App() {
   // 새로고침 등으로 선택한 재료가 없으면 재료 선택 화면으로 돌아간다.
   useEffect(() => { if ((screen === 'recipe-no-result' || screen === 'recipe-results') && !hasRecipeSelection) window.location.replace('#recipe'); }, [screen, hasRecipeSelection]);
   const info = screens[displayScreen];
-  // 영수증 가이드에서 들어온 촬영만 OCR을 거친다. 냉장고·상품 촬영 인식은 아직 샘플 결과를 보여준다.
+  // 영수증 촬영은 OCR, 냉장고 칸·상품 촬영은 Gemini 식재료 인식을 거친다.
+  // 인식에 실패하면 오류를 던져 카메라 화면에 안내하고, 결과 화면으로 넘어가지 않는다.
   const onCapture = async (image: string) => {
     registering.current = false;
     setRecognitionError('');
-    if (captureGuide === 'guide-receipt') {
-      // 영수증 경로에서는 OCR 결과를 반드시 사용한다. OCR 실패 시 recognizeReceipt가
-      // 오류를 던져 카메라 화면에 안내하고, 샘플 결과 화면으로 넘어가지 않는다.
-      const receipt = await recognizeReceipt(image);
-      recognition.showReceipt(receipt);
-    } else {
-      // 냉장고 칸·상품 촬영은 실제 인식 연동 전까지 샘플 결과를 보여준다.
-      recognition.showSample();
-    }
+    if (captureGuide === 'guide-receipt') recognition.showReceipt(await recognizeReceipt(image));
+    else recognition.showDetected(await recognizeIngredients(image, captureGuide === 'guide-product' ? 'product' : 'fridge'));
     navigate('recognition-result');
   };
   const openDetail = (item: Ingredient) => { window.location.hash = `ingredient-detail?item=${encodeURIComponent(item.id)}`; };
