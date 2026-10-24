@@ -61,7 +61,7 @@ export function visionOcrMiddleware(apiKey: string | undefined) {
     if (typeof image !== 'string' || !image) return send(400, { error: '이미지가 없어요.' });
     try { send(200, { words: await annotateImage(apiKey, image) }); }
     catch (error) {
-      console.error('[vision-ocr]', error);
+      console.error('[vision-ocr] upstream request failed');
       send(502, { error: '문자 인식 서버에 연결하지 못했어요.' });
     }
   };

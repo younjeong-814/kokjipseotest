@@ -1,3 +1,5 @@
+import { requestExternal } from '../cloud/externalRequests';
+import type { PhotoRecognitionItem } from './photoApi';
 import { isExcludedItem } from '../ingredients/classify';
 
 export type RecognizeMode = 'fridge' | 'product';
@@ -6,14 +8,20 @@ export type RecognizeMode = 'fridge' | 'product';
 const ENDPOINT = import.meta.env.VITE_RECOGNIZE_ENDPOINT || '/api/recognize';
 
 /** 사진에 보이는 식재료 이름을 돌려준다. 중복과 비식품은 뺀다. */
-export async function recognizeIngredients(image: string, mode: RecognizeMode): Promise<string[]> {
+export async function recognizeIngredients(image: string, mode: RecognizeMode): Promise<(string | PhotoRecognitionItem)[]> {
   let response: Response;
   try {
-    response = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image, mode }) });
+    response = await requestExternal('recognize', ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image, mode }) });
   } catch { throw new Error('네트워크에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.'); }
-  const data = await response.json().catch(() => ({})) as { items?: string[]; error?: string };
+  const data = await response.json().catch(() => ({})) as { items?: (string | PhotoRecognitionItem)[]; error?: string; mode?: string };
+  if(data.mode==='mock') throw new Error('사진 인식 서버 설정 후 다시 촬영해 주세요.');
   if (!response.ok || !Array.isArray(data.items)) throw new Error(data.error ?? '식재료를 인식하지 못했어요. 다시 촬영해 주세요.');
-  const names = [...new Set(data.items.map(name => name.trim()).filter(Boolean))].filter(name => !isExcludedItem(name));
+  const seen = new Set<string>();
+  const names = data.items.filter(item => {
+    const name = typeof item === 'string' ? item.trim() : item?.name?.trim();
+    if (!name || isExcludedItem(name) || seen.has(name)) return false;
+    seen.add(name); return true;
+  }).map(item => typeof item === 'string' ? item.trim() : item);
   if (!names.length) throw new Error(mode === 'fridge' ? '사진에서 식재료를 찾지 못했어요. 냉장고 칸이 밝고 선명하게 보이도록 다시 촬영해 주세요.' : '사진에서 식재료를 찾지 못했어요. 상품 전체가 보이도록 다시 촬영해 주세요.');
   return names;
 }

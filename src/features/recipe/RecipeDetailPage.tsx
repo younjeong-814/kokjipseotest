@@ -5,7 +5,7 @@ import { RecipeIngredients } from './RecipeIngredients';
 import type { RecipeDetail } from './types';
 import { approximateTime } from './apiPresentation';
 
-export function RecipeDetailPage({ recipe, onBack }: { recipe: RecipeDetail; onBack: () => void }) {
+export function RecipeDetailPage({ recipe, onBack, isSaved, onToggleSave, saveError }: { recipe: RecipeDetail; onBack: () => void; isSaved?:boolean; onToggleSave?:()=>void; saveError?:string }) {
   const tags = [
     { icon: 'recipe-detail-time.svg', label: approximateTime(recipe.time ?? '') },
     { icon: 'recipe-detail-level.svg', label: recipe.difficulty },
@@ -16,6 +16,7 @@ export function RecipeDetailPage({ recipe, onBack }: { recipe: RecipeDetail; onB
     <div className="recipe-detail-body">
       <img className="recipe-detail-hero" src={recipe.imageUrl} alt={recipe.title} />
       <section className="recipe-detail-summary" aria-label="요리 정보"><h2>{recipe.title}</h2><ul className="recipe-detail-tags">{tags.map(tag => <li key={tag.icon}><img src={asset(tag.icon)} alt="" /><span>{tag.label}</span></li>)}</ul></section>
+      <div>{onToggleSave&&<button className="recipe-save-button" aria-pressed={isSaved} onClick={onToggleSave}>{isSaved ? '저장한 레시피 해제' : '레시피 저장'}</button>}{saveError&&<p role="alert">{saveError}</p>}</div>
       <RecipeIngredients key={recipe.id} ingredients={recipe.ingredients} />
       <section className="recipe-cooking-steps" aria-labelledby="recipe-steps-heading"><h2 id="recipe-steps-heading">조리 순서</h2><ol>{recipe.steps.map((step, index) => <li key={`${recipe.id}-${index}`}><span className="recipe-step-number" aria-hidden="true">{index + 1}</span><p>{step}</p></li>)}</ol>{!recipe.steps.length && <p className="recipe-detail-empty">등록된 조리 순서가 없어요.</p>}</section>
     </div>

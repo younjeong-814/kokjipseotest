@@ -1,0 +1,10 @@
+project_id = "kokjipseo"
+
+# Verification is performed in each handler with Auth /user (supports publishable keys).
+# Requests without a valid signed-in user are rejected BEFORE external calls.
+[functions.recipes]
+verify_jwt = false
+[functions.ocr]
+verify_jwt = false
+[functions.recognize]
+verify_jwt = false

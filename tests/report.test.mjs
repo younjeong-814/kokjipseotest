@@ -33,9 +33,9 @@ test('이번 주 기록만 집계하고 TOP 3는 횟수, 최근 순으로 정렬
 });
 
 test('한 줄 제안은 자주 폐기한 재료를 조사에 맞춰 안내한다', () => {
-  assert.deepEqual(report.suggestionLines({ topDiscarded: ['양파', '두부', '상추'] }), ['양파와 두부가 자주 남아요', '다음에는 조금 적게 사도 충분할 것 같아요']);
-  assert.equal(report.suggestionLines({ topDiscarded: ['당근', '상추'] })[0], '당근과 상추가 자주 남아요');
-  assert.equal(report.suggestionLines({ topDiscarded: ['우유', '시금치'] })[0], '우유와 시금치가 자주 남아요');
-  assert.equal(report.suggestionLines({ topDiscarded: ['당근'] })[0], '당근이 자주 남아요');
+  assert.deepEqual(report.suggestionLines({ topDiscarded: ['양파', '두부', '상추'] }), ['이번 주 양파와 두부가 자주 남아요', '다음에는 조금 적게 사도 충분할 것 같아요']);
+  assert.equal(report.suggestionLines({ topDiscarded: ['당근', '상추'] })[0], '이번 주 당근과 상추가 자주 남아요');
+  assert.equal(report.suggestionLines({ topDiscarded: ['우유', '시금치'] })[0], '이번 주 우유와 시금치가 자주 남아요');
+  assert.equal(report.suggestionLines({ topDiscarded: ['당근'] })[0], '이번 주 당근이 자주 남아요');
   assert.equal(report.suggestionLines({ topDiscarded: [] })[0], '이번 주는 버린 재료가 없어요');
 });
