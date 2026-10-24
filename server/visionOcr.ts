@@ -33,7 +33,7 @@ export async function annotateImage(apiKey: string, image: string): Promise<OcrW
   });
 }
 
-function readBody(req: IncomingMessage): Promise<string> {
+export function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = '';
     req.setEncoding('utf8');
