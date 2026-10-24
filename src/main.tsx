@@ -20,3 +20,4 @@ import './styles/recipe-detail.css';
 import './styles/weekly-report.css';
 
 import './styles/mypage-dashboard.css';
+import './styles/responsive.css';
