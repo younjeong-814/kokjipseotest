@@ -1,0 +1,410 @@
+{
+  "mafraKeyPresent": true,
+  "provider": {
+    "status": 200,
+    "total": 537,
+    "rows": [
+      {
+        "id": "1",
+        "name": "나물비빔밥",
+        "minutes": 60,
+        "difficulty": "중급"
+      }
+    ]
+  },
+  "search": {
+    "total": 519,
+    "samples": [
+      {
+        "id": "31",
+        "name": "방울토마토 소박이",
+        "time": "약 25분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 4,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "33",
+        "name": "사과 새우 북엇국",
+        "time": "약 25분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "37",
+        "name": "된장국",
+        "time": "약 25분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "38",
+        "name": "표고버섯 청경채국",
+        "time": "약 30분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "95",
+        "name": "치커리샐러드와 올리브 마늘 소스",
+        "time": "약 20분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 4,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "91",
+        "name": "버섯구이와 두부타르타르 소스",
+        "time": "약 40분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "93",
+        "name": "구운채소와 간장레몬 소스",
+        "time": "약 40분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "94",
+        "name": "브로콜리 컬리플라워 샐러드와 두유 요거트 소스",
+        "time": "약 20분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 4,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "131",
+        "name": "함초 냉이 국수",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "138",
+        "name": "부대된장찌개",
+        "time": "약 35분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "193",
+        "name": "고추장 라따뚜이",
+        "time": "약 40분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "636",
+        "name": "우렁된장소스 배추롤",
+        "time": "약 40분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "637",
+        "name": "인삼떡갈비",
+        "time": "약 40분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "638",
+        "name": "초계탕과 사색곤약",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "641",
+        "name": "훈제오리가슴살 샐러드",
+        "time": "약 30분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "271",
+        "name": "닭고기김치찌개",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "275",
+        "name": "해물김치찌개",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "276",
+        "name": "맑은부대찌개",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "277",
+        "name": "나가사키부대찌개",
+        "time": "약 45분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "280",
+        "name": "들깨순두부찌개",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "281",
+        "name": "백태순두부찌개",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "282",
+        "name": "버섯순두부찌개",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "385",
+        "name": "토마토스프파스타",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "386",
+        "name": "다이어트국수",
+        "time": "약 25분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 4,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "387",
+        "name": "오징어구이",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "389",
+        "name": "웰빙스테이크",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "390",
+        "name": "오징어콩순대",
+        "time": "약 40분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 16,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "391",
+        "name": "토마토소고기장조림",
+        "time": "약 30분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "392",
+        "name": "토마토소고기찜",
+        "time": "약 30분",
+        "difficulty": "초급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      },
+      {
+        "id": "396",
+        "name": "까르보나라뇨끼",
+        "time": "약 35분",
+        "difficulty": "중급",
+        "metadata": {
+          "timeSource": "estimated",
+          "difficultySource": "estimated",
+          "calibrationSamples": 3,
+          "difficultyCalibrationSamples": 16,
+          "estimateVersion": "steps-ingredients-method-v1"
+        }
+      }
+    ]
+  }
+}
