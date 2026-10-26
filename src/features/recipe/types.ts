@@ -1,4 +1,4 @@
-export type RecipeIngredient = { id: string; name: string; amount: string; group?: string };
+export type RecipeIngredient = { id: string; name: string; amount: string };
 export type RecipeDetail = {
   id: string;
   title: string;

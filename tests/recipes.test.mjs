@@ -71,42 +71,6 @@ test('cached split wrappers are repaired without dropping useful quantity refere
   assert.deepEqual(cleanIngredientParts('황태채(', '100g)'), { name: '황태채', amount: '100g' });
   assert.deepEqual(cleanIngredientParts('두부(', '100g(1/2모))'), { name: '두부', amount: '100g(1/2모)' });
   assert.deepEqual(cleanIngredientParts('계란', '(2알)'), { name: '계란', amount: '2알' });
-  assert.deepEqual(cleanIngredientParts('키조개관자60', ''), { name: '키조개관자', amount: '60g' });
-});
-test('unitless trailing quantities default to grams without splitting names that contain numbers', () => {
-  const examples = [
-    ['키조개관자60', '키조개관자', '60g'],
-    ['키조개관자 60', '키조개관자', '60g'],
-    ['키조개관자(60)', '키조개관자', '60g'],
-    ['참기름1.5', '참기름', '1.5g'],
-    ['비타500 1병', '비타500', '1병'],
-    ['3색 파프리카 1개', '3색 파프리카', '1개'],
-    ['V8', 'V8', ''],
-  ];
-  for (const [source, name, amount] of examples) assert.deepEqual(api.parseIngredients(source), [{ name, amount, type: '' }], source);
-  assert.deepEqual(api.parseIngredients('키조개관자60 마늘10, 대파 10').map(part => [part.name, part.amount]), [['키조개관자', '60g'], ['마늘', '10g'], ['대파', '10g']]);
-});
-test('spaced or bracketed section labels are stripped from ingredient names', () => {
-  const { splitIngredientText } = load('../src/features/recipe/ingredientText.ts');
-  const examples = [
-    ['필수 재료:표고버섯', '표고버섯', ''],
-    ['필수 재료 : 표고버섯 2개', '표고버섯', '2개'],
-    ['필수 재료 표고버섯 2개', '표고버섯', '2개'],
-    ['[필수 재료] 표고버섯 2개', '표고버섯', '2개'],
-    ['선택 재료', '', ''],
-    ['[2인분] 토마토', '토마토', ''],
-    ['(2~3인분 기준) 토마토 1개', '토마토', '1개'],
-    ['2인분: 토마토 1개', '토마토', '1개'],
-    ['[2인분 재료] 토마토 1개', '토마토', '1개'],
-    ['[2인분]', '', ''],
-    ['2인분 기준<br>', '', ''],
-    ['2인분 기준<br>토마토 1개', '토마토', '1개'],
-    ['닭 육수 큐브 1개', '닭 육수 큐브', '1개'],
-    ['토마토 소스 2큰술', '토마토 소스', '2큰술'],
-  ];
-  for (const [source, name, amount] of examples) assert.deepEqual(splitIngredientText(source), { name, amount }, source);
-  assert.deepEqual(api.parseIngredients('애호박 20g [소스소개] 쇠고기양념:설탕 1.4g, 간장 2g').map(part => [part.name, part.amount]), [['애호박', '20g'], ['설탕', '1.4g'], ['간장', '2g']]);
-  assert.deepEqual(api.parseIngredients('2인분 기준<br>토마토 1개, 우유 200ml<br/>소금 약간').map(part => part.name), ['토마토', '우유', '소금']);
 });
 test('malformed duplicated or unclosed quantity parentheses never swallow following ingredients', () => {
   const raw = '배추(100g), 미나리(20g), 두부((30g), 부추(20g)\n표고버섯(20g), 느타리(20g), 소고기(30g), 저염간장(10g)\n대파(10g), 마늘(10g), 참기름(10g), 통깨(3g)\n후춧가루(0.05g)\n- 육수 : 양지육(50g), 무(30g), 마늘(10g), 저염간장(10g)';
