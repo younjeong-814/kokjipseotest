@@ -1,9 +1,11 @@
 import { asset } from '../../lib/assets';
 import type { Recipe, RecipeDetail, RecipeSummary } from './types';
-import { cleanIngredientParts } from './ingredientText';
+import { cleanIngredientParts, parseIngredientGroups } from './ingredientText';
 
 const key = (value: string) => value.normalize('NFC').toLowerCase().replace(/\s+/g, '').replace(/계란/g, '달걀');
 const optional = (value: string) => value || undefined;
+// The step list already renders its own number badge: drop "1.", "1)", "①", "(1)" prefixes but keep "1.5컵".
+export const stepText = (value: string) => value.replace(/^\s*(?:\d{1,2}\s*[.)．](?!\d)|[①-⑳]|\(\d{1,2}\)|\[\d{1,2}\])\s*/, '').trim();
 export const approximateTime = (value: string) => value ? `약 ${value.replace(/^(?:약\s*)+/, '')}` : undefined;
 
 // 태그: 레시피에 들어가는 선택 재료 + 선택하지 않은 재료 1개(주재료 > 부재료 > 양념 순)
@@ -23,7 +25,9 @@ export function toRecipeDetail(recipe: Recipe): RecipeDetail {
   return {
     id: recipe.id, title: recipe.name, imageUrl: recipe.image || asset('recipe-empty.png'),
     time: approximateTime(recipe.time), difficulty: optional(recipe.difficulty), servings: optional(recipe.servings),
-    ingredients: recipe.ingredients.map((item, index) => ({ id: `${recipe.id}-${index}`, ...cleanIngredientParts(item.name, item.amount) })).filter(item => item.name),
-    steps: recipe.steps.map(step => step.text),
+    // Re-read the source text when present so sauce groups also apply to recipes cached by an older parser.
+    ingredients: (recipe.rawIngredients ? parseIngredientGroups(recipe.rawIngredients) : recipe.ingredients.map(item => cleanIngredientParts(item.name, item.amount)))
+      .filter(item => item.name).map((item, index) => ({ id: `${recipe.id}-${index}`, ...item })),
+    steps: recipe.steps.map(step => stepText(step.text)).filter(Boolean),
   };
 }
