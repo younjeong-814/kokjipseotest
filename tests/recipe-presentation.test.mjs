@@ -40,3 +40,17 @@ test('detail and result hashtags share heading removal for cached recipe entries
   assert.deepEqual(exports.toRecipeSummary(dirty, ['두부']).tags, ['두부', '느타리버섯']);
   assert.deepEqual(exports.toRecipeDetail(dirty).ingredients.map(item => item.name), ['느타리버섯', '두부']);
 });
+test('detail steps drop source numbering because the list renders its own badge', () => {
+  const numbered = { ...recipe, steps: ['1. 토마토를 썬다.', '2)달걀을 푼다.', '③ 볶는다.', '(4) 담는다.', '1.5컵의 물을 붓는다.', '10. 마무리한다.', '1.'].map(text => ({ text, image: '', tip: '' })) };
+  assert.deepEqual(exports.toRecipeDetail(numbered).steps, ['토마토를 썬다.', '달걀을 푼다.', '볶는다.', '담는다.', '1.5컵의 물을 붓는다.', '마무리한다.']);
+});
+test('detail groups sauce rows from the source text after plain ingredients', () => {
+  const raw = '[2인분] 참기름 1g, 애호박 20g [소스소개] 쇠고기양념:설탕 1.4g, 간장 2g\n저나트륨겨자간장소스 :간장 2g, 식초 3g';
+  const detail = exports.toRecipeDetail({ ...recipe, rawIngredients: raw, ingredients: [{ name: '애호박', amount: '20g [소스소개] 쇠고기양념:설탕 1.4g', type: '' }] });
+  assert.deepEqual(detail.ingredients.map(item => [item.name, item.amount, item.group]), [
+    ['참기름', '1g', undefined], ['애호박', '20g', undefined],
+    ['설탕', '1.4g', '쇠고기양념'], ['간장', '2g', '쇠고기양념'],
+    ['간장', '2g', '저나트륨겨자간장소스'], ['식초', '3g', '저나트륨겨자간장소스'],
+  ]);
+  assert.deepEqual(exports.toRecipeDetail(recipe).ingredients.map(item => item.group), [undefined, undefined, undefined, undefined]);
+});

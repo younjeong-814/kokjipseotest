@@ -5,6 +5,7 @@ import type { Navigate } from '../../prototype/flow';
 import type { WeeklyReport } from '../report/weeklyReport';
 
 import { MyPageDashboard } from './MyPageDashboard';
+import { ManagementScoreSheet } from './ManagementScoreSheet';
 
 import { hasEnoughReportData, pendingReports, type MyPageReports } from './report';
 
@@ -12,6 +13,7 @@ const periods = ['주간', '월간', '연간'] as const;
 
 export function MyPage({ navigate, onOpenManaged, registeredCount = 0, reports, error, report: weeklyReport, selectedPeriod, onPeriodChange }: { navigate: Navigate; selectedPeriod?: (typeof periods)[number]; onPeriodChange?: (period: (typeof periods)[number]) => void; onOpenManaged?: (period: (typeof periods)[number]) => void; registeredCount?: number; reports?: MyPageReports; error?: string; report?: WeeklyReport }) {
   const [localPeriod, setLocalPeriod] = useState<(typeof periods)[number]>('주간');
+  const [scoreGuideOpen, setScoreGuideOpen] = useState(false);
   const period = selectedPeriod ?? localPeriod;
   const setPeriod = onPeriodChange ?? setLocalPeriod;
 
@@ -36,7 +38,7 @@ export function MyPage({ navigate, onOpenManaged, registeredCount = 0, reports, 
         ))}
       </div>
       {error && <p role="alert">{error}<button onClick={() => window.location.reload()}>다시 시도</button></p>}
-      {hasReport || period !== '주간' ? <MyPageDashboard report={report} onOpenManaged={() => onOpenManaged ? onOpenManaged(period) : navigate('weekly-report')} /> : <><section className="mypage-empty-state" aria-label="신규 사용자 빈 상태">
+      {hasReport || period !== '주간' ? <MyPageDashboard report={report} onOpenScoreGuide={() => setScoreGuideOpen(true)} onOpenManaged={() => onOpenManaged ? onOpenManaged(period) : navigate('weekly-report')} /> : <><section className="mypage-empty-state" aria-label="신규 사용자 빈 상태">
         <img className="mypage-empty-illustration" src={asset('empty-fridge.png')} alt="" />
         <div className="mypage-empty-copy">
           <h2>아직 냉장고 리포트가 없어요</h2>
@@ -47,6 +49,7 @@ export function MyPage({ navigate, onOpenManaged, registeredCount = 0, reports, 
       <div className="mypage-buttons-section">
         <ActionButton className="mypage-register-button" onClick={() => navigate('registration')}>식재료 등록하기</ActionButton>
       </div></>}
+      {scoreGuideOpen && <ManagementScoreSheet score={report.score} onClose={() => setScoreGuideOpen(false)} />}
     </main>
   );
 }
