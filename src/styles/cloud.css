@@ -80,3 +80,33 @@
 .settings-notice-card button:focus-visible,.settings-record-card button:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
 .settings-notice-card button:disabled,.settings-record-card button:disabled { opacity:.65; cursor:wait; }
 .settings-sync-status,.settings-section-title,.settings-data-actions { display:none; }
+
+/* Figma 6488:8258 — completed email reminder settings state. */
+.settings-profile.is-reminder-active { min-height:96px; }
+.settings-profile.is-reminder-active .settings-profile-status { margin-top:var(--s1); }
+.settings-email-preferences { margin-top:var(--s3); border:1px solid var(--gray-100); border-radius:var(--r4); overflow:hidden; background:#fff; }
+.settings-confirmed-email { padding:10px var(--s4); }
+.settings-confirmed-email > span { display:block; color:var(--gray-800); font-size:var(--t1); line-height:var(--lh1); }
+.settings-confirmed-email > div { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:4px; }
+.settings-confirmed-email strong { min-width:0; overflow-wrap:anywhere; color:var(--gray-900); font-size:var(--t3); line-height:var(--lh3); font-weight:400; }
+.settings-email-badge { display:inline-flex; flex:none; align-items:center; gap:4px; height:24px; padding:4px 8px; border-radius:8px; background:#f0fdf4; color:#0e5f19; font-size:var(--t1); line-height:var(--lh1); }
+.settings-email-badge-icon { width:12px; height:12px; flex:0 0 12px; display:grid; place-items:center; border-radius:50%; background:#16a34a; }
+.settings-email-badge-icon img { display:block; }
+.settings-email-toggle-row { min-height:56px; padding:10px var(--s4); border-top:1px solid var(--gray-100); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.settings-email-toggle-row > span { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.settings-email-toggle-row strong { color:var(--gray-900); font-size:14px; line-height:19px; font-weight:400; }
+.settings-email-toggle-row small { color:var(--gray-800); font-size:10px; line-height:14px; }
+.settings-page .cloud-account .settings-email-toggle { width:36px; min-height:20px; height:20px; padding:2px; flex:0 0 36px; border:0; border-radius:16px; background:#c8cbd0; display:flex; align-items:center; justify-content:flex-start; cursor:pointer; }
+.settings-page .cloud-account .settings-email-toggle.is-on { justify-content:flex-end; background:var(--blue-500); }
+.settings-page .cloud-account .settings-email-toggle > span { width:16px; height:16px; border-radius:50%; background:#fff; }
+.settings-page .cloud-account .settings-email-toggle::after,.settings-page .cloud-account .settings-email-change::after { content:none; }
+.settings-page .cloud-account .settings-email-change { width:100%; min-height:44px; padding:0 var(--s3); border:0; border-top:1px solid var(--gray-100); border-radius:0; display:flex; align-items:center; justify-content:space-between; background:#fff; color:var(--gray-900); font-family:inherit; font-size:14px; line-height:19px; font-weight:400; text-align:left; cursor:pointer; }
+.settings-email-change img { display:block; }
+.settings-notification-info { margin-top:20px; padding:12px; border-radius:12px; background:var(--blue-50); display:flex; align-items:flex-start; gap:12px; }
+.settings-notification-info > span { width:20px; height:20px; flex:0 0 20px; display:grid; place-items:center; border-radius:50%; background:var(--blue-500); color:#fff; font-size:14px; line-height:20px; font-weight:700; }
+.settings-notification-info > div { min-width:0; }
+.settings-notification-info strong { display:block; color:var(--blue-500); font-size:var(--t2); line-height:var(--lh2); }
+.settings-notification-info p { color:var(--gray-800); font-size:var(--t1); line-height:var(--lh1); }
+.settings-profile.is-reminder-active + .settings-notifications { margin-top:20px; }
+.settings-notifications:has(.settings-email-preferences) + .settings-records { margin-top:20px; }
+.settings-email-preferences button:focus-visible { outline:2px solid var(--blue-500); outline-offset:-2px; }
