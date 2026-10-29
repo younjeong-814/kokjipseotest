@@ -41,21 +41,54 @@
 }
 .email-reminder-field-group { display:flex; flex-direction:column; gap:8px; }
 .email-reminder-field-group > label { color:var(--gray-900); font-size:var(--t4); line-height:var(--lh4); font-weight:700; }
-.email-reminder-field-group > input {
+.email-reminder-field-helper { color:var(--gray-800); font-size:var(--t1); line-height:var(--lh1); font-weight:400; }
+.email-reminder-input {
   width:100%;
   height:54px;
   padding:0 16px;
-  border:0;
+  border:1px solid transparent;
   border-radius:20px;
-  outline:none;
+  display:flex;
+  align-items:center;
+  gap:8px;
   background:var(--gray-200);
-  color:var(--gray-800);
+  transition:background-color .2s ease,border-color .2s ease;
+}
+.email-reminder-input > input {
+  min-width:0;
+  flex:1;
+  height:100%;
+  padding:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--gray-600);
   font-size:var(--t2);
   line-height:var(--lh2);
+  font-weight:400;
 }
-.email-reminder-fields > input::placeholder { color:var(--gray-600); opacity:1; }
-.email-reminder-fields > input.has-value { background:var(--blue-100); }
-.email-reminder-fields > input:disabled { background:#d2d4d8; color:var(--gray-800); }
+.email-reminder-input > input::placeholder { color:var(--gray-600); opacity:1; font-weight:400; }
+.email-reminder-input.is-filled:not(:focus-within) { background:var(--blue-100); }
+.email-reminder-input.is-filled:not(:focus-within) > input,
+.email-reminder-input:focus-within > input:not(:placeholder-shown) { color:var(--gray-800); font-weight:500; }
+.email-reminder-input:focus-within { background:#fafdff; border-color:var(--blue-500); }
+.email-reminder-input.is-disabled,
+.email-reminder-input:has(> input:disabled) { background:#d1d3d8; }
+.email-reminder-input > input:disabled { color:var(--gray-800); -webkit-text-fill-color:var(--gray-800); opacity:1; }
+.email-reminder-input > input:focus-visible { outline:none; }
+.email-reminder-clear {
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  background:transparent;
+}
+.email-reminder-clear img { display:block; }
+.email-reminder-input > input {
+  appearance:none;
+}
 .email-reminder-error { color:var(--red-500); }
 .email-reminder-timer { color:var(--blue-500); }
 .email-reminder-links { min-height:24px; display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }

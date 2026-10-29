@@ -5,6 +5,52 @@ import { asset } from '../../lib/assets';
 type Step = 'email' | 'code' | 'code-ready' | 'expired' | 'success';
 const CODE_LIFETIME_MS = 30_000;
 
+function EmailReminderField({
+  id,
+  label,
+  placeholder,
+  value,
+  helperText,
+  disabled = false,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  helperText?: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const filled = Boolean(value);
+
+  return <div className="email-reminder-field-group">
+    <label htmlFor={id}>{label}</label>
+    <div className={`email-reminder-input${filled ? ' is-filled' : ''}${disabled ? ' is-disabled' : ''}`}>
+      <input
+        id={id}
+        type={id === 'reminder-email' ? 'email' : 'text'}
+        autoComplete={id === 'reminder-email' ? 'email' : 'one-time-code'}
+        placeholder={placeholder}
+        value={value}
+        disabled={disabled}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={event => onChange(event.target.value)}
+      />
+      {focused && filled && !disabled && <button
+        type="button"
+        className="email-reminder-clear"
+        aria-label={`${label} 지우기`}
+        onMouseDown={event => event.preventDefault()}
+        onClick={() => onChange('')}
+      ><img src={asset('search-clear.svg')} alt="" /></button>}
+    </div>
+    {helperText && <p className="email-reminder-field-helper">{helperText}</p>}
+  </div>;
+}
+
 export function EmailReminderModal({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -76,44 +122,24 @@ export function EmailReminderModal({ onClose }: { onClose: () => void }) {
         <small>알림 받을 이메일은 설정에서 변경할 수 있어요.</small>
       </div> : <div className="email-reminder-fields">
         {step === 'email' ? <>
-          <div className="email-reminder-field-group">
-            <label htmlFor="reminder-email">알림 받을 이메일</label>
-            <input
-              id="reminder-email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              placeholder="이메일 주소를 입력해 주세요"
-              value={email}
-              className={email ? 'has-value' : ''}
-              onChange={event => setEmail(event.target.value)}
-            />
-          </div>
-          <p>테스트 흐름에서는 이메일 발송 없이 다음 단계로 진행돼요.</p>
+          <EmailReminderField id="reminder-email" label="알림 받을 이메일" placeholder="이메일 주소를 입력해 주세요" value={email} helperText="테스트 흐름에서는 이메일 발송 없이 다음 단계로 진행돼요." onChange={setEmail} />
           <p>인증 후 알림 수신에 동의하면 신청이 완료돼요.<br />알림은 설정에서 언제든 끌 수 있어요.</p>
         </> : <>
-          <div className="email-reminder-field-group">
-            <label htmlFor="reminder-code">인증번호</label>
-            <input
-              id="reminder-code"
-              type="text"
-              autoComplete="one-time-code"
-              autoFocus
-              placeholder="인증번호를 입력해 주세요"
-              value={code}
-              className={code ? 'has-value' : ''}
-              disabled={step === 'expired'}
-              onChange={event => {
-                const next = event.target.value;
-                setCode(next);
-                if (next.trim() && deadline === null) {
-                  setSecondsLeft(30);
-                  setDeadline(Date.now() + CODE_LIFETIME_MS);
-                }
-                setStep(next.trim() ? 'code-ready' : 'code');
-              }}
-            />
-          </div>
+          <EmailReminderField
+            id="reminder-code"
+            label="인증번호"
+            placeholder="인증번호를 입력해 주세요"
+            value={code}
+            disabled={step === 'expired'}
+            onChange={next => {
+              setCode(next);
+              if (next.trim() && deadline === null) {
+                setSecondsLeft(30);
+                setDeadline(Date.now() + CODE_LIFETIME_MS);
+              }
+              setStep(next.trim() ? 'code-ready' : 'code');
+            }}
+          />
           {step === 'expired'
             ? <p className="email-reminder-error" role="alert">인증번호가 만료됐어요. 새 번호를 받아주세요.</p>
             : deadline !== null && <p className="email-reminder-timer">인증번호 유효시간 {`00:${String(secondsLeft).padStart(2, '0')}`}</p>}
