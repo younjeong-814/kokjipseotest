@@ -4,7 +4,7 @@ begin;
 insert into auth.users(id) values ('10000000-0000-4000-8000-000000000001'),('10000000-0000-4000-8000-000000000002');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
-select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated","is_anonymous":true}',true);
 select public.save_fridge_snapshot(0,jsonb_build_object(
   'ingredients',jsonb_build_array(jsonb_build_object('id','20000000-0000-4000-8000-000000000001','name','테스트 양파','category','채소','date','2026-12-01','createdAt','2026-10-24T00:00:00Z','updatedAt','2026-10-24T00:00:00Z')),
   'history','[]'::jsonb,'activities','[]'::jsonb,'recipes',jsonb_build_array(jsonb_build_object('id','test-recipe-a'))));
@@ -30,7 +30,7 @@ do $$ begin
   begin perform count(*) from public.api_usage;raise exception 'usage table exposed';exception when insufficient_privilege then null;end;
 end $$;
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002',true);
-select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated","is_anonymous":false}',true);
 do $$ begin
   if jsonb_array_length(public.load_fridge_snapshot()->'ingredients')<>0 or jsonb_array_length(public.load_fridge_snapshot()->'recipes')<>0 then raise exception 'cross-user read'; end if;
   update public.ingredients set name='blocked' where user_id='10000000-0000-4000-8000-000000000001';
