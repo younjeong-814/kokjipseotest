@@ -9,6 +9,26 @@ const {emptySnapshot,mergeSnapshots,validateSnapshot,snapshotKeys}=load('../src/
 const {securedHandler,imageBody}=load('../supabase/functions/_shared/http.ts');
 const {parsePhotoResult,recognizePhoto}=load('../supabase/functions/_shared/photo.ts');
 const {configureExternalRequests,requestExternal}=load('../src/features/cloud/externalRequests.ts');
+const {ensureAnonymousSession}=load('../src/features/cloud/anonymous.ts');
+
+test('anonymous bootstrap reuses permanent and anonymous sessions without creating users',async()=>{
+ for(const is_anonymous of [true,false]){
+  const session={user:{id:'existing',is_anonymous}};
+  const client={auth:{getSession:async()=>({data:{session}}),signInAnonymously:()=>{throw new Error('must not create')}}};
+  assert.equal(await ensureAnonymousSession(client),session);
+ }
+});
+test('concurrent anonymous bootstrap creates one account; errors never fall back to new identities',async()=>{
+ let created=0;
+ const session={user:{id:'new',is_anonymous:true}};
+ const client={auth:{getSession:async()=>({data:{session:null}}),signInAnonymously:async()=>{created++;return {data:{session}}}}};
+ const results=await Promise.all([ensureAnonymousSession(client),ensureAnonymousSession(client)]);
+ assert.equal(created,1);assert.equal(results[0],results[1]);
+ await assert.rejects(()=>ensureAnonymousSession({auth:{...client.auth,getSession:async()=>({data:{session:null},error:new Error('refresh failed')})}}));
+ assert.equal(created,1);
+ await assert.rejects(()=>ensureAnonymousSession({auth:{...client.auth,signInAnonymously:async()=>({data:{session:null},error:new Error('disabled')})}}));
+ assert.equal(await ensureAnonymousSession(client),session);
+});
 const disk=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)}};
 const ingredient=(id='20000000-0000-4000-8000-000000000001',name='양파')=>({id,name,category:'채소',storage:'냉장',quantity:1,unit:'개',date:'2026-12-01',createdAt:'2026-10-24T00:00:00Z',updatedAt:'2026-10-24T00:00:00Z'});
 const remote=(revision=0)=>({...emptySnapshot(),revision});
