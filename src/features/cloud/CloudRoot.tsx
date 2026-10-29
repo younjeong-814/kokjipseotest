@@ -8,6 +8,7 @@ import { validateSnapshot } from './snapshot';
 
 import { AccountContext } from './AccountContext';
 import { ConnectionStatusIcon } from '../../components/ConnectionStatusIcon';
+import { asset } from '../../lib/assets';
 
 function download(name:string, value:string) {
   const url=URL.createObjectURL(new Blob([value],{type:'application/json'}));
@@ -30,18 +31,25 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
     finally{setBusy(false);}
   };
   return <section className="cloud-account" aria-label="계정 및 클라우드 저장">
-    <div className="settings-profile"><span className="settings-avatar" aria-hidden="true">{session && !anonymous ? String(session.user.user_metadata.full_name || '나').slice(0,1) : '콕'}</span><div><span className="settings-section-label">{anonymous ? '로그인 없이 이용 중' : '내 계정'}</span><strong>{anonymous ? '임시 사용자의 냉장고' : session ? `${session.user.user_metadata.full_name || '나'}의 냉장고` : '내 냉장고를 다른 기기에서도 확인하세요'}</strong>
-    {session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div><div className="settings-account-actions">
-    {!supabase ? <p>클라우드 연결이 아직 설정되지 않았어요. 현재는 이 브라우저에 저장돼요.</p> : session && !anonymous ? <button onClick={async()=>{const {error}=await supabase!.auth.signOut({scope:'local'});if(error)setError('로그아웃하지 못했어요. 다시 시도해 주세요.')}}>로그아웃</button> : <button disabled={busy} onClick={()=>void connectGoogle()}>{busy ? '연결 중이에요' : anonymous ? 'Google 계정 연결하기' : 'Google로 로그인'}</button>}
-    {anonymous && <p>이 브라우저에서는 기록을 이어서 사용할 수 있어요. 사이트 데이터를 지우면 임시 계정을 다시 찾기 어려워요. Google 계정을 연결하면 다른 기기에서도 사용할 수 있어요.</p>}
-    {anonymous && <button disabled={busy} onClick={async()=>{
-      if(!window.confirm('기존 Google 계정의 기록을 불러옵니다. 현재 임시 계정의 기록은 자동으로 합치지 않아요. 계속할까요?'))return;
-      setBusy(true);setError('');
-      try{const result=await supabase!.auth.signInWithOAuth({provider:'google',options:{redirectTo:authRedirectUrl(),scopes:'openid email profile'}});if(result.error)throw result.error;}
-      catch{setError('기존 계정에 로그인하지 못했어요. 다시 시도해 주세요.');}
-      finally{setBusy(false);}
-    }}>이미 사용 중인 Google 계정으로 로그인</button>}
-    {error&&<p role="alert">{error}</p>}</div>{children}
+    <div className="settings-profile"><span className="settings-avatar" aria-hidden="true">{session && !anonymous ? String(session.user.user_metadata.full_name || '나').slice(0,1) : '콕'}</span><div className="settings-profile-copy"><span className="settings-section-label">{anonymous ? '로그인 없이 이용 중' : '내 계정'}</span><strong>{anonymous ? '임시 사용자의 냉장고' : session ? `${session.user.user_metadata.full_name || '나'}의 냉장고` : '내 냉장고를 다른 기기에서도 확인하세요'}</strong>
+    <p className="settings-profile-status">{anonymous ? '계정 연결 전' : session ? '계정 연결됨' : '브라우저에 저장 중'}</p>{session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
+    <section className="settings-notifications" aria-labelledby="settings-notifications-title">
+      <div className="settings-section-heading"><h2 id="settings-notifications-title">소비 권장일 알림</h2><p>소비 권장일이 다가오는 식재료를 이메일로 알려드려요.</p></div>
+      <div className="settings-notice-card">
+        <div className="settings-notice-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('notification-bell.svg')} alt="" /></span></span><div><strong>이메일로 알림을 받아보세요</strong><p>냉장고 속 식재료의 소비 권장일이<br />다가오면 이메일로 미리 알려드려요.</p></div></div>
+        <button type="button" className="settings-email-button" onClick={()=>window.alert('이메일 알림 신청 기능을 준비 중이에요.')}>이메일로 알림 신청하기</button>
+        <p className="settings-schedule"><img src={asset('detail-calendar.svg')} alt="" />소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</p>
+      </div>
+    </section>
+    <section className="settings-records" aria-labelledby="settings-records-title">
+      <h2 id="settings-records-title">내 기록 보관하기</h2>
+      <div className="settings-record-card">
+        <div className="settings-record-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('cloud-upload.svg')} alt="" /></span></span><p>이 브라우저에서 기록을 이용 중이에요.<br />Google 계정을 연결하면 다른 기기에서도<br className="settings-desktop-break" />내 냉장고를 이어서 사용할 수 있어요.</p></div>
+        {!supabase ? <p className="settings-cloud-unavailable">클라우드 연결이 아직 설정되지 않았어요.</p> : session && !anonymous ? <button type="button" className="settings-google-button" onClick={async()=>{const {error}=await supabase!.auth.signOut({scope:'local'});if(error)setError('로그아웃하지 못했어요. 다시 시도해 주세요.')}}>로그아웃</button> : <button type="button" className="settings-google-button" disabled={busy} onClick={()=>void connectGoogle()}>{busy ? '연결 중이에요' : 'Google 계정 연결하기'}</button>}
+      </div>
+      <div className="settings-retention-note"><span aria-hidden="true">i</span><p>계정을 연결하기 전에 브라우저의 사이트 데이터를 삭제하면, 기존 기록을 다시 찾기 어려워요.</p></div>
+    </section>
+    {error&&<p role="alert">{error}</p>}{children}
   </section>;
 }
 function SignedInStorage({session,children}:{session:Session;children:ReactNode}) {

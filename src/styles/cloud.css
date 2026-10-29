@@ -38,3 +38,45 @@
 .settings-sync-status > .connection-status-icon.is-error { background:var(--red-500); }
 .connection-status-icon img { display:block; max-width:none; }
 .settings-sync-status.has-error { background:#fff1f4; color:var(--red-500); }
+
+/* Figma 6392:6690 — anonymous account settings and email reminder layout. */
+.screen-settings .status-bar { height:44px; padding:0 var(--s5); }
+.screen-settings .sub-header { height:44px; }
+.settings-page { flex:1; padding:12px var(--s5) 16px; overflow-y:auto; }
+.settings-page .cloud-account { width:100%; max-width:none; margin:0; padding:0; background:transparent; color:var(--gray-900); font-size:var(--t2); line-height:var(--lh3); }
+.settings-profile { display:flex; align-items:center; gap:var(--s4); min-height:106px; padding:var(--s4); border:0; border-radius:var(--r4); background:var(--blue-50); }
+.settings-profile-copy { min-width:0; }
+.settings-avatar { width:48px; height:48px; flex:0 0 48px; display:grid; place-items:center; border-radius:50%; background:var(--gray-0); color:var(--blue-500); font-size:var(--t6); font-weight:700; }
+.settings-section-label { display:block; margin-bottom:var(--s1); font-size:var(--t1); line-height:var(--lh1); color:var(--gray-800); }
+.settings-profile strong { display:block; font-size:var(--t4); line-height:var(--lh4); }
+.settings-profile-status { margin-top:var(--s1); color:var(--gray-800); font-size:var(--t1); line-height:var(--lh1); }
+.settings-page .account-email { overflow-wrap:anywhere; font-size:var(--t1); color:var(--gray-800); margin:var(--s1) 0 0; }
+.settings-notifications { margin-top:24px; }
+.settings-section-heading h2,.settings-records > h2 { font-size:var(--t4); line-height:var(--lh4); font-weight:700; }
+.settings-section-heading p { margin-top:4px; color:var(--gray-800); font-size:var(--t1); line-height:var(--lh1); }
+.settings-notice-card,.settings-record-card { background:var(--blue-50); border-radius:var(--r4); }
+.settings-notice-card { margin-top:var(--s3); padding:var(--s4); display:flex; flex-direction:column; gap:var(--s3); }
+.settings-notice-copy,.settings-record-copy { display:flex; align-items:center; gap:var(--s3); }
+.settings-round-icon { width:40px; height:40px; flex:0 0 40px; display:grid; place-items:center; border-radius:50%; background:#fff; color:var(--blue-500); }
+.settings-notice-copy > div { min-width:0; }
+.settings-notice-copy > div { width:258px; flex:0 1 258px; }
+.settings-notice-copy strong { display:block; color:var(--blue-500); font-size:var(--t2); line-height:var(--lh2); }
+.settings-notice-copy p { color:var(--gray-800); font-size:var(--t2); line-height:var(--lh2); }
+.settings-record-copy p { color:var(--gray-800); font-size:var(--t1); line-height:var(--lh1); }
+.settings-icon-slot { width:24px; height:24px; flex:0 0 24px; display:grid; place-items:center; }
+.settings-icon-slot img { display:block; max-width:none; }
+.settings-email-button { width:100%; min-height:48px; border:1px solid #dcdee3; border-radius:16px; background:#fff; color:var(--gray-900); font-size:16px; line-height:22px; font-weight:700; }
+.settings-page .cloud-account .settings-email-button { min-height:48px; padding:0 20px; border:1px solid #dcdee3; border-radius:16px; background:#fff; color:var(--gray-900); text-align:center; font-size:16px; line-height:22px; font-weight:700; }
+.settings-page .cloud-account .settings-email-button::after,.settings-page .cloud-account .settings-google-button::after { content:none; }
+.settings-schedule { display:flex; align-items:center; gap:var(--s2); color:var(--gray-800); font-size:11px; line-height:16px; }
+.settings-schedule img { width:16px; height:16px; object-fit:contain; filter:grayscale(1) brightness(.62); }
+.settings-records { margin-top:24px; }
+.settings-record-card { margin-top:var(--s3); padding:var(--s3) var(--s4); display:flex; flex-direction:column; gap:var(--s3); }
+.settings-google-button { width:100%; min-height:44px; border-radius:16px; background:var(--blue-500); color:#fff; font-size:16px; line-height:22px; font-weight:700; }
+.settings-page .cloud-account .settings-google-button { min-height:44px; padding:0 20px; border:0; border-radius:16px; background:var(--blue-500); color:#fff !important; text-align:center; font-size:16px; line-height:22px; font-weight:700; }
+.settings-retention-note { display:flex; align-items:flex-start; gap:var(--s2); margin-top:24px; padding:var(--s3) var(--s4); border-radius:var(--r3); background:var(--blue-50); color:var(--gray-800); }
+.settings-retention-note > span { width:18px; height:18px; flex:0 0 18px; display:grid; place-items:center; border-radius:50%; background:var(--blue-500); color:#fff; font-size:13px; font-weight:700; }
+.settings-retention-note p { font-size:var(--t1); line-height:var(--lh1); }
+.settings-notice-card button:focus-visible,.settings-record-card button:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+.settings-notice-card button:disabled,.settings-record-card button:disabled { opacity:.65; cursor:wait; }
+.settings-sync-status,.settings-section-title,.settings-data-actions { display:none; }
