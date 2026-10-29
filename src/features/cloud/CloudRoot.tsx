@@ -17,6 +17,16 @@ function download(name:string, value:string) {
 function AccountBar({session,children}: {session:Session|null;children?:ReactNode}) {
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
+  const [reminderEmail,setReminderEmail]=useState('');
+  const [reminderEnabled,setReminderEnabled]=useState(true);
+  useEffect(()=>{
+    const complete=(event:Event)=>{
+      const email=(event as CustomEvent<{email?:string}>).detail?.email;
+      if(email)setReminderEmail(email);
+    };
+    window.addEventListener('kokjipseo:email-reminder-completed',complete);
+    return()=>window.removeEventListener('kokjipseo:email-reminder-completed',complete);
+  },[]);
   const anonymous=Boolean(session?.user.is_anonymous);
   const connectGoogle=async()=>{
     if(!supabase || busy)return;
@@ -31,15 +41,26 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
     finally{setBusy(false);}
   };
   return <section className="cloud-account" aria-label="계정 및 클라우드 저장">
-    <div className="settings-profile"><span className="settings-avatar" aria-hidden="true">{session && !anonymous ? String(session.user.user_metadata.full_name || '나').slice(0,1) : '콕'}</span><div className="settings-profile-copy"><span className="settings-section-label">{anonymous ? '로그인 없이 이용 중' : '내 계정'}</span><strong>{anonymous ? '임시 사용자의 냉장고' : session ? `${session.user.user_metadata.full_name || '나'}의 냉장고` : '내 냉장고를 다른 기기에서도 확인하세요'}</strong>
-    <p className="settings-profile-status">{anonymous ? '계정 연결 전' : session ? '계정 연결됨' : '브라우저에 저장 중'}</p>{session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
+    <div className={`settings-profile${reminderEmail ? ' is-reminder-active' : ''}`}><span className="settings-avatar" aria-hidden="true">{session && !anonymous ? String(session.user.user_metadata.full_name || '나').slice(0,1) : '콕'}</span><div className="settings-profile-copy"><span className="settings-section-label">{reminderEmail ? '이메일 알림 이용 중' : anonymous ? '로그인 없이 이용 중' : '내 계정'}</span><strong>{anonymous ? '임시 사용자의 냉장고' : session ? `${session.user.user_metadata.full_name || '나'}의 냉장고` : '내 냉장고를 다른 기기에서도 확인하세요'}</strong>
+    <p className="settings-profile-status">{reminderEmail ? 'Google 계정 미연결' : anonymous ? '계정 연결 전' : session ? '계정 연결됨' : '브라우저에 저장 중'}</p>{session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
     <section className="settings-notifications" aria-labelledby="settings-notifications-title">
       <div className="settings-section-heading"><h2 id="settings-notifications-title">소비 권장일 알림</h2><p>소비 권장일이 다가오는 식재료를 이메일로 알려드려요.</p></div>
-      <div className="settings-notice-card">
+      {reminderEmail ? <div className="settings-email-preferences">
+        <div className="settings-confirmed-email">
+          <span>알림 받을 이메일</span>
+          <div><strong>{reminderEmail}</strong><span className="settings-email-badge"><span className="settings-email-badge-icon"><img src={asset('status-success-mark.svg')} alt="" /></span>인증 완료</span></div>
+        </div>
+        <div className="settings-email-toggle-row">
+          <span><strong>이메일 알림 받기</strong><small>소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</small></span>
+          <button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" onClick={()=>setReminderEnabled(value=>!value)}><span /></button>
+        </div>
+        <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경<img src={asset('home-list-chevron.svg')} alt="" /></button>
+      </div> : <div className="settings-notice-card">
         <div className="settings-notice-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('notification-bell.svg')} alt="" /></span></span><div><strong>이메일로 알림을 받아보세요</strong><p>냉장고 속 식재료의 소비 권장일이<br />다가오면 이메일로 미리 알려드려요.</p></div></div>
-        <button type="button" className="settings-email-button" onClick={()=>window.alert('이메일 알림 신청 기능을 준비 중이에요.')}>이메일로 알림 신청하기</button>
+        <button type="button" className="settings-email-button" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>이메일로 알림 신청하기</button>
         <p className="settings-schedule"><img src={asset('detail-calendar.svg')} alt="" />소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</p>
-      </div>
+      </div>}
+      {reminderEmail && <aside className="settings-notification-info"><span aria-hidden="true">i</span><div><strong>어떤 알림을 받나요?</strong><p>보관 중인 재료의 소비 권장일이 다가오면<br />이메일로 알려드려요. 소비 기록·상태 변경은<br />메일 알림으로 보내지 않아요.</p></div></aside>}
     </section>
     <section className="settings-records" aria-labelledby="settings-records-title">
       <h2 id="settings-records-title">내 기록 보관하기</h2>
