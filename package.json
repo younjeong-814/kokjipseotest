@@ -8,10 +8,11 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test tests/ingredients.test.mjs tests/receipt.test.mjs tests/classify.test.mjs tests/recipe.test.mjs tests/recipes.test.mjs tests/recipe-presentation.test.mjs tests/report.test.mjs tests/consume.test.mjs tests/mypage.test.mjs tests/statistics.test.mjs tests/fridge-search.test.mjs tests/cloud.test.mjs",
+    "test": "node --test tests/ingredients.test.mjs tests/receipt.test.mjs tests/classify.test.mjs tests/recipe.test.mjs tests/recipes.test.mjs tests/recipe-presentation.test.mjs tests/report.test.mjs tests/consume.test.mjs tests/mypage.test.mjs tests/statistics.test.mjs tests/fridge-search.test.mjs tests/cloud.test.mjs tests/email-foundation.test.mjs",
     "edge:sync": "node scripts/sync-edge-shared.mjs",
     "edge:check": "node scripts/sync-edge-shared.mjs --check",
-    "check:build-secrets": "node scripts/check-build-secrets.mjs"
+    "check:build-secrets": "node scripts/check-build-secrets.mjs",
+    "test:notifications": "node --test tests/email-foundation.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -19,6 +20,7 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.13",
     "@types/node": "^24.19.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

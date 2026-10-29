@@ -8,3 +8,10 @@ verify_jwt = false
 verify_jwt = false
 [functions.recognize]
 verify_jwt = false
+
+# User JWT is verified with Auth /user inside the handler.
+[functions.email-verification]
+verify_jwt = false
+# Server only; validates x-cron-secret. Never accepts an ordinary browser session as authorization.
+[functions.email-reminder-worker]
+verify_jwt = false
