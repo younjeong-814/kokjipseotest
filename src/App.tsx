@@ -43,7 +43,7 @@ import { MyPage } from './features/mypage/MyPage';
 import { SettingsPage } from './features/mypage/SettingsPage';
 import { WeeklyReportPage } from './features/report/WeeklyReportPage';
 import { buildWeeklyReport, loadHistory } from './features/report/weeklyReport';
-import { RegistrationToast } from './components/RegistrationToast';
+import { FridgeNotifications } from './features/notifications/FridgeNotifications';
 import { additionalConnections, isScreenId, screens, type ScreenId } from './prototype/flow';
 function readScreen(): ScreenId {
   const id = window.location.hash.slice(1).split('?')[0];
@@ -123,6 +123,7 @@ export function App() {
     try { registering.current = true; ingredients.saveRecognized(drafts); setRegistrationMessage(`${message}를 등록했어요`); navigate(ingredientsCount ? 'fridge-registered' : 'fridge-food'); }
     catch (failure) { registering.current = false; setRecognitionError(failure instanceof Error ? failure.message : '저장하지 못했어요.'); }
   };
+  const renderScreen = () => {
   if (screen === 'recipe-detail') {
     const id = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('recipe');
     const detailRecipe = openedRecipe?.id===id ? openedRecipe : savedRecipes.items.find(r=>r.id===id);
@@ -194,7 +195,9 @@ export function App() {
       {screen === 'mypage' && <MyPage selectedPeriod={myPagePeriod} onPeriodChange={setMyPagePeriod} navigate={navigate} onOpenManaged={period => { setManagedPeriod(period); navigate('weekly-report'); }} report={buildWeeklyReport(ingredients.items, loadHistory(storage))} registeredCount={ingredientItems.length} reports={dashboard.reports} error={dashboard.error} />}
       {screen === 'recipe' && (ingredientItems.length ? <RecipePage items={ingredientItems} initialSelected={recipeSelection} onRecommend={selected => { setRecipeSelection(selected.map(item => item.id)); navigate('recipe-results'); }} /> : <RecipeEmptyPage navigate={navigate} />)}
       <BottomNavigation screen={displayScreen} navigate={navigate} />
-      {(screen === 'fridge-registered' || screen === 'fridge-food') && showRegistrationToast && <RegistrationToast message={registrationMessage || '식재료 등록 화면입니다'} onDismiss={() => setShowRegistrationToast(false)} />}
+      <FridgeNotifications screen={screen} items={ingredients.items} registrationActive={showRegistrationToast} registrationMessage={registrationMessage} onDismissRegistration={() => setShowRegistrationToast(false)} />
     </div>
   );
+  };
+  return <>{renderScreen()}<FridgeNotifications screen={screen} items={ingredients.items} registrationActive={showRegistrationToast} registrationMessage={registrationMessage} onDismissRegistration={() => setShowRegistrationToast(false)} /></>;
 }
