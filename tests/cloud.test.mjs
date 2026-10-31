@@ -5,7 +5,7 @@ import ts from 'typescript';
 const cache=new Map();
 function load(url){url=new URL(url,import.meta.url);if(cache.has(url.href))return cache.get(url.href);const exports={};cache.set(url.href,exports);const source=readFileSync(url,'utf8');const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('exports','require',code)(exports,p=>load(new URL(p.endsWith('.ts')?p:`${p}.ts`,url)));return exports;}
 const {CloudStorage,cacheKey,preservePendingBeforeReload}=load('../src/features/cloud/storage.ts');
-const {emptySnapshot,mergeSnapshots,validateSnapshot,snapshotKeys}=load('../src/features/cloud/snapshot.ts');
+const {emptySnapshot,mergeSnapshots,validateSnapshot,snapshotKeys,parseBackup}=load('../src/features/cloud/snapshot.ts');
 const {securedHandler,imageBody}=load('../supabase/functions/_shared/http.ts');
 const {parsePhotoResult,recognizePhoto}=load('../supabase/functions/_shared/photo.ts');
 const {configureExternalRequests,requestExternal}=load('../src/features/cloud/externalRequests.ts');
@@ -64,3 +64,30 @@ test('front-end gateway sends only project key and user JWT; no token means no f
  const old=globalThis.fetch;let requested;try{globalThis.fetch=async(url,init)=>{requested={url,init};return Response.json({})};configureExternalRequests({url:'https://example.supabase.co',key:'sb_publishable_test',token:async()=>'user-token'});await requestExternal('recipes','/api/recipes?ingredient=양파');assert.match(requested.url,/functions\/v1\/recipes\?ingredient=/);assert.equal(requested.init.headers.get('Authorization'),'Bearer user-token');configureExternalRequests({url:'https://example.supabase.co',key:'sb_publishable_test',token:async()=>null});requested=null;await assert.rejects(()=>requestExternal('ocr','/api/ocr'));assert.equal(requested,null);}finally{configureExternalRequests(null);globalThis.fetch=old}
 });
 test('another tab cannot overwrite a durable pending snapshot',()=>{const store=disk();const a=new CloudStorage(store,'a',remote(),()=>{});const b=new CloudStorage(store,'a',remote(),()=>{});a.setItem(snapshotKeys.ingredients,JSON.stringify([ingredient()]));const before=store.getItem(cacheKey('a'));assert.throws(()=>b.setItem(snapshotKeys.ingredients,JSON.stringify([ingredient(undefined,'stale')])));assert.equal(store.getItem(cacheKey('a')),before)});
+
+test('backup import reads exported account caches and bare snapshots; merge keeps current records',()=>{
+ const recipe={id:'r1',name:'국',image:'',summary:'',category:'',calories:'',time:'',difficulty:'',servings:'',ingredients:[],steps:[]};
+ const exported=JSON.stringify({revision:3,pending:true,extras:{},snapshot:{...emptySnapshot(),recipes:[recipe]}});
+ assert.deepEqual(parseBackup(exported).recipes,[recipe]);
+ assert.deepEqual(parseBackup(JSON.stringify({recipes:[recipe]})),{...emptySnapshot(),recipes:[recipe]});
+ assert.throws(()=>parseBackup('not json'),/백업 파일을 읽지 못했어요/);
+ assert.throws(()=>parseBackup(JSON.stringify({recipes:[{id:'broken'}]})),/형식이 올바르지 않아요/);
+ const current={...emptySnapshot(),recipes:[{...recipe,name:'최신'}]};
+ assert.equal(mergeSnapshots(current,parseBackup(exported)).recipes[0].name,'최신');
+});
+test('Google login returns to the screen where it started; an already-linked Google account signs in instead',()=>{
+ const {rememberAuthReturn,restoreAuthReturn,AUTH_RETURN_KEY}=load('../src/features/cloud/authReturn.ts');
+ const data=new Map();const store={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};
+ const urls=[];const restore=(search,hash)=>restoreAuthReturn({pathname:'/',search,hash},store,u=>urls.push(u));
+ rememberAuthReturn({pathname:'/',search:'',hash:'#settings'},store);
+ assert.equal(restore('',''),false);assert.deepEqual(urls,[]);assert.equal(data.get(AUTH_RETURN_KEY),'#settings');
+ assert.equal(restore('?code=abc',''),false);
+ assert.deepEqual(urls,['/?code=abc#settings']);assert.equal(data.has(AUTH_RETURN_KEY),false);
+ rememberAuthReturn({pathname:'/',search:'',hash:''},store);
+ assert.equal(restore('','#error=server_error&error_code=identity_already_exists&error_description=x'),true);
+ assert.equal(urls.at(-1),'/#settings');
+ rememberAuthReturn({pathname:'/',search:'',hash:'#settings'},store);
+ assert.equal(restore('?error=access_denied&error_code=access_denied',''),false);
+ assert.equal(urls.at(-1),'/#settings');
+ assert.equal(restore('?error_code=identity_already_exists',''),false,'without a login started here, never redirect');
+});

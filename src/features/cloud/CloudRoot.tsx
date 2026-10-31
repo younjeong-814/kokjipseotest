@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js';
 import { authRedirectUrl, supabase } from './client';
 import { ensureAnonymousSession } from './anonymous';
+import { rememberAuthReturn, restoreAuthReturn } from './authReturn';
 import { StorageContext } from './StorageContext';
 import { CloudStorage, cacheKey, preservePendingBeforeReload } from './storage';
-import { validateSnapshot } from './snapshot';
+import { mergeSnapshots, parseBackup, snapshotKeys, validateSnapshot, type Snapshot } from './snapshot';
+import { DataBackupSheet, type UnsavedNotice } from './DataBackupSheet';
 
 import { AccountContext } from './AccountContext';
 import { ConnectionStatusIcon } from '../../components/ConnectionStatusIcon';
@@ -12,13 +14,21 @@ import { asset } from '../../lib/assets';
 import {useNotificationSettings} from '../notifications/useNotificationSettings';
 import {UTTracker,recordManagedActivity} from '../notifications/UTTracker';
 
+let reloginWithGoogle=restoreAuthReturn();
 function download(name:string, value:string) {
   const url=URL.createObjectURL(new Blob([value],{type:'application/json'}));
   const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
 }
-function AccountBar({session,children}: {session:Session|null;children?:ReactNode}) {
+type SaveFailure={title:string;description:string;action:string;onAction:()=>void};
+type DataManagement={failure:SaveFailure|null;unsaved:UnsavedNotice|null;onExport:()=>void;onImport:(file:File)=>Promise<void>};
+const savedTime=new Intl.DateTimeFormat('ko-KR',{hour:'numeric',minute:'2-digit'});
+const savedDate=new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric'});
+function formatSavedAt(date:Date){return `${date.toDateString()===new Date().toDateString()?'오늘':savedDate.format(date)} ${savedTime.format(date)}`;}
+function AccountBar({session,data,children}: {session:Session|null;data?:DataManagement;children?:ReactNode}) {
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
+  const [backupOpen,setBackupOpen]=useState(false);
+  const [importing,setImporting]=useState(false);
   const reminders=useNotificationSettings(session?.user.id);
   const reminderEmail=reminders.settings?.email_verified_at ? reminders.settings.email : '';
   const reminderEnabled=Boolean(reminders.settings?.enabled);
@@ -27,6 +37,7 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
     if(!supabase || busy)return;
     setError('');setBusy(true);
     try {
+      rememberAuthReturn();
       const options={redirectTo:authRedirectUrl(),scopes:'openid email profile'};
       const result=anonymous
         ? await supabase.auth.linkIdentity({provider:'google',options})
@@ -35,10 +46,9 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
     }catch{setError('Google 계정을 연결하지 못했어요. 이미 연결된 계정이거나 연결 설정을 확인해야 할 수 있어요. 현재 기록은 자동으로 합치지 않아요.');}
     finally{setBusy(false);}
   };
-  return <section className="cloud-account" aria-label="계정 및 클라우드 저장">
-    <div className={`settings-profile${reminderEmail ? ' is-reminder-active' : ''}`}><span className="settings-avatar" aria-hidden="true">{session && !anonymous ? String(session.user.user_metadata.full_name || '나').slice(0,1) : '콕'}</span><div className="settings-profile-copy"><span className="settings-section-label">{reminderEmail ? '이메일 알림 이용 중' : anonymous ? '로그인 없이 이용 중' : '내 계정'}</span><strong>{anonymous ? '임시 사용자의 냉장고' : session ? `${session.user.user_metadata.full_name || '나'}의 냉장고` : '내 냉장고를 다른 기기에서도 확인하세요'}</strong>
-    <p className="settings-profile-status">{anonymous ? (reminderEmail ? 'Google 계정 미연결' : '계정 연결 전') : session ? '계정 연결됨' : '브라우저에 저장 중'}</p>{session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
-    <section className="settings-notifications" aria-labelledby="settings-notifications-title">
+  const signOut=async()=>{const {error}=await supabase!.auth.signOut({scope:'local'});if(error)setError('로그아웃하지 못했어요. 다시 시도해 주세요.')};
+  const signedIn=Boolean(session && !anonymous);
+  const notifications=<section className="settings-notifications" aria-labelledby="settings-notifications-title">
       <div className="settings-section-heading"><h2 id="settings-notifications-title">소비 권장일 알림</h2><p>소비 권장일이 다가오는 식재료를 이메일로 알려드려요.</p></div>
       {reminderEmail ? <div className="settings-email-preferences">
         <div className="settings-confirmed-email">
@@ -47,22 +57,50 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
         </div>
         <div className="settings-email-toggle-row">
           <span><strong>이메일 알림 받기</strong><small>소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</small></span>
-          <button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" disabled={reminders.busy} onClick={()=>void reminders.toggle()}><span /></button>
+          <span className="settings-email-toggle-control">{signedIn && <span className={reminderEnabled ? 'is-on' : ''} aria-hidden="true">{reminderEnabled ? '켜짐' : '꺼짐'}</span>}<button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" disabled={reminders.busy} onClick={()=>void reminders.toggle()}><span /></button></span>
         </div>
-        <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경<img src={asset('home-list-chevron.svg')} alt="" /></button>
+        <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경{signedIn ? <span className="settings-row-chevron" aria-hidden="true"><img src={asset('settings-row-chevron.svg')} alt="" /></span> : <img src={asset('home-list-chevron.svg')} alt="" />}</button>
       </div> : <div className="settings-notice-card">
         <div className="settings-notice-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('notification-bell.svg')} alt="" /></span></span><div><strong>이메일로 알림을 받아보세요</strong><p>냉장고 속 식재료의 소비 권장일이<br />다가오면 이메일로 미리 알려드려요.</p></div></div>
         <button type="button" className="settings-email-button" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>이메일로 알림 신청하기</button>
         <p className="settings-schedule"><img src={asset('detail-calendar.svg')} alt="" />소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</p>
       </div>}
-      {reminderEmail && <aside className="settings-notification-info"><span aria-hidden="true">i</span><div><strong>어떤 알림을 받나요?</strong><p>보관 중인 재료의 소비 권장일이 다가오면<br />이메일로 알려드려요. 소비 기록·상태 변경은<br />메일 알림으로 보내지 않아요.</p></div></aside>}
+      {reminderEmail && !signedIn && <aside className="settings-notification-info"><span aria-hidden="true">i</span><div><strong>어떤 알림을 받나요?</strong><p>보관 중인 재료의 소비 권장일이 다가오면<br />이메일로 알려드려요. 소비 기록·상태 변경은<br />메일 알림으로 보내지 않아요.</p></div></aside>}
       {reminders.error&&<p role="alert">{reminders.error}<button type="button" onClick={()=>void reminders.reload()}>알림 설정 다시 불러오기</button></p>}
+    </section>;
+  // Figma 6416:7354 — Google 계정으로 로그인한 사용자(3번 사용자)의 설정 화면.
+  if(signedIn && session && data) return <section className="cloud-account is-signed-in" aria-label="계정 및 데이터 관리">
+    <div className="settings-profile"><span className="settings-avatar" aria-hidden="true">{String(session.user.user_metadata.full_name || '나').slice(0,1)}</span><div className="settings-profile-copy"><span className="settings-section-label">내 계정</span><strong>{`${session.user.user_metadata.full_name || '나'}의 냉장고`}</strong>{session.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
+    {notifications}
+    <section className="settings-data" aria-labelledby="settings-data-title">
+      <h2 id="settings-data-title">데이터 관리</h2>
+      <div className="settings-list-group">
+        {data.failure && <div className="settings-banner is-error" role="alert">
+          <span className="settings-banner-status" aria-hidden="true"><img src={asset('settings-banner-error.svg')} alt="" /></span>
+          <div className="settings-banner-copy"><p>{data.failure.title}</p>{data.failure.description && <small>{data.failure.description}</small>}</div>
+          <button type="button" className="settings-banner-action" onClick={data.failure.onAction}>{data.failure.action}</button>
+        </div>}
+        <button type="button" className="settings-menu-item" onClick={()=>setBackupOpen(true)}>데이터 가져오기 및 내보내기<span className="settings-row-chevron" aria-hidden="true"><img src={asset('settings-row-chevron.svg')} alt="" /></span></button>
+      </div>
     </section>
+    <div className="settings-spacer" aria-hidden="true" />
+    <div className="settings-logout-group"><button type="button" className="settings-logout" onClick={()=>void signOut()}>로그아웃</button></div>
+    {error&&<p role="alert">{error}</p>}
+    {backupOpen && <DataBackupSheet unsaved={data.unsaved} busy={importing} onClose={()=>setBackupOpen(false)} onExport={data.onExport} onImport={async file=>{
+      setImporting(true);setError('');
+      try{await data.onImport(file);setBackupOpen(false);}catch(e){setError(e instanceof Error?e.message:'기록을 불러오지 못했어요.');}
+      finally{setImporting(false);}
+    }} />}
+  </section>;
+  return <section className="cloud-account" aria-label="계정 및 클라우드 저장">
+    <div className={`settings-profile${reminderEmail ? ' is-reminder-active' : ''}`}><span className="settings-avatar" aria-hidden="true">{session && !anonymous ? String(session.user.user_metadata.full_name || '나').slice(0,1) : '콕'}</span><div className="settings-profile-copy"><span className="settings-section-label">{reminderEmail ? '이메일 알림 이용 중' : anonymous ? '로그인 없이 이용 중' : '내 계정'}</span><strong>{anonymous ? '임시 사용자의 냉장고' : session ? `${session.user.user_metadata.full_name || '나'}의 냉장고` : '내 냉장고를 다른 기기에서도 확인하세요'}</strong>
+    <p className="settings-profile-status">{anonymous ? (reminderEmail ? 'Google 계정 미연결' : '계정 연결 전') : session ? '계정 연결됨' : '브라우저에 저장 중'}</p>{session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
+    {notifications}
     <section className="settings-records" aria-labelledby="settings-records-title">
       <h2 id="settings-records-title">내 기록 보관하기</h2>
       <div className="settings-record-card">
         <div className="settings-record-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('cloud-upload.svg')} alt="" /></span></span><p>이 브라우저에서 기록을 이용 중이에요.<br />Google 계정을 연결하면 다른 기기에서도<br className="settings-desktop-break" />내 냉장고를 이어서 사용할 수 있어요.</p></div>
-        {!supabase ? <p className="settings-cloud-unavailable">클라우드 연결이 아직 설정되지 않았어요.</p> : session && !anonymous ? <button type="button" className="settings-google-button" onClick={async()=>{const {error}=await supabase!.auth.signOut({scope:'local'});if(error)setError('로그아웃하지 못했어요. 다시 시도해 주세요.')}}>로그아웃</button> : <button type="button" className="settings-google-button" disabled={busy} onClick={()=>void connectGoogle()}>{busy ? '연결 중이에요' : 'Google 계정 연결하기'}</button>}
+        {!supabase ? <p className="settings-cloud-unavailable">클라우드 연결이 아직 설정되지 않았어요.</p> : session && !anonymous ? <button type="button" className="settings-google-button" onClick={()=>void signOut()}>로그아웃</button> : <button type="button" className="settings-google-button" disabled={busy} onClick={()=>void connectGoogle()}>{busy ? '연결 중이에요' : 'Google 계정 연결하기'}</button>}
       </div>
       <div className="settings-retention-note"><span aria-hidden="true">i</span><p>계정을 연결하기 전에 브라우저의 사이트 데이터를 삭제하면, 기존 기록을 다시 찾기 어려워요.</p></div>
     </section>
@@ -73,11 +111,16 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
   const [storage,setStorage]=useState<CloudStorage|null>(null);
   const [error,setError]=useState('');const [status,setStatus]=useState('불러오는 중이에요');
   const [retry,setRetry]=useState(0);
+  const [conflict,setConflict]=useState(false);
+  const savedAtKey=`${cacheKey(session.user.id)}.saved-at`;
+  const [lastSavedAt,setLastSavedAt]=useState<Date|null>(()=>{try{const value=Date.parse(localStorage.getItem(savedAtKey)??'');return Number.isFinite(value)?new Date(value):null;}catch{return null;}});
   const trigger=useRef<()=>void>(()=>{});
+  // 서버에 저장이 확인된 활동 기록. 여기에 없는 활동이 '저장하지 못한 기록'이다.
+  const observed=useRef(new Set<string>());
   useEffect(()=>{
     let cancelled=false, running=false, stopped=false;let timer:ReturnType<typeof setTimeout>|undefined;
     let store:CloudStorage;
-    const observedActivities=new Set<string>();
+    const observedActivities=observed.current=new Set<string>();
     const schedule=()=>{if(cancelled||stopped)return;setStatus('저장 대기 중이에요');clearTimeout(timer);timer=setTimeout(()=>void flush(),350)};
     const flush=async()=>{
       if(cancelled||stopped||running||!store?.pending)return;
@@ -88,7 +131,7 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
         const {data,error}=await supabase!.rpc('save_fridge_snapshot',{expected_revision:store.revision,snapshot:sent});
         if(error)throw error;
         if(cancelled)return;
-        store.acknowledge(data,sent);succeeded=true;setError('');setStatus(store.pending?'저장 대기 중이에요':'변경한 내용을 저장했어요');
+        store.acknowledge(data,sent);succeeded=true;setError('');setConflict(false);{const now=new Date();setLastSavedAt(now);try{localStorage.setItem(savedAtKey,now.toISOString());}catch{/* 표시용 시각만 잃는다. */}}setStatus(store.pending?'저장 대기 중이에요':'변경한 내용을 저장했어요');
         for(const raw of sent.activities){
           const activity=raw as {id:string;itemId:string;type:string};
           if(!observedActivities.has(activity.id)){
@@ -98,7 +141,7 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
         }
       } catch(e) {
         const conflict=Boolean(e&&typeof e==='object'&&'message' in e&&String(e.message).includes('revision_conflict'));
-        stopped=conflict;
+        stopped=conflict;setConflict(conflict);
         setError(conflict?'다른 기기에서 데이터가 변경됐어요. 자동 덮어쓰기를 중단했어요. 이 기기 기록을 백업한 뒤 다시 연결해 주세요.':'클라우드 저장에 실패했어요. 이 기기에는 보관 중이며 재시도할 수 있어요.');
         setStatus('아직 서버에 저장되지 않았어요');
       } finally {running=false;}
@@ -118,10 +161,22 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
     return()=>{cancelled=true;clearTimeout(timer);window.removeEventListener('online',retrySave)};
   },[session.user.id,retry]);
   const backup=()=>download('kokjipseo-cloud-backup.json',localStorage.getItem(cacheKey(session.user.id))??'{}');
-  const reloadRemote=()=>{try{preservePendingBeforeReload(localStorage,session.user.id);setStorage(null);setError('');setRetry(n=>n+1)}catch{setError('미전송 기록을 별도 보관하지 못했어요. 먼저 파일로 백업해 주세요.')}};
+  const reloadRemote=()=>{try{preservePendingBeforeReload(localStorage,session.user.id);setStorage(null);setError('');setConflict(false);setRetry(n=>n+1)}catch{setError('미전송 기록을 별도 보관하지 못했어요. 먼저 파일로 백업해 주세요.')}};
   if(!storage) return <main className="cloud-account"><p role={error?'alert':'status'}>{error||'계정의 냉장고를 불러오는 중이에요'}</p>{error&&<><button onClick={backup}>이 기기 기록 백업</button><button onClick={()=>setRetry(n=>n+1)}>다시 연결</button><button onClick={reloadRemote}>미전송 기록 별도 보관 후 서버 다시 불러오기</button>{!session.user.is_anonymous && <button onClick={()=>void supabase!.auth.signOut({scope:'local'})}>로그아웃</button>}</>}</main>;
+  const unsavedCount=storage.pending?storage.snapshot().activities.filter(raw=>!observed.current.has((raw as {id:string}).id)).length:0;
+  // 다른 기기와 충돌하면 재시도가 계속 실패하므로 '다시 시도'는 미전송 기록을 보관한 뒤 서버 기록을 다시 불러온다.
+  const retrySave=conflict?reloadRemote:()=>trigger.current();
+  const failure=!error?null:{title:unsavedCount>0?`기록 ${unsavedCount}개를 저장하지 못했어요.`:'기록을 저장하지 못했어요.',description:lastSavedAt?`마지막 저장 · ${formatSavedAt(lastSavedAt)}`:'',action:'다시 시도',onAction:retrySave};
+  const importBackup=async(file:File)=>{
+    const current=storage.snapshot();
+    // 같은 id는 현재 기록을 우선해 가져오기가 최근 변경을 덮어쓰지 않게 한다.
+    const merged=mergeSnapshots(current,parseBackup(await file.text()));
+    const added=(Object.keys(snapshotKeys) as (keyof Snapshot)[]).reduce((sum,k)=>sum+merged[k].length-current[k].length,0);
+    if(added)for(const k of Object.keys(snapshotKeys) as (keyof Snapshot)[])storage.setItem(snapshotKeys[k],JSON.stringify(merged[k]));
+  };
+  const data={failure,unsaved:error?{count:unsavedCount,onRetry:retrySave}:null,onExport:backup,onImport:importBackup};
   return <StorageContext.Provider value={storage}>
-    <AccountContext.Provider value={<AccountBar session={session}>
+    <AccountContext.Provider value={<AccountBar session={session} data={data}>
       <div className={`settings-sync-status${error ? ' has-error' : ''}`}>
         {error || !storage.pending ? <ConnectionStatusIcon error={Boolean(error)} /> : null}
         <p role={error ? 'alert' : 'status'}>{error || status}</p>
@@ -143,6 +198,12 @@ export function CloudRoot({children}:{children:ReactNode}) {
   const initialize=useCallback(async()=>{
     if(!supabase)return;
     setError('');setReady(false);
+    if(reloginWithGoogle){
+      // 이미 다른 계정에 연결된 Google 계정이면 연결 대신 그 계정으로 로그인한다. 임시 기록은 합치지 않는다.
+      reloginWithGoogle=false;rememberAuthReturn();
+      const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:authRedirectUrl(),scopes:'openid email profile'}});
+      if(!error)return;
+    }
     try{setSession(await ensureAnonymousSession(supabase));
     }catch{setError('임시 계정을 준비하지 못했어요. 연결 상태와 Supabase 익명 로그인 설정을 확인한 뒤 다시 시도해 주세요. 기존 기록은 그대로 보관돼요.');}
     finally{setReady(true);}
