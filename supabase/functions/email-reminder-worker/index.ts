@@ -1,3 +1,5 @@
 import {createReminderWorker} from '../_shared/emailNotifications.ts';
-// Planning only until a reviewed provider transport is injected and dispatch explicitly enabled.
-Deno.serve(createReminderWorker(Deno.env.toObject()));
+import {createResendTransport} from '../_shared/emailTransport.ts';
+const env=Deno.env.toObject();
+// Still planning-only unless RESEND_API_KEY, EMAIL_FROM and EMAIL_DISPATCH_ENABLED=true are all set.
+Deno.serve(createReminderWorker(env,createResendTransport(env)));
