@@ -163,3 +163,41 @@ test('worker rejects browser token; planning-only never claims or marks sent; di
  });
  const result=await (await active(cron())).json();assert.equal(sent,0);assert.equal(result.cancelled,1);assert.equal(calls.some(u=>u.endsWith('finish_email_delivery')),false);
 });
+test('Resend transport stays off without secrets and sends the rendered reminder with the idempotency key',async()=>{
+ const {createResendTransport}=load('../supabase/functions/_shared/emailTransport.ts');
+ assert.equal(createResendTransport({RESEND_API_KEY:'k'}),null);
+ const calls=[];
+ const transport=createResendTransport({RESEND_API_KEY:'k',EMAIL_FROM:'콕집서 <a@example.com>'},async(url,init)=>{calls.push({url,init});return new Response('{}');});
+ await transport({kind:'reminder',to:'tester@example.com',name:'두부',expiryDate:'2026-11-03',ingredientId:ingredient,deliveryId:reqid,reminderType:'3_days'},'reminder:x');
+ const body=JSON.parse(calls[0].init.body);
+ assert.equal(calls[0].url,'https://api.resend.com/emails');assert.equal(calls[0].init.headers['Idempotency-Key'],'reminder:x');
+ assert.deepEqual(body.to,['tester@example.com']);assert.match(body.html,/두부/);assert.match(body.subject,/3일 남은/);
+ await transport({kind:'reminder',to:'tester@example.com',name:'두부',expiryDate:'2026-11-03',ingredientId:ingredient,deliveryId:reqid,reminderType:'1_day'},'reminder:y');
+ assert.match(JSON.parse(calls[1].init.body).subject,/1일 남은/);
+ await transport({kind:'reminder',to:'tester@example.com',name:'두부',expiryDate:'2026-11-03',ingredientId:ingredient,deliveryId:reqid,reminderType:'due_today'},'reminder:z');
+ const today=JSON.parse(calls[2].init.body);assert.match(today.subject,/오늘까지인/);assert.match(today.text,/오늘까지인/);assert.doesNotMatch(today.html,/3일 남은/);
+ const failing=createResendTransport({RESEND_API_KEY:'k',EMAIL_FROM:'a@example.com'},async()=>new Response('{}',{status:422}));
+ await assert.rejects(()=>failing({kind:'reminder',to:'t@example.com',name:'x',expiryDate:'2026-11-03',ingredientId:ingredient,deliveryId:reqid,reminderType:'3_days'},'k'),/provider_422/);
+});
+test('reminder mail carries each user own address, ingredient name and expiry date',async()=>{
+ const users=[['40000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000001','user-c@example.com','청송사과',1],['40000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000002','user-d@example.com','시금치',0]];
+ for(const [user,item,email,name,days] of users){
+  await db.query('insert into auth.users values($1)',[user]);
+  await db.query("insert into public.email_notification_settings(user_id,email,email_verified_at,enabled,consent_at,consent_version) values($1,$2,now(),true,now(),'email-reminders-v1')",[user,email]);
+  await db.query(`insert into public.ingredients(id,user_id,name,category,expiry_date,payload) values($1::uuid,$2::uuid,$3,'과일',(now() at time zone 'Asia/Seoul')::date+$4::int,jsonb_build_object('id',$1::text,'name',$3::text,'category','과일'))`,[item,user,name,days]);
+ }
+ // 오늘 23:59 KST 기준으로 꺼내 시각과 무관하게 오늘 슬롯만 대상으로 만든다.
+ const endOfToday="((now() at time zone 'Asia/Seoul')::date+time '23:59') at time zone 'Asia/Seoul'";
+ await db.query(`select public.refresh_email_notification_schedule(${endOfToday})`);
+ const {rows:jobs}=await db.query(`select id,lease_token from public.claim_email_deliveries(${endOfToday}) where user_id in ($1,$2)`,users.map(u=>u[0]));
+ assert.equal(jobs.length,2);
+ await db.query("update public.email_notification_deliveries set lease_until=now()+interval '5 minutes' where id=any($1)",[jobs.map(j=>j.id)]);
+ const {createResendTransport}=load('../supabase/functions/_shared/emailTransport.ts');
+ const sent=[];const transport=createResendTransport({RESEND_API_KEY:'k',EMAIL_FROM:'a@example.com'},async(url,init)=>{sent.push(JSON.parse(init.body));return new Response('{}');});
+ for(const job of jobs){const {rows:[{mail}]}=await db.query('select public.prepare_email_delivery($1,$2) as mail',[job.id,job.lease_token]);await transport({kind:'reminder',to:mail.email,...mail},`reminder:${job.id}`);}
+ const today=(await db.query("select to_char((now() at time zone 'Asia/Seoul')::date,'YYYY-MM-DD') as d")).rows[0].d;
+ const tomorrow=(await db.query("select to_char((now() at time zone 'Asia/Seoul')::date+1,'YYYY-MM-DD') as d")).rows[0].d;
+ const c=sent.find(m=>m.to[0]==='user-c@example.com'),d=sent.find(m=>m.to[0]==='user-d@example.com');
+ assert.match(c.html,/청송사과/);assert.match(c.html,new RegExp(`${tomorrow}까지`));assert.match(c.subject,/1일 남은/);assert.doesNotMatch(c.html,/시금치/);
+ assert.match(d.html,/시금치/);assert.match(d.html,new RegExp(`${today}까지`));assert.match(d.subject,/오늘까지인/);assert.doesNotMatch(d.html,/청송사과/);
+});

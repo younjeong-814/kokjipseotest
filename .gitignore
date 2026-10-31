@@ -10,3 +10,4 @@ dist/
 .dev.vars.*
 supabase/.temp/
 supabase/bundles/
+dist-email/
