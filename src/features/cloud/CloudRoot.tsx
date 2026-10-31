@@ -10,7 +10,6 @@ import { AccountContext } from './AccountContext';
 import { ConnectionStatusIcon } from '../../components/ConnectionStatusIcon';
 import { asset } from '../../lib/assets';
 import {useNotificationSettings} from '../notifications/useNotificationSettings';
-import {UTParticipationControl} from '../notifications/UTParticipationControl';
 import {UTTracker,recordManagedActivity} from '../notifications/UTTracker';
 
 function download(name:string, value:string) {
@@ -59,7 +58,6 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
       {reminderEmail && <aside className="settings-notification-info"><span aria-hidden="true">i</span><div><strong>어떤 알림을 받나요?</strong><p>보관 중인 재료의 소비 권장일이 다가오면<br />이메일로 알려드려요. 소비 기록·상태 변경은<br />메일 알림으로 보내지 않아요.</p></div></aside>}
       {reminders.error&&<p role="alert">{reminders.error}<button type="button" onClick={()=>void reminders.reload()}>알림 설정 다시 불러오기</button></p>}
     </section>
-    {session&&<UTParticipationControl key={session.user.id} userId={session.user.id}/>}
     <section className="settings-records" aria-labelledby="settings-records-title">
       <h2 id="settings-records-title">내 기록 보관하기</h2>
       <div className="settings-record-card">
