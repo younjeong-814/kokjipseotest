@@ -32,3 +32,12 @@ export function restoreAuthReturn(
     return errors.get('error_code') === 'identity_already_exists';
   } catch { return false; /* 저장소를 쓸 수 없으면 기본 화면으로 둔다. */ }
 }
+
+// 임시 계정의 알림 이메일을 로그인한 계정으로 옮기는 일회용 티켓. 원문은 이 탭의 sessionStorage에만 둔다.
+export const EMAIL_TRANSFER_KEY = 'kokjipseo.email-transfer';
+export function rememberEmailTransfer(token: string, store: Pick<Storage, 'setItem'> = sessionStorage) {
+  try { store.setItem(EMAIL_TRANSFER_KEY, token); } catch { /* 옮기지 못하면 로그인 후 다시 신청하면 된다. */ }
+}
+export function takeEmailTransfer(store: Pick<Storage, 'getItem' | 'removeItem'> = sessionStorage) {
+  try { const token = store.getItem(EMAIL_TRANSFER_KEY); store.removeItem(EMAIL_TRANSFER_KEY); return token; } catch { return null; }
+}

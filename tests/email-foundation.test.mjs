@@ -49,7 +49,7 @@ before(async()=>{
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  grant usage on schema auth,public to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated,service_role;`);
- for(const file of ['202610240001_ingredient_storage.sql','202610240002_cloud_snapshot.sql','202610240003_api_budget.sql','202610240004_revision_validation.sql','202610290001_email_foundation.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['202610240001_ingredient_storage.sql','202610240002_cloud_snapshot.sql','202610240003_api_budget.sql','202610240004_revision_validation.sql','202610290001_email_foundation.sql','202610310001_email_settings_transfer.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
  await db.query('insert into auth.users values($1),($2)',[a,b]);
 });
 after(()=>db.close());
@@ -200,4 +200,31 @@ test('reminder mail carries each user own address, ingredient name and expiry da
  const c=sent.find(m=>m.to[0]==='user-c@example.com'),d=sent.find(m=>m.to[0]==='user-d@example.com');
  assert.match(c.html,/청송사과/);assert.match(c.html,new RegExp(`${tomorrow}까지`));assert.match(c.subject,/1일 남은/);assert.doesNotMatch(c.html,/시금치/);
  assert.match(d.html,/시금치/);assert.match(d.html,new RegExp(`${today}까지`));assert.match(d.subject,/오늘까지인/);assert.doesNotMatch(d.html,/청송사과/);
+});
+
+test('email settings move from the temporary account to an already-linked Google account with a one-time ticket',async()=>{
+ const temp='10000000-0000-4000-8000-000000000003',google='10000000-0000-4000-8000-000000000004',other='10000000-0000-4000-8000-000000000005';
+ await db.query('insert into auth.users values($1),($2),($3)',[temp,google,other]);
+ assert.equal(await asUser(google,async()=>(await db.query('select public.start_email_settings_transfer() as t')).rows[0].t),null,'no verified email, no ticket');
+ await db.query("insert into public.email_notification_settings(user_id,email,email_verified_at,enabled,consent_at,consent_version) values($1,'temp@example.com',now(),true,now(),'email-reminders-v1')",[temp]);
+ const token=await asUser(temp,async()=>{
+  await assert.rejects(()=>db.query('select * from public.email_settings_transfers'),/permission denied/);
+  return (await db.query('select public.start_email_settings_transfer() as t')).rows[0].t;
+ });
+ assert.match(token,/^[0-9a-f]{64}$/);
+ assert.equal((await db.query('select count(*)::int as n from public.email_settings_transfers where token_hash=$1',[token])).rows[0].n,0,'only the hash is stored');
+ const claim=(owner,t)=>asUser(owner,async()=>(await db.query('select public.claim_email_settings_transfer($1) as ok',[t])).rows[0].ok);
+ assert.equal(await claim(google,'f'.repeat(64)),false);
+ assert.equal(await claim(google,token),true);
+ const rows=(await db.query('select user_id,email,enabled from public.email_notification_settings where user_id in ($1,$2) order by email',[temp,google])).rows;
+ assert.deepEqual(rows.map(r=>[r.user_id,r.email,r.enabled]),[[temp,'temp@example.com',false],[google,'temp@example.com',true]]);
+ assert.equal(await claim(other,token),false,'one-time');
+ await db.query("update public.email_notification_settings set enabled=true where user_id=$1",[temp]);
+ const second=await asUser(temp,async()=>(await db.query('select public.start_email_settings_transfer() as t')).rows[0].t);
+ await db.query("update public.email_notification_settings set email='mine@example.com' where user_id=$1",[google]);
+ assert.equal(await claim(google,second),false,'an existing verified email is never overwritten');
+ assert.equal((await db.query('select email from public.email_notification_settings where user_id=$1',[google])).rows[0].email,'mine@example.com');
+ const expired=await asUser(temp,async()=>(await db.query('select public.start_email_settings_transfer() as t')).rows[0].t);
+ await db.query("update public.email_settings_transfers set expires_at=now()-interval '1 second' where claimed_at is null");
+ assert.equal(await claim(other,expired),false);
 });

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js';
 import { authRedirectUrl, supabase } from './client';
 import { ensureAnonymousSession } from './anonymous';
-import { rememberAuthReturn, restoreAuthReturn } from './authReturn';
+import { rememberAuthReturn, rememberEmailTransfer, restoreAuthReturn, takeEmailTransfer } from './authReturn';
 import { StorageContext } from './StorageContext';
 import { CloudStorage, cacheKey, preservePendingBeforeReload } from './storage';
 import { mergeSnapshots, parseBackup, snapshotKeys, validateSnapshot, type Snapshot } from './snapshot';
@@ -12,6 +12,7 @@ import { AccountContext } from './AccountContext';
 import { ConnectionStatusIcon } from '../../components/ConnectionStatusIcon';
 import { asset } from '../../lib/assets';
 import {useNotificationSettings} from '../notifications/useNotificationSettings';
+import {preferencesChanged} from '../notifications/client';
 import {UTTracker,recordManagedActivity} from '../notifications/UTTracker';
 
 let reloginWithGoogle=restoreAuthReturn();
@@ -38,6 +39,8 @@ function AccountBar({session,data,children}: {session:Session|null;data?:DataMan
     setError('');setBusy(true);
     try {
       rememberAuthReturn();
+      // 이미 다른 계정에 연결된 Google 계정으로 로그인하게 되더라도 신청한 알림 이메일을 이어받도록 티켓을 만든다.
+      if(anonymous&&reminderEmail){const {data}=await supabase.rpc('start_email_settings_transfer');if(typeof data==='string')rememberEmailTransfer(data);}
       const options={redirectTo:authRedirectUrl(),scopes:'openid email profile'};
       const result=anonymous
         ? await supabase.auth.linkIdentity({provider:'google',options})
@@ -50,16 +53,16 @@ function AccountBar({session,data,children}: {session:Session|null;data?:DataMan
   const signedIn=Boolean(session && !anonymous);
   const notifications=<section className="settings-notifications" aria-labelledby="settings-notifications-title">
       <div className="settings-section-heading"><h2 id="settings-notifications-title">소비 권장일 알림</h2><p>소비 권장일이 다가오는 식재료를 이메일로 알려드려요.</p></div>
-      {reminderEmail ? <div className="settings-email-preferences">
+      {!reminders.loaded ? null : reminderEmail ? <div className="settings-email-preferences">
         <div className="settings-confirmed-email">
           <span>알림 받을 이메일</span>
           <div><strong>{reminderEmail}</strong><span className="settings-email-badge"><span className="settings-email-badge-icon"><img src={asset('status-success-mark.svg')} alt="" /></span>인증 완료</span></div>
         </div>
         <div className="settings-email-toggle-row">
           <span><strong>이메일 알림 받기</strong><small>소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</small></span>
-          <span className="settings-email-toggle-control">{signedIn && <span className={reminderEnabled ? 'is-on' : ''} aria-hidden="true">{reminderEnabled ? '켜짐' : '꺼짐'}</span>}<button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" disabled={reminders.busy} onClick={()=>void reminders.toggle()}><span /></button></span>
+          <span className="settings-email-toggle-control"><span className={reminderEnabled ? 'is-on' : ''} aria-hidden="true">{reminderEnabled ? '켜짐' : '꺼짐'}</span><button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" disabled={reminders.busy} onClick={()=>void reminders.toggle()}><span /></button></span>
         </div>
-        <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경{signedIn ? <span className="settings-row-chevron" aria-hidden="true"><img src={asset('settings-row-chevron.svg')} alt="" /></span> : <img src={asset('home-list-chevron.svg')} alt="" />}</button>
+        <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경<span className="settings-row-chevron" aria-hidden="true"><img src={asset('settings-row-chevron.svg')} alt="" /></span></button>
       </div> : <div className="settings-notice-card">
         <div className="settings-notice-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('notification-bell.svg')} alt="" /></span></span><div><strong>이메일로 알림을 받아보세요</strong><p>냉장고 속 식재료의 소비 권장일이<br />다가오면 이메일로 미리 알려드려요.</p></div></div>
         <button type="button" className="settings-email-button" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>이메일로 알림 신청하기</button>
@@ -102,13 +105,19 @@ function AccountBar({session,data,children}: {session:Session|null;data?:DataMan
         <div className="settings-record-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('cloud-upload.svg')} alt="" /></span></span><p>이 브라우저에서 기록을 이용 중이에요.<br />Google 계정을 연결하면 다른 기기에서도<br className="settings-desktop-break" />내 냉장고를 이어서 사용할 수 있어요.</p></div>
         {!supabase ? <p className="settings-cloud-unavailable">클라우드 연결이 아직 설정되지 않았어요.</p> : session && !anonymous ? <button type="button" className="settings-google-button" onClick={()=>void signOut()}>로그아웃</button> : <button type="button" className="settings-google-button" disabled={busy} onClick={()=>void connectGoogle()}>{busy ? '연결 중이에요' : 'Google 계정 연결하기'}</button>}
       </div>
-      <div className="settings-retention-note"><span aria-hidden="true">i</span><p>계정을 연결하기 전에 브라우저의 사이트 데이터를 삭제하면, 기존 기록을 다시 찾기 어려워요.</p></div>
+      {/* Figma 6449:7602 — 알림을 신청한 사용자 화면에는 기록 유지 안내가 없다. */}
+      {!reminderEmail && <div className="settings-retention-note"><span aria-hidden="true">i</span><p>계정을 연결하기 전에 브라우저의 사이트 데이터를 삭제하면, 기존 기록을 다시 찾기 어려워요.</p></div>}
     </section>
     {error&&<p role="alert">{error}</p>}{children}
   </section>;
 }
 function SignedInStorage({session,children}:{session:Session;children:ReactNode}) {
   const [storage,setStorage]=useState<CloudStorage|null>(null);
+  useEffect(()=>{
+    if(session.user.is_anonymous)return;
+    const token=takeEmailTransfer();
+    if(token)void supabase!.rpc('claim_email_settings_transfer',{p_token:token}).then(({data})=>{if(data===true)preferencesChanged();});
+  },[session.user.id,session.user.is_anonymous]);
   const [error,setError]=useState('');const [status,setStatus]=useState('불러오는 중이에요');
   const [retry,setRetry]=useState(0);
   const [conflict,setConflict]=useState(false);
