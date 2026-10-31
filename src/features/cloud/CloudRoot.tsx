@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { authRedirectUrl, supabase } from './client';
-import { ensureAnonymousSession } from './anonymous';
+import { isEmailReturn, prepareEntrySession } from './emailReturn';
+import { EmailReturnNotice } from './EmailReturnNotice';
 import { rememberAuthReturn, rememberEmailTransfer, restoreAuthReturn, takeEmailTransfer } from './authReturn';
 import { StorageContext } from './StorageContext';
 import { CloudStorage, cacheKey, preservePendingBeforeReload } from './storage';
@@ -16,6 +17,7 @@ import {useNotificationSettings} from '../notifications/useNotificationSettings'
 import {preferencesChanged} from '../notifications/client';
 import {UTTracker,recordManagedActivity} from '../notifications/UTTracker';
 
+const previewEmailReturn=import.meta.env.DEV && new URLSearchParams(window.location.hash.split('?')[1]??'').get('preview')==='email-return';
 let reloginWithGoogle=restoreAuthReturn();
 function download(name:string, value:string) {
   const url=URL.createObjectURL(new Blob([value],{type:'application/json'}));
@@ -191,6 +193,7 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
     if(added)for(const k of Object.keys(snapshotKeys) as (keyof Snapshot)[])storage.setItem(snapshotKeys[k],JSON.stringify(merged[k]));
   };
   const data={failure,unsaved:error?{count:unsavedCount,onRetry:retrySave}:null,onExport:backup,onImport:importBackup};
+  if(isEmailReturn(window.location.hash) && storage.snapshot().ingredients.length===0)return <EmailReturnNotice />;
   return <StorageContext.Provider value={storage}>
     <AccountContext.Provider value={<AccountBar session={session} data={data}>
       <div className={`settings-sync-status${error ? ' has-error' : ''}`}>
@@ -224,12 +227,12 @@ export function CloudRoot({children}:{children:ReactNode}) {
       const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:authRedirectUrl(),scopes:'openid email profile'}});
       if(!error)return;}
     }
-    try{setSession(await ensureAnonymousSession(supabase));
+    try{setSession(await prepareEntrySession(supabase,isEmailReturn(window.location.hash)));
     }catch{setError('임시 계정을 준비하지 못했어요. 연결 상태와 Supabase 익명 로그인 설정을 확인한 뒤 다시 시도해 주세요. 기존 기록은 그대로 보관돼요.');}
     finally{setReady(true);}
   },[]);
   useEffect(()=>{
-    if(!supabase)return;void initialize();
+    if(!supabase||previewEmailReturn)return;void initialize();
     const {data}=supabase.auth.onAuthStateChange((event,next)=>{
       if(next){setSession(next);setReady(true);setError('');}
       else if(event==='SIGNED_OUT'){
@@ -240,7 +243,9 @@ export function CloudRoot({children}:{children:ReactNode}) {
     });
     return()=>data.subscription.unsubscribe();
   },[initialize]);
+  if(previewEmailReturn)return <EmailReturnNotice preview />;
   if(!ready)return <main className="cloud-account" role="status">로그인 상태를 확인하고 있어요</main>;
+  if(supabase && !session && !error && isEmailReturn(window.location.hash))return <EmailReturnNotice />;
   if(supabase && !session)return <main className="cloud-account"><p role="alert">{error}</p><button onClick={()=>void initialize()}>다시 시도</button></main>;
   if(session)return <SignedInStorage key={session.user.id} session={session}>{children}</SignedInStorage>;
   return <StorageContext.Provider key="guest" value={null}><AccountContext.Provider value={<AccountBar session={null}></AccountBar>}>{error&&<p role="alert">{error}</p>}{children}</AccountContext.Provider></StorageContext.Provider>;

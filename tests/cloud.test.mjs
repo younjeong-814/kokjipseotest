@@ -115,3 +115,26 @@ test('guest records are stashed before relogin and merged into the existing Goog
  assert.equal(takeGuestRecords('google',old,new Date(now.getTime()+2*60*60*1000)),null);
  await assert.rejects(stashGuestRecords('anon',async()=>{throw new Error('offline')},mem(),now));
 });
+
+const {isEmailReturn,prepareEntrySession}=load('../src/features/cloud/emailReturn.ts');
+test('email navigation marker is exact and never an account identity',()=>{
+ assert.equal(isEmailReturn('#fridge?source=email'),true);
+ for(const hash of ['#fridge','#fridge?source=other','#fridge?email=test@example.com'])assert.equal(isEmailReturn(hash),false);
+});
+test('mail arrivals reuse either session and never create an anonymous account without one',async()=>{
+ for(const session of [null,{user:{id:'a',is_anonymous:true}},{user:{id:'b',is_anonymous:false}}]){
+  const client={auth:{getSession:async()=>({data:{session}}),signInAnonymously:()=>{throw new Error('unexpected new account');}}};
+  assert.equal(await prepareEntrySession(client,true),session);
+ }
+ await assert.rejects(()=>prepareEntrySession({auth:{getSession:async()=>({data:{session:null},error:new Error('offline')})}},true),/offline/);
+});
+test('ordinary arrivals still create an anonymous session',async()=>{
+ const session={user:{id:'new',is_anonymous:true}};
+ assert.equal(await prepareEntrySession({auth:{getSession:async()=>({data:{session:null}}),signInAnonymously:async()=>({data:{session}})}},false),session);
+});
+const {renderReminderEmail}=load('../supabase/functions/_shared/emailTemplates.ts');
+test('reminder HTML and text carry the email return marker',()=>{
+ const mail=renderReminderEmail({to:'tester@example.com',ingredients:[{name:'양파',expiryDate:'2026-11-03'}]});
+ assert.ok(mail.html.includes('#fridge?source=email'));
+ assert.ok(mail.text.includes('#fridge?source=email'));
+});
