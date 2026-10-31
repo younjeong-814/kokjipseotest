@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, authRedirectUrl } from '../cloud/client';
+import { rememberAuthReturn, rememberEmailTransfer } from '../cloud/authReturn';
 import { readNotificationSettings, setRemindersEnabled, type NotificationSettings } from './client';
 import { chooseFridgeNotice, registrationNoticeMessage, isFridgeReentry, isFridgeScreen, maskNoticeEmail, noticeDay, type NoticeKind } from './fridgeNoticePolicy';
 import { OverlayDialog } from '../../components/OverlayDialog';
@@ -85,6 +86,10 @@ export function FridgeNotifications({ screen, items, registrationActive, registr
     if (!supabase || working.current) return;
     working.current = true; setBusy(true); setError('');
     try {
+      // 이미 다른 계정에 연결된 Google 계정이면 돌아온 뒤 그 계정으로 로그인하고 임시 기록을 합친다(CloudRoot).
+      rememberAuthReturn();
+      // 인증한 알림 이메일이 있으면 다른 Google 계정으로 로그인하게 돼도 이어받도록 티켓을 만든다(없으면 null).
+      if (session?.user.is_anonymous) { const { data } = await supabase.rpc('start_email_settings_transfer'); if (typeof data === 'string') rememberEmailTransfer(data); }
       const options = { redirectTo: authRedirectUrl(), scopes: 'openid email profile' };
       const result = session?.user.is_anonymous ? await supabase.auth.linkIdentity({ provider: 'google', options }) : await supabase.auth.signInWithOAuth({ provider: 'google', options });
       if (result.error) throw result.error;

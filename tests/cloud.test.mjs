@@ -91,3 +91,27 @@ test('Google login returns to the screen where it started; an already-linked Goo
  assert.equal(urls.at(-1),'/#settings');
  assert.equal(restore('?error_code=identity_already_exists',''),false,'without a login started here, never redirect');
 });
+
+test('guest records are stashed before relogin and merged into the existing Google account',async()=>{
+ const {stashGuestRecords,takeGuestRecords,mergeGuestRecords,GUEST_TRANSFER_KEY}=load('../src/features/cloud/guestTransfer.ts');
+ const mem=()=>{const m=new Map();return{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),m};};
+ const recipe=(id,name)=>({id,name,image:'',summary:'',category:'',calories:'',time:'',difficulty:'',servings:'',ingredients:[],steps:[]});
+ const now=new Date('2026-10-31T00:00:00Z');
+ // 서버 기록 + 이 기기의 미전송분 중 최신(미전송분)을 보관한다.
+ const disk=mem();
+ disk.setItem(cacheKey('anon'),JSON.stringify({revision:2,pending:true,snapshot:{...emptySnapshot(),recipes:[recipe('a','임시 미전송')]},extras:{}}));
+ assert.equal(await stashGuestRecords('anon',async()=>({revision:2,...emptySnapshot(),recipes:[recipe('a','임시 서버')]}),disk,now),true);
+ // 같은 계정(연결 성공)이면 합치지 않는다.
+ assert.equal(takeGuestRecords('anon',mem(),now),null);
+ const guest=takeGuestRecords('google',disk,now);
+ assert.equal(guest.recipes[0].name,'임시 미전송');assert.equal(disk.getItem(GUEST_TRANSFER_KEY),null);
+ // 로그인한 계정의 기록을 우선하고, 없는 임시 기록만 더한다.
+ let saved={...emptySnapshot(),recipes:[recipe('b','계정')]};const writes=[];
+ const store={snapshot:()=>JSON.parse(JSON.stringify(saved)),setItem:(k,v)=>{writes.push(k);saved={...saved,recipes:JSON.parse(v)};}};
+ assert.deepEqual(mergeGuestRecords(store,guest),['recipes']);
+ assert.deepEqual(saved.recipes.map(r=>r.name).sort(),['계정','임시 미전송']);
+ // 오래된 보관분, 서버·캐시 모두 확인 못 한 경우
+ const old=mem();await stashGuestRecords('anon',async()=>({revision:0,...emptySnapshot(),recipes:[recipe('c','x')]}),old,now);
+ assert.equal(takeGuestRecords('google',old,new Date(now.getTime()+2*60*60*1000)),null);
+ await assert.rejects(stashGuestRecords('anon',async()=>{throw new Error('offline')},mem(),now));
+});
