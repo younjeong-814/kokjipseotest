@@ -12,7 +12,8 @@
     "edge:sync": "node scripts/sync-edge-shared.mjs",
     "edge:check": "node scripts/sync-edge-shared.mjs --check",
     "check:build-secrets": "node scripts/check-build-secrets.mjs",
-    "test:notifications": "node --test tests/email-foundation.test.mjs"
+    "test:notifications": "node --test tests/email-foundation.test.mjs",
+    "email:test": "node scripts/send-test-email.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -25,6 +26,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "nodemailer": "6.9.16",
     "typescript": "^5.9.0",
     "vite": "^7.1.0"
   }
