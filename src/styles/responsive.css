@@ -34,7 +34,7 @@ body { background: var(--gray-0); }
 .empty-fridge { height: auto; min-height: 280px; }
 .fridge-page, .fridge-food-page { display: flex; flex-direction: column; }
 .fridge-empty-state { flex: 1; height: auto; min-height: 300px; padding-block: 24px; }
-.manual-fields, .recipe-empty-state, .mypage-insufficient-state { min-height: 0; }
+.manual-fields, .mypage-insufficient-state { min-height: 0; }
 .recipe-no-urgent-state { padding-top: clamp(24px, 12dvh, 100px); }
 .receipt-camera { min-height: 0; }
 .camera-view { min-height: 0; }
