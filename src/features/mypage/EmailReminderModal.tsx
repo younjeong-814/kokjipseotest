@@ -3,6 +3,55 @@ import {OverlayDialog} from '../../components/OverlayDialog';
 import {asset} from '../../lib/assets';
 import {isEmail,requestEmailCode,verifyEmailCode} from '../notifications/client';
 type Step='email'|'code'|'expired'|'success';
+function EmailReminderField({
+  id,
+  label,
+  placeholder,
+  value,
+  helperText,
+  disabled = false,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  helperText?: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const filled = Boolean(value);
+
+  return <div className="email-reminder-field-group">
+    <label htmlFor={id}>{label}</label>
+    <div className={`email-reminder-input${filled ? ' is-filled' : ''}${disabled ? ' is-disabled' : ''}`}>
+      <input
+        id={id}
+        type={id === 'reminder-email' ? 'email' : 'text'}
+        autoComplete={id === 'reminder-email' ? 'email' : 'one-time-code'}
+        inputMode={id === 'reminder-code' ? 'numeric' : 'email'}
+        maxLength={id === 'reminder-email' ? 254 : 6}
+        autoFocus
+        placeholder={placeholder}
+        value={value}
+        disabled={disabled}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={event => onChange(event.target.value)}
+      />
+      {focused && filled && !disabled && <button
+        type="button"
+        className="email-reminder-clear"
+        aria-label={`${label} 지우기`}
+        onMouseDown={event => event.preventDefault()}
+        onClick={() => onChange('')}
+      ><img src={asset('search-clear.svg')} alt="" /></button>}
+    </div>
+    {helperText && <p className="email-reminder-field-helper">{helperText}</p>}
+  </div>;
+}
+
 export function EmailReminderModal({onClose}:{onClose:()=>void}){
   const [step,setStep]=useState<Step>('email'),[email,setEmail]=useState(''),[code,setCode]=useState('');
   const [consent,setConsent]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
@@ -37,11 +86,11 @@ export function EmailReminderModal({onClose}:{onClose:()=>void}){
       {step==='success'?<div className="email-reminder-success"><span className="email-reminder-success-icon" aria-hidden="true"><i/></span><strong>{email.trim()}</strong><p>소비 권장일 3일 전, 1일 전, 당일 오전 9시에 알림을 안내드려요.</p><small>알림 받을 이메일은 설정에서 변경할 수 있어요.</small></div>
       :<div className="email-reminder-fields">
         {step==='email'?<>
-          <div className="email-reminder-field-group"><label htmlFor="reminder-email">알림 받을 이메일</label><input id="reminder-email" type="email" maxLength={254} autoComplete="email" autoFocus placeholder="이메일 주소를 입력해 주세요" value={email} className={email?'has-value':''} disabled={busy} onChange={e=>{setEmail(e.target.value);setError('');}}/></div>
+          <EmailReminderField id="reminder-email" label="알림 받을 이메일" placeholder="이메일 주소를 입력해 주세요" value={email} disabled={busy} onChange={value=>{setEmail(value);setError('');}}/>
           <label className="email-reminder-consent"><input type="checkbox" checked={consent} disabled={busy} onChange={e=>setConsent(e.target.checked)}/><span>소비 권장일 이메일 알림 수신에 동의해요.<small>알림은 설정에서 언제든 끌 수 있어요. (동의문 버전: v1)</small></span></label>
           <p>새 이메일 인증이 끝나기 전에는 기존 알림 주소를 유지해요. Google 로그인 계정은 변경되지 않아요.</p>
         </>:<>
-          <div className="email-reminder-field-group"><label htmlFor="reminder-code">인증번호</label><input id="reminder-code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus placeholder="숫자 6자리 입력" value={code} className={code?'has-value':''} disabled={step==='expired'||busy} onChange={e=>{setCode(e.target.value.replace(/\D/g,'').slice(0,6));setError('');}}/></div>
+          <EmailReminderField id="reminder-code" label="인증번호" placeholder="숫자 6자리 입력" value={code} disabled={step==='expired'||busy} onChange={value=>{setCode(value.replace(/\D/g,'').slice(0,6));setError('');}}/>
           <p className={step==='expired'?'email-reminder-error':'email-reminder-timer'}>{step==='expired'?'인증번호가 만료됐어요. 새 번호를 받아주세요.':`인증번호 유효시간 ${String(Math.floor(secondsLeft/60)).padStart(2,'0')}:${String(secondsLeft%60).padStart(2,'0')}`}</p>
           <div className="email-reminder-links"><button type="button" disabled={busy} onClick={()=>{setStep('email');setCode('');setDeadline(null);setError('');}}>이메일 주소 수정</button><button type="button" disabled={busy} onClick={()=>void requestCode()}>인증번호 다시 받기</button></div>
           <p>메일이 보이지 않으면 스팸함도 확인해 주세요.</p>
