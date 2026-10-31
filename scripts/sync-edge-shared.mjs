@@ -11,5 +11,5 @@ const files={
 };
 for(const [name,source] of Object.entries(files)){
   const output=banner+source.replaceAll('\r\n','\n');const path=`${directory}/${name}`;
-  if(process.argv.includes('--check')){if(readFileSync(path,'utf8')!==output)throw new Error(`Regenerate Edge shared code: ${name}`)}else writeFileSync(path,output);
+  if(process.argv.includes('--check')){if(readFileSync(path,'utf8').replaceAll('\r\n','\n')!==output)throw new Error(`Regenerate Edge shared code: ${name}`)}else writeFileSync(path,output);
 }

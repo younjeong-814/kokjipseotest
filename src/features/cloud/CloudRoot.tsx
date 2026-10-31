@@ -9,6 +9,9 @@ import { validateSnapshot } from './snapshot';
 import { AccountContext } from './AccountContext';
 import { ConnectionStatusIcon } from '../../components/ConnectionStatusIcon';
 import { asset } from '../../lib/assets';
+import {useNotificationSettings} from '../notifications/useNotificationSettings';
+import {UTParticipationControl} from '../notifications/UTParticipationControl';
+import {UTTracker,recordManagedActivity} from '../notifications/UTTracker';
 
 function download(name:string, value:string) {
   const url=URL.createObjectURL(new Blob([value],{type:'application/json'}));
@@ -17,16 +20,9 @@ function download(name:string, value:string) {
 function AccountBar({session,children}: {session:Session|null;children?:ReactNode}) {
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
-  const [reminderEmail,setReminderEmail]=useState('');
-  const [reminderEnabled,setReminderEnabled]=useState(true);
-  useEffect(()=>{
-    const complete=(event:Event)=>{
-      const email=(event as CustomEvent<{email?:string}>).detail?.email;
-      if(email)setReminderEmail(email);
-    };
-    window.addEventListener('kokjipseo:email-reminder-completed',complete);
-    return()=>window.removeEventListener('kokjipseo:email-reminder-completed',complete);
-  },[]);
+  const reminders=useNotificationSettings(session?.user.id);
+  const reminderEmail=reminders.settings?.email_verified_at ? reminders.settings.email : '';
+  const reminderEnabled=Boolean(reminders.settings?.enabled);
   const anonymous=Boolean(session?.user.is_anonymous);
   const connectGoogle=async()=>{
     if(!supabase || busy)return;
@@ -42,7 +38,7 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
   };
   return <section className="cloud-account" aria-label="계정 및 클라우드 저장">
     <div className={`settings-profile${reminderEmail ? ' is-reminder-active' : ''}`}><span className="settings-avatar" aria-hidden="true">{session && !anonymous ? String(session.user.user_metadata.full_name || '나').slice(0,1) : '콕'}</span><div className="settings-profile-copy"><span className="settings-section-label">{reminderEmail ? '이메일 알림 이용 중' : anonymous ? '로그인 없이 이용 중' : '내 계정'}</span><strong>{anonymous ? '임시 사용자의 냉장고' : session ? `${session.user.user_metadata.full_name || '나'}의 냉장고` : '내 냉장고를 다른 기기에서도 확인하세요'}</strong>
-    <p className="settings-profile-status">{reminderEmail ? 'Google 계정 미연결' : anonymous ? '계정 연결 전' : session ? '계정 연결됨' : '브라우저에 저장 중'}</p>{session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
+    <p className="settings-profile-status">{anonymous ? (reminderEmail ? 'Google 계정 미연결' : '계정 연결 전') : session ? '계정 연결됨' : '브라우저에 저장 중'}</p>{session?.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
     <section className="settings-notifications" aria-labelledby="settings-notifications-title">
       <div className="settings-section-heading"><h2 id="settings-notifications-title">소비 권장일 알림</h2><p>소비 권장일이 다가오는 식재료를 이메일로 알려드려요.</p></div>
       {reminderEmail ? <div className="settings-email-preferences">
@@ -52,7 +48,7 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
         </div>
         <div className="settings-email-toggle-row">
           <span><strong>이메일 알림 받기</strong><small>소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</small></span>
-          <button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" onClick={()=>setReminderEnabled(value=>!value)}><span /></button>
+          <button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" disabled={reminders.busy} onClick={()=>void reminders.toggle()}><span /></button>
         </div>
         <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경<img src={asset('home-list-chevron.svg')} alt="" /></button>
       </div> : <div className="settings-notice-card">
@@ -61,7 +57,9 @@ function AccountBar({session,children}: {session:Session|null;children?:ReactNod
         <p className="settings-schedule"><img src={asset('detail-calendar.svg')} alt="" />소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</p>
       </div>}
       {reminderEmail && <aside className="settings-notification-info"><span aria-hidden="true">i</span><div><strong>어떤 알림을 받나요?</strong><p>보관 중인 재료의 소비 권장일이 다가오면<br />이메일로 알려드려요. 소비 기록·상태 변경은<br />메일 알림으로 보내지 않아요.</p></div></aside>}
+      {reminders.error&&<p role="alert">{reminders.error}<button type="button" onClick={()=>void reminders.reload()}>알림 설정 다시 불러오기</button></p>}
     </section>
+    {session&&<UTParticipationControl key={session.user.id} userId={session.user.id}/>}
     <section className="settings-records" aria-labelledby="settings-records-title">
       <h2 id="settings-records-title">내 기록 보관하기</h2>
       <div className="settings-record-card">
@@ -81,6 +79,7 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
   useEffect(()=>{
     let cancelled=false, running=false, stopped=false;let timer:ReturnType<typeof setTimeout>|undefined;
     let store:CloudStorage;
+    const observedActivities=new Set<string>();
     const schedule=()=>{if(cancelled||stopped)return;setStatus('저장 대기 중이에요');clearTimeout(timer);timer=setTimeout(()=>void flush(),350)};
     const flush=async()=>{
       if(cancelled||stopped||running||!store?.pending)return;
@@ -92,6 +91,13 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
         if(error)throw error;
         if(cancelled)return;
         store.acknowledge(data,sent);succeeded=true;setError('');setStatus(store.pending?'저장 대기 중이에요':'변경한 내용을 저장했어요');
+        for(const raw of sent.activities){
+          const activity=raw as {id:string;itemId:string;type:string};
+          if(!observedActivities.has(activity.id)){
+            observedActivities.add(activity.id);
+            if(activity.type!=='registered')void recordManagedActivity(session.user.id,activity).catch(()=>{});
+          }
+        }
       } catch(e) {
         const conflict=Boolean(e&&typeof e==='object'&&'message' in e&&String(e.message).includes('revision_conflict'));
         stopped=conflict;
@@ -106,6 +112,7 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
         const {data,error}=await supabase!.rpc('load_fridge_snapshot');if(error)throw error;
         if(cancelled)return;
         store=new CloudStorage(localStorage,session.user.id,validateSnapshot(data),schedule);
+        for(const raw of validateSnapshot(data).activities)observedActivities.add((raw as {id:string}).id);
         setStorage(store);setError('');setStatus(store.pending?'저장 대기 중이에요':'내 냉장고가 연결됐어요');if(store.pending)schedule();
       }catch{if(!cancelled)setError('계정 데이터를 불러오지 못했어요. DB 설정·연결을 확인해 주세요. 미전송 기록이 있다면 먼저 백업해 주세요.');}
     })();
@@ -127,6 +134,7 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
       
     </div></AccountBar>}>
     {children}
+    <UTTracker userId={session.user.id}/>
     {error&&<aside className="cloud-save-warning" role="alert">{error}<button onClick={backup}>기록 백업</button></aside>}
     </AccountContext.Provider>
   </StorageContext.Provider>;
