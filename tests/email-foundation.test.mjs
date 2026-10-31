@@ -7,6 +7,48 @@ const modules=new Map();
 function load(path){const url=new URL(path,import.meta.url);if(modules.has(url.href))return modules.get(url.href);const exports={};modules.set(url.href,exports);const code=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('exports','require',code)(exports,p=>load(new URL(p,url)));return exports;}
 const {createVerificationHandler,createReminderWorker,hashVerification,validEmail}=load('../supabase/functions/_shared/emailNotifications.ts');
 const {createGmailVerificationTransport}=load('../supabase/functions/_shared/gmail.ts');
+const {createManualReminderTest}=load('../supabase/functions/_shared/manualReminderTest.ts');
+
+test('self-test authenticates each account before scoped queries; never sends when disabled',async()=>{
+ const env={SUPABASE_URL:'https://test.supabase.co',SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server',EMAIL_MANUAL_TEST_ENABLED:'true',EMAIL_MANUAL_TEST_USER_IDS:'tester',EMAIL_CRON_SECRET:'cron'};
+ const request=(action,auth=true)=>new Request('https://test/functions/test',{method:'POST',headers:{Origin:'http://127.0.0.1:5173',...(auth?{Authorization:'Bearer session'}:{})},body:JSON.stringify({action})});
+ const calls=[];let anonymous=false,id='tester';
+ const fetcher=async url=>{calls.push(url);return Response.json(url.includes('/auth/')?{id,is_anonymous:anonymous}:url.endsWith('inspect_email_notification_targets_for_user')?[]:0);};
+ const handler=createManualReminderTest(env,null,fetcher);
+ assert.equal((await handler(request('run',false))).status,401);assert.equal(calls.length,0);
+ id='other';assert.equal((await handler(request('status'))).status,200);assert.ok(calls.every(url=>url.includes('/auth/')));
+ id='tester';anonymous=true;assert.equal((await handler(request('status'))).status,200);
+ anonymous=false;calls.length=0;assert.equal((await handler(request('run'))).status,503);assert.equal(calls.length,1);
+ const inspection=await (await handler(request('inspect'))).json();assert.equal(inspection.sendingReady,false);assert.deepEqual(inspection.users,[]);
+ assert.ok(!calls.some(url=>url.includes('claim_email')));
+ const off=createManualReminderTest({...env,EMAIL_MANUAL_TEST_ENABLED:'false'},null,fetcher);calls.length=0;
+ assert.equal((await off(request('status'))).status,403);assert.equal(calls.length,0);
+});
+
+test('manual entry uses the same worker ledger, recheck and stable idempotency key',async()=>{
+ const env={SUPABASE_URL:'https://test.supabase.co',SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server',EMAIL_MANUAL_TEST_ENABLED:'true',EMAIL_MANUAL_TEST_USER_IDS:'tester',EMAIL_CRON_SECRET:'cron',EMAIL_DISPATCH_ENABLED:'true'};
+ const calls=[],sent=[];
+ const fetcher=async url=>{calls.push(url);return Response.json(url.includes('/auth/')?{id:'tester',is_anonymous:false}:url.endsWith('claim_email_manual_test_run_for_user')?true:url.endsWith('claim_email_deliveries_for_user_now')?[{id:'delivery',user_id:'tester',lease_token:'lease'}]:url.endsWith('prepare_email_delivery')?{email:'owner@example.com',name:'두부',expiryDate:'2026-11-03',ingredientId:'ingredient',deliveryId:'delivery',reminderType:'3_days'}:1);};
+ const handler=createManualReminderTest(env,async(mail,key)=>sent.push({mail,key}),fetcher);
+ const result=await(await handler(new Request('https://test',{method:'POST',headers:{Authorization:'Bearer session'},body:'{"action":"run"}'}))).json();
+ assert.equal(result.sent,1);assert.equal(result.users.tester.sent,1);assert.equal(sent[0].key,'reminder:delivery');assert.equal(sent[0].mail.to,'owner@example.com');
+ assert.ok(calls.some(url=>url.endsWith('prepare_email_delivery')));assert.ok(calls.some(url=>url.endsWith('finish_email_delivery')));
+ assert.ok(!JSON.stringify(result).includes('owner@example.com'));
+});
+test('self-test never accepts a client supplied account or recipient and binds all RPCs to Auth user',async()=>{
+ const env={SUPABASE_URL:'https://test.supabase.co',SUPABASE_ANON_KEY:'public',SUPABASE_SERVICE_ROLE_KEY:'server',EMAIL_MANUAL_TEST_ENABLED:'true'};
+ const calls=[];
+ const handler=createManualReminderTest(env,null,async(url,options)=>{
+  if(url.includes('/auth/'))return Response.json({id:'account-a',is_anonymous:false});
+  calls.push({url,body:JSON.parse(options.body)});return Response.json(url.includes('inspect_')?[]:0);
+ });
+ const request=body=>new Request('https://test',{method:'POST',headers:{Authorization:'Bearer a'},body:JSON.stringify(body)});
+ assert.equal((await handler(request({action:'run',user_id:'account-b'}))).status,400);
+ assert.equal((await handler(request({action:'run',to:'other@example.com'}))).status,400);
+ assert.equal(calls.length,0);
+ assert.equal((await handler(request({action:'inspect'}))).status,200);
+ assert.ok(calls.every(call=>call.body.p_user_id==='account-a'&&call.url.includes('_for_user')));
+});
 
 test('Gmail transport: server OAuth, UTF-8 MIME, token reuse and no reminder dispatch',async()=>{
  const env={GMAIL_CLIENT_ID:'test-client',GMAIL_CLIENT_SECRET:'test-secret',GMAIL_REFRESH_TOKEN:'test-refresh',GMAIL_SENDER_EMAIL:'team@example.com'};
@@ -49,7 +91,7 @@ before(async()=>{
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  grant usage on schema auth,public to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated,service_role;`);
- for(const file of ['202610240001_ingredient_storage.sql','202610240002_cloud_snapshot.sql','202610240003_api_budget.sql','202610240004_revision_validation.sql','202610290001_email_foundation.sql','202610310001_email_settings_transfer.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['202610240001_ingredient_storage.sql','202610240002_cloud_snapshot.sql','202610240003_api_budget.sql','202610240004_revision_validation.sql','202610290001_email_foundation.sql','202610310001_email_settings_transfer.sql','202610310002_manual_reminder_test.sql','202610310003_self_reminder_test.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
  await db.query('insert into auth.users values($1),($2)',[a,b]);
 });
 after(()=>db.close());
@@ -227,4 +269,65 @@ test('email settings move from the temporary account to an already-linked Google
  const expired=await asUser(temp,async()=>(await db.query('select public.start_email_settings_transfer() as t')).rows[0].t);
  await db.query("update public.email_settings_transfers set expires_at=now()-interval '1 second' where claimed_at is null");
  assert.equal(await claim(other,expired),false);
+});
+
+test('manual database scan selects A=2 B=1 C=0 D=0; ignores clock only, not consent or sent ledger',async()=>{
+ await asUser(a,()=>assert.rejects(()=>db.query('select public.claim_email_deliveries_now()'),/permission denied/));
+ await db.exec('begin');
+ try{
+  const owners=[];
+  for(let u=1;u<=6;u++){
+   const owner='90000000-0000-4000-8000-'+String(u).padStart(12,'0');owners.push(owner);
+   await db.query('insert into auth.users values($1)',[owner]);
+   if(u!==6)await db.query("insert into public.email_notification_settings(user_id,email,email_verified_at,enabled,consent_at,consent_version) values($1,$2,now(),$3,now(),'email-reminders-v1')",[owner,'user'+u+'@example.com',u!==5]);
+   const size=[20,10,5,1,1,1][u-1];
+   for(let i=0;i<size;i++){
+    const offset=u===1&&i<2?[3,1][i]:u===2&&i===0?0:u===4?-1:u>=5?1:10;
+    await db.query("insert into public.ingredients(id,user_id,name,category,expiry_date,payload) values($1::uuid,$2::uuid,$3,'채소',(now() at time zone 'Asia/Seoul')::date+$4::int,jsonb_build_object('id',$1::text,'name',$3::text,'category','채소'))",[crypto.randomUUID(),owner,'재료'+i,offset]);
+   }
+  }
+  await db.query('select public.refresh_email_notification_schedule()');
+  const summaries=(await db.query('select public.inspect_email_notification_targets() as rows')).rows[0].rows;
+  assert.deepEqual(owners.map(owner=>summaries.find(row=>row.user_id===owner).eligible),[2,1,0,0,0,0]);
+  assert.equal(summaries.find(row=>row.user_id===owners[3]).expired,1);
+  await db.query("update public.email_notification_deliveries set scheduled_at=((now() at time zone 'Asia/Seoul')::date+time '23:59:59') at time zone 'Asia/Seoul' where user_id=any($1::uuid[]) and (scheduled_at at time zone 'Asia/Seoul')::date=(now() at time zone 'Asia/Seoul')::date",[owners]);
+  const normal=(await db.query('select * from public.claim_email_deliveries()')).rows;
+  assert.equal(normal.filter(row=>owners.includes(row.user_id)).length,0);
+  const jobs=(await db.query('select * from public.claim_email_deliveries_now()')).rows.filter(row=>owners.includes(row.user_id));
+  assert.equal(jobs.length,3);
+  for(const job of jobs){
+   const mail=(await db.query('select public.prepare_email_delivery($1,$2) as mail',[job.id,job.lease_token])).rows[0].mail;
+   assert.equal(mail.email,'user'+(owners.indexOf(job.user_id)+1)+'@example.com');
+   await db.query('select public.finish_email_delivery($1,$2,true)',[job.id,job.lease_token]);
+  }
+  const again=(await db.query('select * from public.claim_email_deliveries_now()')).rows;
+  assert.equal(again.filter(row=>owners.includes(row.user_id)).length,0);
+  assert.equal((await db.query('select public.claim_email_manual_test_run() as ok')).rows[0].ok,true);
+  assert.equal((await db.query('select public.claim_email_manual_test_run() as ok')).rows[0].ok,false);
+ }finally{await db.exec('rollback');}
+});
+
+test('self-test DB schedules, inspects, claims and rate limits only the requested owner',async()=>{
+ await db.exec('begin');
+ try{
+  const owners=['a1000000-0000-4000-8000-000000000001','a1000000-0000-4000-8000-000000000002'];
+  for(const owner of owners){
+   await db.query('insert into auth.users values($1)',[owner]);
+   await db.query("insert into public.email_notification_settings(user_id,email,email_verified_at,enabled,consent_at,consent_version) values($1,$2,now(),true,now(),'email-reminders-v1')",[owner,owner.slice(0,8)+'@example.com']);
+   const id=crypto.randomUUID();await db.query("insert into public.ingredients(id,user_id,name,category,expiry_date,payload) values($1::uuid,$2::uuid,'양파','채소',(now() at time zone 'Asia/Seoul')::date+1,jsonb_build_object('id',$1::text,'name','양파','category','채소'))",[id,owner]);
+  }
+  const [a,b]=owners;
+  await db.query('select public.refresh_email_notification_schedule_for_user($1)',[a]);
+  assert.equal((await db.query('select count(*)::int as n from public.email_notification_deliveries where user_id=$1',[b])).rows[0].n,0);
+  await db.query('select public.refresh_email_notification_schedule_for_user($1)',[b]);
+  const report=(await db.query('select public.inspect_email_notification_targets_for_user($1) as report',[a])).rows[0].report;
+  assert.deepEqual(report.map(row=>row.user_id),[a]);assert.equal(report[0].eligible,1);
+  const jobs=(await db.query('select * from public.claim_email_deliveries_for_user_now($1)',[a])).rows;
+  assert.equal(jobs.length,1);assert.equal(jobs[0].user_id,a);
+  assert.equal((await db.query("select count(*)::int as n from public.email_notification_deliveries where user_id=$1 and status='processing'",[b])).rows[0].n,0);
+  assert.equal((await db.query('select public.claim_email_manual_test_run_for_user($1) as ok',[a])).rows[0].ok,true);
+  assert.equal((await db.query('select public.claim_email_manual_test_run_for_user($1) as ok',[a])).rows[0].ok,false);
+  assert.equal((await db.query('select public.claim_email_manual_test_run_for_user($1) as ok',[b])).rows[0].ok,true);
+  assert.equal((await db.query("select has_function_privilege('service_role','public.claim_email_deliveries_now()','execute') as ok")).rows[0].ok,false);
+ }finally{await db.exec('rollback');}
 });

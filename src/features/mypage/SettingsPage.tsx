@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { SubHeader } from '../../components/SubHeader';
 import { CloudAccountSlot } from '../cloud/AccountContext';
 import { EmailReminderModal } from './EmailReminderModal';
+import { ManualReminderTest } from '../notifications/ManualReminderTest';
 
 export function SettingsPage({ onBack }: { onBack: () => void }) {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -12,7 +13,7 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
   }, []);
   return <>
     <SubHeader title="설정" onBack={onBack} />
-    <main className="settings-page"><CloudAccountSlot /></main>
+    <main className="settings-page"><CloudAccountSlot />{import.meta.env.DEV&&<ManualReminderTest />}</main>
     {emailModalOpen && <EmailReminderModal onClose={() => setEmailModalOpen(false)} />}
   </>;
 }

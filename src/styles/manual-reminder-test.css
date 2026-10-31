@@ -1,0 +1,10 @@
+.manual-reminder-test { margin: 20px; padding: 16px; border: 1px solid var(--gray-400); border-radius: 16px; display: flex; flex-direction: column; gap: 12px; }
+.manual-reminder-test h2 { font-size: 18px; line-height: 24px; }
+.manual-reminder-test p, .manual-reminder-test li { font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
+.manual-reminder-test [role="alert"] { color: #bc2949; }
+.manual-reminder-test button:disabled { background: var(--gray-200); color: var(--gray-700); cursor: default; }
+.manual-reminder-test .action-button { height: auto; min-height: 48px; padding-block: 10px; }
+.manual-reminder-table { overflow: auto; max-height: 260px; }
+.manual-reminder-table table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 18px; }
+.manual-reminder-table caption { text-align: left; margin-bottom: 8px; }
+.manual-reminder-table th, .manual-reminder-table td { padding: 6px 4px; text-align: left; border-bottom: 1px solid var(--gray-400); }
