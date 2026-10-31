@@ -6,6 +6,41 @@ import ts from 'typescript';
 const modules=new Map();
 function load(path){const url=new URL(path,import.meta.url);if(modules.has(url.href))return modules.get(url.href);const exports={};modules.set(url.href,exports);const code=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('exports','require',code)(exports,p=>load(new URL(p,url)));return exports;}
 const {createVerificationHandler,createReminderWorker,hashVerification,validEmail}=load('../supabase/functions/_shared/emailNotifications.ts');
+const {createGmailVerificationTransport}=load('../supabase/functions/_shared/gmail.ts');
+
+test('Gmail transport: server OAuth, UTF-8 MIME, token reuse and no reminder dispatch',async()=>{
+ const env={GMAIL_CLIENT_ID:'test-client',GMAIL_CLIENT_SECRET:'test-secret',GMAIL_REFRESH_TOKEN:'test-refresh',GMAIL_SENDER_EMAIL:'team@example.com'};
+ assert.equal(createGmailVerificationTransport({}),null);
+ const requests=[];
+ const transport=createGmailVerificationTransport(env,async(url,options)=>{
+  requests.push({url,options});
+  return Response.json(url.includes('oauth2')?{access_token:'test-access',expires_in:3600}:{id:'mail-id'});
+ });
+ await transport({kind:'verification',to:'tester@example.com',code:'123456'},'request-1');
+ await transport({kind:'verification',to:'tester@example.com',code:'654321'},'request-2');
+ assert.equal(requests.length,3);
+ assert.equal(requests[0].options.body.get('grant_type'),'refresh_token');
+ assert.equal(requests[0].options.body.get('refresh_token'),'test-refresh');
+ const raw=JSON.parse(requests[1].options.body).raw;
+ assert.match(raw,/^[A-Za-z0-9_-]+$/);
+ const mime=Buffer.from(raw,'base64url').toString('utf8');
+ assert.match(mime,/To: tester@example.com\r\n/);
+ assert.match(mime,/Subject: =\?UTF-8\?B\?/);
+ assert.match(Buffer.from(mime.split('\r\n\r\n')[1],'base64').toString('utf8'),/인증번호는 123456/);
+ assert.equal(requests[1].options.headers.Authorization,'Bearer test-access');
+ await assert.rejects(()=>transport({kind:'verification',to:'bad\r\nBcc: victim@example.com',code:'123456'},'bad'),/invalid_verification_mail/);
+ await assert.rejects(()=>transport({kind:'reminder'},'reminder'),/not_enabled/);
+ assert.equal(requests.length,3);
+});
+test('Gmail transport hides upstream secrets and never retries a failed send',async()=>{
+ const env={GMAIL_CLIENT_ID:'test-client',GMAIL_CLIENT_SECRET:'test-secret',GMAIL_REFRESH_TOKEN:'test-refresh',GMAIL_SENDER_EMAIL:'team@example.com'};
+ let calls=0;
+ const transport=createGmailVerificationTransport(env,async(url)=>{
+  calls++;return url.includes('oauth2')?Response.json({access_token:'test-access',expires_in:3600}):Response.json({error:'private-provider-data'},{status:429});
+ });
+ await assert.rejects(()=>transport({kind:'verification',to:'tester@example.com',code:'123456'},'request'),/^Error: gmail_send_failed$/);
+ assert.equal(calls,2);
+});
 const db=new PGlite();
 const a='10000000-0000-4000-8000-000000000001',b='10000000-0000-4000-8000-000000000002';
 const ingredient='20000000-0000-4000-8000-000000000001',reqid='30000000-0000-4000-8000-000000000001';

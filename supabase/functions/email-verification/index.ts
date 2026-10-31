@@ -1,3 +1,4 @@
 import {createVerificationHandler} from '../_shared/emailNotifications.ts';
-// A provider is intentionally NOT connected in the foundation stage.
-Deno.serve(createVerificationHandler(Deno.env.toObject()));
+import {createGmailVerificationTransport} from '../_shared/gmail.ts';
+const env=Deno.env.toObject();
+Deno.serve(createVerificationHandler(env,createGmailVerificationTransport(env)));
