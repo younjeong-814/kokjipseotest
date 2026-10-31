@@ -71,27 +71,30 @@ export function createVerificationHandler(env:Env,transport:MailTransport|null=n
 }
 
 /** Without a provider this ONLY plans jobs; it never claims attempts or marks anything sent. */
-export function createReminderWorker(env:Env,transport:MailTransport|null=null,fetcher:typeof fetch=fetch){
+export function createReminderWorker(env:Env,transport:MailTransport|null=null,fetcher:typeof fetch=fetch,manual:string|false=false){
   return async(request:Request)=>{
     const reply=(status:number,value:unknown)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
     if(request.method!=='POST')return reply(405,{error:'method_not_allowed'});
     if(!env.EMAIL_CRON_SECRET||request.headers.get('x-cron-secret')!==env.EMAIL_CRON_SECRET)return reply(401,{error:'unauthorized'});
     try{
-      const db=service(env,fetcher);const planned=await db('rpc/refresh_email_notification_schedule',{});
+      const db=service(env,fetcher);const planned=await db(manual?'rpc/refresh_email_notification_schedule_for_user':'rpc/refresh_email_notification_schedule',manual?{p_user_id:manual}:{});
       if(!transport||env.EMAIL_DISPATCH_ENABLED!=='true')return reply(200,{mode:'planning-only',planned,sent:0});
-      const jobs=await db('rpc/claim_email_deliveries',{});let sent=0,failed=0,cancelled=0;
+      const jobs=await db(manual?'rpc/claim_email_deliveries_for_user_now':'rpc/claim_email_deliveries',manual?{p_user_id:manual}:{});let sent=0,failed=0,cancelled=0;
+      const users:Record<string,{sent:number;failed:number;cancelled:number}>={};
       for(const job of jobs){
+        if(manual&&job.user_id!==manual)throw new Error('cross_account_job_rejected');
+        const user=users[job.user_id]??=( {sent:0,failed:0,cancelled:0} );
         const params={p_id:job.id,p_lease:job.lease_token};
         const current=await db('rpc/prepare_email_delivery',params);
-        if(!current){cancelled++;continue;}
+        if(!current){cancelled++;user.cancelled++;continue;}
         try{
           await transport({kind:'reminder',to:current.email,name:current.name,expiryDate:current.expiryDate,ingredientId:current.ingredientId,deliveryId:current.deliveryId,reminderType:current.reminderType},`reminder:${job.id}`);
-        }catch{await db('rpc/finish_email_delivery',{...params,p_success:false});failed++;continue;}
+        }catch{await db('rpc/finish_email_delivery',{...params,p_success:false});failed++;user.failed++;continue;}
         // If acknowledgement fails, do not mark a delivered mail as a provider failure.
         // A future retry must use the SAME provider idempotency key.
-        await db('rpc/finish_email_delivery',{...params,p_success:true});sent++;
+        await db('rpc/finish_email_delivery',{...params,p_success:true});sent++;user.sent++;
       }
-      return reply(200,{mode:'sending',planned,sent,failed,cancelled});
+      return reply(200,{mode:'sending',planned,sent,failed,cancelled,...(manual?{users}: {})});
     }catch{return reply(503,{error:'notification_worker_failed'});}
   };
 }

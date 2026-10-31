@@ -23,3 +23,4 @@ import './styles/weekly-report.css';
 import './styles/mypage-dashboard.css';
 import './styles/responsive.css';
 import './styles/fridge-notifications.css';
+import './styles/manual-reminder-test.css';

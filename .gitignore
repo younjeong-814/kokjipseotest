@@ -11,3 +11,4 @@ dist/
 supabase/.temp/
 supabase/bundles/
 dist-email/
+.local-mail-attempts/

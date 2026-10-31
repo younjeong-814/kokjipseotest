@@ -4,6 +4,7 @@ import { photoRecognitionMiddleware } from './server/photoRecognition';
 import { visionOcrMiddleware } from './server/visionOcr';
 import { recipesMiddleware } from './server/recipes';
 import { geminiRecognizeMiddleware } from './server/geminiRecognize';
+import { manualReminderTestMiddleware } from './server/manualReminderTest';
 
 function recipeApi(foodSafetyKey: string | undefined, mafraKey: string | undefined): Plugin {
   const middleware = recipesMiddleware(foodSafetyKey, mafraKey);
@@ -43,7 +44,7 @@ export default defineConfig(({ mode }) => {
   }
   if(Boolean(env.VITE_SUPABASE_URL)!==Boolean(env.VITE_SUPABASE_PUBLISHABLE_KEY))throw new Error('Supabase URL과 publishable key를 함께 설정해 주세요.');
   return {
-    plugins: [react(), visionOcr(env.GOOGLE_VISION_API_KEY), geminiRecognize(env.GEMINI_API_KEY, env.GEMINI_MODEL), recipeApi(env.FOOD_SAFETY_API_KEY, env.FOOD_API_KEY)],
+    plugins: [react(), {name:'local-reminder-test',configureServer(server){server.middlewares.use('/api/email-reminder-test',manualReminderTestMiddleware(env));}}, visionOcr(env.GOOGLE_VISION_API_KEY), geminiRecognize(env.GEMINI_API_KEY, env.GEMINI_MODEL), recipeApi(env.FOOD_SAFETY_API_KEY, env.FOOD_API_KEY)],
     base: './',
     build:{rollupOptions:{output:{manualChunks:{supabase:['@supabase/supabase-js']}}}},
   };
