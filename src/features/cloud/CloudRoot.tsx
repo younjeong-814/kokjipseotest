@@ -2,16 +2,18 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js';
 import { authRedirectUrl, supabase } from './client';
 import { ensureAnonymousSession } from './anonymous';
-import { rememberAuthReturn, restoreAuthReturn } from './authReturn';
+import { rememberAuthReturn, rememberEmailTransfer, restoreAuthReturn, takeEmailTransfer } from './authReturn';
 import { StorageContext } from './StorageContext';
 import { CloudStorage, cacheKey, preservePendingBeforeReload } from './storage';
 import { mergeSnapshots, parseBackup, snapshotKeys, validateSnapshot, type Snapshot } from './snapshot';
 import { DataBackupSheet, type UnsavedNotice } from './DataBackupSheet';
+import { mergeGuestRecords, stashGuestRecords, takeGuestRecords } from './guestTransfer';
 
 import { AccountContext } from './AccountContext';
 import { ConnectionStatusIcon } from '../../components/ConnectionStatusIcon';
 import { asset } from '../../lib/assets';
 import {useNotificationSettings} from '../notifications/useNotificationSettings';
+import {preferencesChanged} from '../notifications/client';
 import {UTTracker,recordManagedActivity} from '../notifications/UTTracker';
 
 let reloginWithGoogle=restoreAuthReturn();
@@ -38,6 +40,8 @@ function AccountBar({session,data,children}: {session:Session|null;data?:DataMan
     setError('');setBusy(true);
     try {
       rememberAuthReturn();
+      // 이미 다른 계정에 연결된 Google 계정으로 로그인하게 되더라도 신청한 알림 이메일을 이어받도록 티켓을 만든다.
+      if(anonymous&&reminderEmail){const {data}=await supabase.rpc('start_email_settings_transfer');if(typeof data==='string')rememberEmailTransfer(data);}
       const options={redirectTo:authRedirectUrl(),scopes:'openid email profile'};
       const result=anonymous
         ? await supabase.auth.linkIdentity({provider:'google',options})
@@ -48,18 +52,22 @@ function AccountBar({session,data,children}: {session:Session|null;data?:DataMan
   };
   const signOut=async()=>{const {error}=await supabase!.auth.signOut({scope:'local'});if(error)setError('로그아웃하지 못했어요. 다시 시도해 주세요.')};
   const signedIn=Boolean(session && !anonymous);
+  // 익명 계정에 Google을 연결하면 user_metadata·email이 바로 채워지지 않을 수 있어 Google identity 정보로 보완한다.
+  const googleIdentity=session?.user.identities?.find(identity=>identity.provider==='google')?.identity_data;
+  const displayName=String(session?.user.user_metadata.full_name||googleIdentity?.full_name||googleIdentity?.name||'나');
+  const accountEmail=session?.user.email||(typeof googleIdentity?.email==='string'?googleIdentity.email:'');
   const notifications=<section className="settings-notifications" aria-labelledby="settings-notifications-title">
       <div className="settings-section-heading"><h2 id="settings-notifications-title">소비 권장일 알림</h2><p>소비 권장일이 다가오는 식재료를 이메일로 알려드려요.</p></div>
-      {reminderEmail ? <div className="settings-email-preferences">
+      {!reminders.loaded ? null : reminderEmail ? <div className="settings-email-preferences">
         <div className="settings-confirmed-email">
           <span>알림 받을 이메일</span>
           <div><strong>{reminderEmail}</strong><span className="settings-email-badge"><span className="settings-email-badge-icon"><img src={asset('status-success-mark.svg')} alt="" /></span>인증 완료</span></div>
         </div>
         <div className="settings-email-toggle-row">
           <span><strong>이메일 알림 받기</strong><small>소비 권장일 3일 전, 1일 전, 당일에 안내드려요.</small></span>
-          <span className="settings-email-toggle-control">{signedIn && <span className={reminderEnabled ? 'is-on' : ''} aria-hidden="true">{reminderEnabled ? '켜짐' : '꺼짐'}</span>}<button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" disabled={reminders.busy} onClick={()=>void reminders.toggle()}><span /></button></span>
+          <span className="settings-email-toggle-control"><span className={reminderEnabled ? 'is-on' : ''} aria-hidden="true">{reminderEnabled ? '켜짐' : '꺼짐'}</span><button type="button" className={`settings-email-toggle${reminderEnabled ? ' is-on' : ''}`} role="switch" aria-checked={reminderEnabled} aria-label="이메일 알림 받기" disabled={reminders.busy} onClick={()=>void reminders.toggle()}><span /></button></span>
         </div>
-        <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경{signedIn ? <span className="settings-row-chevron" aria-hidden="true"><img src={asset('settings-row-chevron.svg')} alt="" /></span> : <img src={asset('home-list-chevron.svg')} alt="" />}</button>
+        <button type="button" className="settings-email-change" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>알림 이메일 변경<span className="settings-row-chevron" aria-hidden="true"><img src={asset('settings-row-chevron.svg')} alt="" /></span></button>
       </div> : <div className="settings-notice-card">
         <div className="settings-notice-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('notification-bell.svg')} alt="" /></span></span><div><strong>이메일로 알림을 받아보세요</strong><p>냉장고 속 식재료의 소비 권장일이<br />다가오면 이메일로 미리 알려드려요.</p></div></div>
         <button type="button" className="settings-email-button" onClick={()=>window.dispatchEvent(new Event('kokjipseo:open-email-reminder'))}>이메일로 알림 신청하기</button>
@@ -70,7 +78,7 @@ function AccountBar({session,data,children}: {session:Session|null;data?:DataMan
     </section>;
   // Figma 6416:7354 — Google 계정으로 로그인한 사용자(3번 사용자)의 설정 화면.
   if(signedIn && session && data) return <section className="cloud-account is-signed-in" aria-label="계정 및 데이터 관리">
-    <div className="settings-profile"><span className="settings-avatar" aria-hidden="true">{String(session.user.user_metadata.full_name || '나').slice(0,1)}</span><div className="settings-profile-copy"><span className="settings-section-label">내 계정</span><strong>{`${session.user.user_metadata.full_name || '나'}의 냉장고`}</strong>{session.user.email && <p className="account-email">{session.user.email}</p>}</div></div>
+    <div className="settings-profile"><span className="settings-avatar" aria-hidden="true">{displayName.slice(0,1)}</span><div className="settings-profile-copy"><span className="settings-section-label">내 계정</span><strong>{`${displayName}의 냉장고`}</strong>{accountEmail && <p className="account-email">{accountEmail}</p>}</div></div>
     {notifications}
     <section className="settings-data" aria-labelledby="settings-data-title">
       <h2 id="settings-data-title">데이터 관리</h2>
@@ -102,13 +110,19 @@ function AccountBar({session,data,children}: {session:Session|null;data?:DataMan
         <div className="settings-record-copy"><span className="settings-round-icon" aria-hidden="true"><span className="settings-icon-slot"><img src={asset('cloud-upload.svg')} alt="" /></span></span><p>이 브라우저에서 기록을 이용 중이에요.<br />Google 계정을 연결하면 다른 기기에서도<br className="settings-desktop-break" />내 냉장고를 이어서 사용할 수 있어요.</p></div>
         {!supabase ? <p className="settings-cloud-unavailable">클라우드 연결이 아직 설정되지 않았어요.</p> : session && !anonymous ? <button type="button" className="settings-google-button" onClick={()=>void signOut()}>로그아웃</button> : <button type="button" className="settings-google-button" disabled={busy} onClick={()=>void connectGoogle()}>{busy ? '연결 중이에요' : 'Google 계정 연결하기'}</button>}
       </div>
-      <div className="settings-retention-note"><span aria-hidden="true">i</span><p>계정을 연결하기 전에 브라우저의 사이트 데이터를 삭제하면, 기존 기록을 다시 찾기 어려워요.</p></div>
+      {/* Figma 6449:7602 — 알림을 신청한 사용자 화면에는 기록 유지 안내가 없다. */}
+      {!reminderEmail && <div className="settings-retention-note"><span aria-hidden="true">i</span><p>계정을 연결하기 전에 브라우저의 사이트 데이터를 삭제하면, 기존 기록을 다시 찾기 어려워요.</p></div>}
     </section>
     {error&&<p role="alert">{error}</p>}{children}
   </section>;
 }
 function SignedInStorage({session,children}:{session:Session;children:ReactNode}) {
   const [storage,setStorage]=useState<CloudStorage|null>(null);
+  useEffect(()=>{
+    if(session.user.is_anonymous)return;
+    const token=takeEmailTransfer();
+    if(token)void supabase!.rpc('claim_email_settings_transfer',{p_token:token}).then(({data})=>{if(data===true)preferencesChanged();});
+  },[session.user.id,session.user.is_anonymous]);
   const [error,setError]=useState('');const [status,setStatus]=useState('불러오는 중이에요');
   const [retry,setRetry]=useState(0);
   const [conflict,setConflict]=useState(false);
@@ -154,6 +168,8 @@ function SignedInStorage({session,children}:{session:Session;children:ReactNode}
         if(cancelled)return;
         store=new CloudStorage(localStorage,session.user.id,validateSnapshot(data),schedule);
         for(const raw of validateSnapshot(data).activities)observedActivities.add((raw as {id:string}).id);
+        // 이미 있던 Google 계정으로 로그인했다면 직전 임시 계정의 기록을 합친다. 합친 결과는 미전송분으로 저장된다.
+        if(!session.user.is_anonymous){const guest=takeGuestRecords(session.user.id);if(guest)mergeGuestRecords(store,guest);}
         setStorage(store);setError('');setStatus(store.pending?'저장 대기 중이에요':'내 냉장고가 연결됐어요');if(store.pending)schedule();
       }catch{if(!cancelled)setError('계정 데이터를 불러오지 못했어요. DB 설정·연결을 확인해 주세요. 미전송 기록이 있다면 먼저 백업해 주세요.');}
     })();
@@ -199,10 +215,14 @@ export function CloudRoot({children}:{children:ReactNode}) {
     if(!supabase)return;
     setError('');setReady(false);
     if(reloginWithGoogle){
-      // 이미 다른 계정에 연결된 Google 계정이면 연결 대신 그 계정으로 로그인한다. 임시 기록은 합치지 않는다.
-      reloginWithGoogle=false;rememberAuthReturn();
+      // 이미 다른 계정에 연결된 Google 계정이면 연결 대신 그 계정으로 로그인하고, 임시 계정의 기록은 로그인 후 합친다.
+      reloginWithGoogle=false;
+      const {data:{session:guest}}=await supabase.auth.getSession();
+      let stashed=!guest?.user.is_anonymous;
+      if(guest?.user.is_anonymous){try{await stashGuestRecords(guest.user.id,async()=>{const {data,error}=await supabase!.rpc('load_fridge_snapshot');if(error)throw error;return data;});stashed=true;}catch{/* 옮길 기록을 확인하지 못하면 임시 계정에 머문다. */}}
+      if(stashed){rememberAuthReturn();
       const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:authRedirectUrl(),scopes:'openid email profile'}});
-      if(!error)return;
+      if(!error)return;}
     }
     try{setSession(await ensureAnonymousSession(supabase));
     }catch{setError('임시 계정을 준비하지 못했어요. 연결 상태와 Supabase 익명 로그인 설정을 확인한 뒤 다시 시도해 주세요. 기존 기록은 그대로 보관돼요.');}
