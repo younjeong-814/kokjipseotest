@@ -110,3 +110,53 @@
 .settings-profile.is-reminder-active + .settings-notifications { margin-top:20px; }
 .settings-notifications:has(.settings-email-preferences) + .settings-records { margin-top:20px; }
 .settings-email-preferences button:focus-visible { outline:2px solid var(--blue-500); outline-offset:-2px; }
+
+/* Figma 6416:7354 — Google 계정 로그인 사용자 설정. 6430:7609 / 6430:7709 — 데이터 백업 바텀시트. */
+.settings-page:has(> .is-signed-in) { display:flex; flex-direction:column; padding:var(--s5) var(--s5) var(--s6); }
+.settings-page .cloud-account.is-signed-in { flex:1; display:flex; flex-direction:column; gap:32px; }
+.is-signed-in .settings-notifications,.is-signed-in .settings-data { margin-top:0; }
+.is-signed-in .settings-profile { min-height:106px; }
+.is-signed-in .settings-profile .account-email { margin-top:var(--s1); }
+.settings-page .cloud-account.is-signed-in button::after { content:none; }
+.settings-email-toggle-row > .settings-email-toggle-control { flex:none; flex-direction:row; align-items:center; gap:var(--s2); }
+.settings-email-toggle-control > span { color:var(--gray-700); font-size:var(--t1); line-height:var(--lh1); }
+.settings-email-toggle-control > span.is-on { color:var(--blue-500); }
+.settings-row-chevron { width:24px; height:24px; flex:0 0 24px; display:grid; place-items:center; transform:rotate(180deg); }
+.settings-row-chevron img { display:block; }
+.is-signed-in .settings-email-change { min-height:48px; }
+.settings-data { display:flex; flex-direction:column; gap:var(--s4); }
+.settings-data h2 { color:var(--gray-900); font-size:var(--t4); line-height:var(--lh4); font-weight:700; }
+.settings-list-group,.settings-logout-group { border:1px solid var(--gray-100); border-radius:var(--r4); background:var(--gray-0); overflow:hidden; }
+.settings-banner { display:flex; align-items:center; gap:var(--s4); min-height:48px; padding:var(--s3); }
+.settings-banner.is-error { background:var(--red-50); }
+.settings-banner.is-warning { background:var(--orange-50); border-radius:var(--r3); }
+.settings-banner-status { width:16px; height:16px; flex:0 0 16px; display:grid; place-items:center; border-radius:999px; background:var(--red-500); }
+.settings-banner-status img,.settings-banner-icon { display:block; flex:none; }
+.settings-banner-copy { flex:1; min-width:0; color:var(--gray-900); font-size:var(--t2); line-height:20px; }
+.settings-banner-copy small { display:block; color:var(--gray-800); font-size:var(--t1); line-height:20px; }
+.settings-page .cloud-account .settings-banner-action { width:auto; min-width:64px; min-height:40px; height:40px; flex:none; padding:0 var(--s3-5); border:0; border-radius:var(--r2-5); background:transparent; color:var(--blue-800); text-align:center; font-family:inherit; font-size:var(--t2); line-height:var(--lh2); font-weight:700; }
+.settings-page .cloud-account .is-warning .settings-banner-action { color:var(--orange-700); }
+.settings-page .cloud-account .settings-menu-item { min-height:56px; padding:0 var(--s3); border:0; border-radius:0; display:flex; align-items:center; justify-content:space-between; gap:var(--s3); background:var(--gray-0); color:var(--gray-900); font-size:var(--t3); line-height:var(--lh3); font-weight:400; }
+.settings-banner + .settings-menu-item { border-top:1px solid var(--gray-100); }
+.settings-spacer { flex:1 0 0; }
+.settings-page .cloud-account .settings-logout { min-height:50px; padding:var(--s3); border:0; border-radius:0; background:var(--gray-0); color:var(--red-500); text-align:center; font-size:var(--t3); line-height:var(--lh3); font-weight:400; }
+.settings-page .cloud-account :is(.settings-banner-action,.settings-menu-item,.settings-logout):focus-visible { outline:2px solid var(--blue-500); outline-offset:-2px; }
+
+.data-backup-sheet { border-radius:var(--r4) var(--r4) 0 0; }
+.data-backup-sheet::backdrop { background:rgb(42 48 56 / 50%); }
+.data-backup-heading { display:flex; flex-direction:column; gap:var(--s2); padding:var(--s4) var(--s5); }
+.data-backup-heading h2 { color:var(--gray-900); font-size:var(--t5); line-height:var(--lh5); font-weight:700; }
+.data-backup-heading p { color:var(--gray-700); font-size:var(--t2); line-height:var(--lh2); }
+.data-backup-content { display:flex; flex-direction:column; gap:var(--s3-5); padding:0 var(--s5); }
+.settings-page .cloud-account .data-backup-option { min-height:60px; padding:var(--s2) 0; border:0; border-radius:0; display:flex; align-items:center; gap:var(--s3); background:transparent; color:var(--gray-900); text-align:left; font-weight:400; }
+.settings-page .cloud-account .data-backup-option:disabled { opacity:.65; cursor:wait; }
+.settings-page .cloud-account .data-backup-option:focus-visible { outline:2px solid var(--blue-500); outline-offset:2px; }
+.data-backup-icon { width:44px; height:44px; flex:0 0 44px; display:grid; place-items:center; border-radius:22px; background:var(--blue-50); }
+.data-backup-icon img { display:block; }
+.data-backup-text { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--s1); }
+.cloud-account .data-backup-text strong { overflow:hidden; color:var(--gray-900); font-size:var(--t4); line-height:var(--lh4); font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+.data-backup-text small { color:var(--gray-800); font-size:var(--t2); line-height:var(--lh2); }
+.data-backup-chevron { display:block; flex:none; transform:rotate(180deg); }
+.data-backup-footer { padding:var(--s4) var(--s5); }
+.settings-page .cloud-account .data-backup-footer .action-button { height:56px; min-height:56px; padding:0 var(--s5); border:0; border-radius:var(--r4); background:var(--gray-200); color:var(--gray-900); text-align:center; font-size:var(--t4); line-height:var(--lh4); font-weight:700; }
+.settings-page .cloud-account 

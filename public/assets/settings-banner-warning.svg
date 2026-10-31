@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Status Icon" clip-path="url(#clip0_0_227)">
+<g id="Union">
+<path d="M11.4748 10.3434L9.13137 8L11.4748 5.65659L10.3434 4.52522L8 6.86863L5.65659 4.52522L4.52522 5.65659L6.86863 8L4.52522 10.3434L5.65659 11.4748L8 9.13137L10.3434 11.4748L11.4748 10.3434Z" fill="#FB804A"/>
+<path d="M16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0C12.4183 0 16 3.58172 16 8ZM14.5455 8C14.5455 4.38505 11.615 1.45455 8 1.45455C4.38505 1.45455 1.45455 4.38505 1.45455 8C1.45455 11.615 4.38505 14.5455 8 14.5455C11.615 14.5455 14.5455 11.615 14.5455 8Z" fill="#FB804A"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_227">
+<rect width="16" height="16" fill="white"/>
+</clipPath>
+</defs>
+</svg>

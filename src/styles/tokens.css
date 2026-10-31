@@ -15,6 +15,8 @@
 
 :root {
   --gray-0:#fff;
+  --gray-100:#f7f8f9;
+  --gray-200:#f3f4f5;
   --gray-600:#b0b3ba;
   --gray-700:#868b94;
   --gray-800:#555d6d;
@@ -22,13 +24,23 @@
   --blue-50:#eaf5fe;
   --blue-100:#d4ebfe;
   --blue-500:#2a9df8;
+  --blue-800:#113f63;
+  --green-50:#f0fdf4;
   --green-500:#189129;
+  --green-700:#0e5f19;
+  --red-50:#fcebee;
   --red-500:#e53359;
+  --orange-50:#fff2ec;
+  --orange-700:#e06b2c;
+  --s0:0px;
   --s1:4px;
   --s2:8px;
   --s3:12px;
+  --s3-5:14px;
   --s4:16px;
   --s5:20px;
+  --s6:24px;
+  --r2-5:10px;
   --r3:12px;
   --r4:16px;
   --r5:20px;
