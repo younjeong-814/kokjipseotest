@@ -10,7 +10,7 @@ export type ReminderEmail = {
 
 export const EMAIL_APP_BASE_URL='https://younjeong-814.github.io/kokjipseotest/';
 export const EMAIL_APP_LINKS={
-  fridge:`${EMAIL_APP_BASE_URL}#fridge`,
+  fridge:`${EMAIL_APP_BASE_URL}#fridge?source=email`,
   preferences:`${EMAIL_APP_BASE_URL}#settings`,
 } as const;
 const escapeHtml=(value:string)=>value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!));
